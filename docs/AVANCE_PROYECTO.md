@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/usuarios-sesiones`.
-- Fase actual: Fase 3, modulo 1 completado y validado.
-- Fase anterior validada: Fase 2 completada y validada con backend Spring Boot y Docker local.
-- Siguiente hito: merge del modulo `usuarios-sesiones` hacia `main` y creacion de la rama del modulo `caja-diaria`.
+- Rama actual: `feature/caja-diaria`.
+- Fase actual: Fase 3, modulo 2 completado y validado.
+- Fase anterior validada: Fase 3, modulo 1: Seguridad, usuarios y sesiones.
+- Siguiente hito: merge del modulo `caja-diaria` hacia `main` y creacion de la rama del modulo `catalogos-base`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -163,6 +163,57 @@ Observaciones:
 - No se modifico el schema para acomodarlo al codigo.
 - La administracion completa de usuarios, cambio de contrasena y auditoria explicita quedan fuera de este modulo inicial y se retomaran cuando correspondan por flujo documentado.
 
+## Fase 3: Modulo 2 - Caja diaria
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/caja-diaria`.
+
+Tablas canonicas usadas:
+
+- `cajas_diarias`.
+- `cierres_caja`.
+
+Cambios realizados:
+
+- Se implemento entidad JPA `CajaDiaria` respetando la tabla `cajas_diarias`.
+- Se implemento entidad JPA `CierreCaja` respetando la tabla `cierres_caja` como preparacion para el modulo de cierre.
+- Se agregaron repositorios para caja diaria y cierres de caja.
+- Se agrego endpoint `POST /api/cajas-diarias` para apertura.
+- Se agrego endpoint `GET /api/cajas-diarias/abierta`.
+- Se agrego endpoint `GET /api/cajas-diarias/fecha/{fechaOperacion}`.
+- Se implemento validacion de rol para apertura: solo `administrador` y `gerente`.
+- Se implemento validacion para impedir mas de una caja por `fecha_operacion`.
+- Se documento el modulo en `docs/modules/caja-diaria.md`.
+
+Reglas validadas:
+
+- Sin usuario autenticado no se puede abrir caja.
+- Un `vendedor` no puede abrir caja.
+- Un `administrador` puede abrir caja.
+- Un `gerente` puede abrir caja.
+- No se puede abrir una segunda caja para la misma fecha.
+- La caja queda en estado `abierta`.
+- La apertura registra `id_usuario_apertura`.
+- La caja se puede consultar por fecha.
+- La caja abierta se puede consultar.
+
+Validacion realizada:
+
+- Comando: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 8.
+- Fallos: 0.
+- Errores: 0.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene `cajas_diarias` y `cierres_caja`.
+- `valor_base` se conserva en apertura porque existe en el schema, pero sigue excluido de efectivo contado y deposito segun la documentacion.
+- El cierre contable completo queda pendiente para el modulo "Cierre de caja y deposito".
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -190,15 +241,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `usuarios-sesiones` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `caja-diaria` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/usuarios-sesiones
-git switch -c feature/caja-diaria
+git merge --no-ff feature/caja-diaria
+git switch -c feature/catalogos-base
 ```
 
-La siguiente implementacion sera Fase 3, modulo 2: Caja diaria.
+La siguiente implementacion sera Fase 3, modulo 3: Catalogos base.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
