@@ -1,0 +1,32 @@
+# Entorno
+.env
+*.env
+!*.env.example
+
+# Java / Spring Boot
+target/
+*.class
+*.jar
+*.war
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker local
+*.pid
+

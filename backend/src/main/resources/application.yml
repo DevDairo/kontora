@@ -1,0 +1,31 @@
+server:
+  port: ${APP_PORT:8080}
+
+spring:
+  application:
+    name: kontora-pos-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kontora_pos}?sslmode=${DB_SSLMODE:disable}
+    username: ${DB_USER:kontora_pos}
+    password: ${DB_PASSWORD:kontora_pos_local_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
