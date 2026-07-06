@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `chore/inicializacion-entorno-docker`.
-- Fase actual: Fase 2 iniciada.
-- Fase anterior validada: Fase 1 completada y validada operativamente con PostgreSQL local.
-- Siguiente hito: backend Spring Boot compilando con endpoint `GET /api/health`.
+- Rama actual: `feature/usuarios-sesiones`.
+- Fase actual: Fase 3, modulo 1 completado y validado.
+- Fase anterior validada: Fase 2 completada y validada con backend Spring Boot y Docker local.
+- Siguiente hito: merge del modulo `usuarios-sesiones` hacia `main` y creacion de la rama del modulo `caja-diaria`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -111,6 +111,58 @@ Conclusion:
 - Fase 2 queda cerrada.
 - Se puede iniciar Fase 3, modulo 1: Seguridad, usuarios y sesiones.
 
+## Fase 3: Modulo 1 - Seguridad, usuarios y sesiones
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/usuarios-sesiones`.
+
+Tablas canonicas usadas:
+
+- `roles`.
+- `usuarios`.
+- `credenciales_usuario`.
+- `sesiones_usuario`.
+
+Cambios realizados:
+
+- Se implementaron entidades JPA respetando `@Table`, `@Column` y nombres reales del schema.
+- Se agregaron repositorios para usuarios, credenciales y sesiones.
+- Se implemento autenticacion con `nombre_usuario` y contrasena BCrypt almacenada en `credenciales_usuario.contrasena_hash`.
+- Se implemento generacion y validacion de JWT con identificador `jti`.
+- Se persiste la sesion en `sesiones_usuario.token_identificador` usando el `jti`, no el token completo.
+- Se agrego filtro de autenticacion para validar token, expiracion, usuario activo y sesion `activa`.
+- Se agregaron endpoints:
+  - `POST /api/auth/login`.
+  - `GET /api/auth/me`.
+  - `POST /api/auth/logout`.
+- Se agrego manejo de errores API con respuesta JSON.
+- Se documento el modulo en `docs/modules/usuarios-sesiones.md`.
+
+Reglas validadas:
+
+- Usuario activo puede iniciar sesion.
+- Usuario bloqueado no puede iniciar sesion.
+- Login exitoso crea una sesion activa en `sesiones_usuario`.
+- Token valido permite consultar `GET /api/auth/me`.
+- Logout cambia la sesion a cerrada.
+- El mismo token deja de autorizar despues del logout.
+
+Validacion realizada:
+
+- Comando: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 4.
+- Fallos: 0.
+- Errores: 0.
+
+Observaciones:
+
+- No se modifico el schema para acomodarlo al codigo.
+- La administracion completa de usuarios, cambio de contrasena y auditoria explicita quedan fuera de este modulo inicial y se retomaran cuando correspondan por flujo documentado.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -138,15 +190,15 @@ Conclusion:
 
 ## Proxima validacion esperada
 
-Cuando Docker tenga permiso local:
+Despues del merge manual del modulo `usuarios-sesiones` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
-```bash
-docker compose -f infra/compose.local.yml up -d postgres
-docker ps
-docker logs kontora_pos_postgres_local
+```powershell
+git switch main
+git merge --no-ff feature/usuarios-sesiones
+git switch -c feature/caja-diaria
 ```
 
-Despues de validar PostgreSQL local, se puede iniciar Fase 2.
+La siguiente implementacion sera Fase 3, modulo 2: Caja diaria.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
