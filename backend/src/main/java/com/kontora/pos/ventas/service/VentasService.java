@@ -10,11 +10,13 @@ import com.kontora.pos.catalogos.repository.PrecioGranizadoRepository;
 import com.kontora.pos.catalogos.repository.PromocionRepository;
 import com.kontora.pos.common.exception.ApiException;
 import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.inventario.service.InventarioService;
 import com.kontora.pos.usuarios.domain.Usuario;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
 import com.kontora.pos.ventas.domain.DetalleVenta;
 import com.kontora.pos.ventas.domain.PagoVenta;
 import com.kontora.pos.ventas.domain.Venta;
+import com.kontora.pos.ventas.dto.AnularVentaRequest;
 import com.kontora.pos.ventas.dto.DetalleVentaResponse;
 import com.kontora.pos.ventas.dto.PagoVentaResponse;
 import com.kontora.pos.ventas.dto.RegistrarDetalleVentaRequest;
@@ -45,6 +47,7 @@ public class VentasService {
 
     private static final String ESTADO_CAJA_ABIERTA = "abierta";
     private static final String ESTADO_VENTA_REGISTRADA = "registrada";
+    private static final String ESTADO_VENTA_ANULADA = "anulada";
     private static final String METODO_EFECTIVO = "efectivo";
     private static final String METODO_TRANSFERENCIA = "transferencia";
     private static final String TIPO_CLIENTE = "cliente";
@@ -58,6 +61,7 @@ public class VentasService {
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final PagoVentaRepository pagoVentaRepository;
+    private final InventarioService inventarioService;
     private final EntityManager entityManager;
 
     public VentasService(
@@ -69,6 +73,7 @@ public class VentasService {
             VentaRepository ventaRepository,
             DetalleVentaRepository detalleVentaRepository,
             PagoVentaRepository pagoVentaRepository,
+            InventarioService inventarioService,
             EntityManager entityManager) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.usuarioRepository = usuarioRepository;
@@ -78,6 +83,7 @@ public class VentasService {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.pagoVentaRepository = pagoVentaRepository;
+        this.inventarioService = inventarioService;
         this.entityManager = entityManager;
     }
 
@@ -118,8 +124,34 @@ public class VentasService {
                 request.pagos().stream()
                         .map(pago -> crearPagoVenta(ventaGuardada, pago))
                         .toList());
+        inventarioService.descontarVasosPorVenta(ventaGuardada, detallesGuardados, usuarioVendedor);
 
         return toResponse(ventaGuardada, detallesGuardados, pagosGuardados);
+    }
+
+    @Transactional
+    public VentaResponse anularVenta(UUID idVenta, AnularVentaRequest request, PrincipalUsuario principalUsuario) {
+        Venta venta = ventaRepository.findByIdVenta(idVenta)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
+        if (!ESTADO_VENTA_REGISTRADA.equals(venta.getEstadoVenta())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Solo se pueden anular ventas registradas");
+        }
+        if (!ESTADO_CAJA_ABIERTA.equals(venta.getCajaDiaria().getEstadoCaja())) {
+            throw new ApiException(HttpStatus.CONFLICT, "No se puede anular una venta con caja diaria cerrada");
+        }
+
+        Usuario usuarioAnulacion = obtenerUsuario(principalUsuario.idUsuario(), "Usuario anulacion no encontrado");
+        List<DetalleVenta> detalles = detalleVentaRepository.findByVenta_IdVenta(idVenta);
+        inventarioService.restaurarVasosPorAnulacion(venta, detalles, usuarioAnulacion);
+
+        venta.setEstadoVenta(ESTADO_VENTA_ANULADA);
+        venta.setMotivoAnulacion(request.motivoAnulacion().trim());
+        venta.setFechaAnulacion(OffsetDateTime.now());
+        venta.setUsuarioAnulacion(usuarioAnulacion);
+        Venta ventaGuardada = ventaRepository.saveAndFlush(venta);
+        List<PagoVenta> pagos = pagoVentaRepository.findByVenta_IdVenta(idVenta);
+
+        return toResponse(ventaGuardada, detalles, pagos);
     }
 
     private CajaDiaria obtenerCajaAbierta() {
