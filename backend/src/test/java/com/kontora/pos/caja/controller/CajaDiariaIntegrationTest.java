@@ -172,18 +172,26 @@ class CajaDiariaIntegrationTest {
 
     private void limpiarDatosDePrueba() {
         jdbcTemplate.update("""
+                DELETE FROM ventas
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria FROM cajas_diarias
+                    WHERE observaciones LIKE 'test_%'
+                    OR fecha_operacion >= DATE '2099-01-01'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM cierres_caja
                 WHERE id_caja_diaria IN (
                     SELECT id_caja_diaria FROM cajas_diarias
-                    WHERE observaciones LIKE 'test_caja_%'
-                    OR fecha_operacion IN (?, ?)
+                    WHERE observaciones LIKE 'test_%'
+                    OR fecha_operacion >= DATE '2099-01-01'
                 )
-                """, FECHA_OPERACION, FECHA_DUPLICADA);
+                """);
         jdbcTemplate.update("""
                 DELETE FROM cajas_diarias
-                WHERE observaciones LIKE 'test_caja_%'
-                OR fecha_operacion IN (?, ?)
-                """, FECHA_OPERACION, FECHA_DUPLICADA);
+                WHERE observaciones LIKE 'test_%'
+                OR fecha_operacion >= DATE '2099-01-01'
+                """);
         jdbcTemplate.update("""
                 DELETE FROM sesiones_usuario
                 WHERE id_usuario IN (

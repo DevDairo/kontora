@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/catalogos-base`.
-- Fase actual: Fase 3, modulo 3 completado y validado.
-- Fase anterior validada: Fase 3, modulo 2: Caja diaria.
-- Siguiente hito: merge del modulo `catalogos-base` hacia `main` y creacion de la rama del modulo `ventas-pagos`.
+- Rama actual: `feature/ventas-pagos`.
+- Fase actual: Fase 3, modulo 4 completado y validado.
+- Fase anterior validada: Fase 3, modulo 3: Catalogos base.
+- Siguiente hito: merge del modulo `ventas-pagos` hacia `main` y creacion de la rama del modulo `inventario-operativo`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -275,6 +275,65 @@ Observaciones:
 - No se implemento `items_inventario.cantidad_minima_alerta` porque esa columna aparece en documentacion adaptada, pero no existe en `kontora_pos_schema.txt`.
 - La aplicacion exacta de promociones por tipo de comprador y dia de semana queda para el modulo "Ventas y pagos".
 
+## Fase 3: Modulo 4 - Ventas y pagos
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/ventas-pagos`.
+
+Tablas canonicas usadas:
+
+- `ventas`.
+- `detalles_venta`.
+- `pagos_venta`.
+- `cajas_diarias`.
+- `usuarios`.
+- `tipos_granizado`.
+- `tamanos_vaso`.
+- `precios_granizado`.
+- `promociones`.
+- `dias_promocion`.
+- `metodos_pago`.
+
+Cambios realizados:
+
+- Se implementaron entidades JPA para `ventas`, `detalles_venta` y `pagos_venta`.
+- Se agregaron repositorios para ventas, detalles y pagos.
+- Se agrego endpoint `POST /api/ventas`.
+- Se implemento calculo de precio vigente por tipo de granizado y tamano.
+- Se implemento aplicacion de promocion 2x por conjuntos completos.
+- Se implemento pago en efectivo con `valor_recibido_efectivo` y `cambio_entregado`.
+- Se implemento pago por transferencia con `estado_validacion = 'pendiente'`.
+- Se implemento pago hibrido como multiples filas en `pagos_venta`.
+- Se corrigio aislamiento de pruebas entre caja diaria y ventas.
+- Se documento el modulo en `docs/modules/ventas-pagos.md`.
+
+Reglas validadas:
+
+- No se puede vender sin caja abierta.
+- La venta queda asociada a una caja diaria abierta.
+- El total de venta coincide con los detalles calculados.
+- La suma de pagos coincide con `ventas.total_venta`.
+- La promocion 2x aplica por pares del mismo tamano.
+- Las unidades sobrantes se cobran a precio normal.
+- Transferencias quedan pendientes de validacion.
+
+Validacion realizada:
+
+- Comando: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 16.
+- Fallos: 0.
+- Errores: 0.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene ventas, detalles y pagos.
+- La anulacion con restauracion de stock diario queda para el modulo "Inventario operativo", donde tambien se implementaran movimientos de inventario.
+- Evidencias de transferencia quedan para el modulo "Evidencias y almacenamiento".
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -302,15 +361,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `catalogos-base` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `ventas-pagos` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/catalogos-base
-git switch -c feature/ventas-pagos
+git merge --no-ff feature/ventas-pagos
+git switch -c feature/inventario-operativo
 ```
 
-La siguiente implementacion sera Fase 3, modulo 4: Ventas y pagos.
+La siguiente implementacion sera Fase 3, modulo 5: Inventario operativo.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
