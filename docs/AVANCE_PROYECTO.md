@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/inventario-operativo`.
-- Fase actual: Fase 3, modulo 5 completado y validado.
-- Fase anterior validada: Fase 3, modulo 4: Ventas y pagos.
-- Siguiente hito: merge del modulo `inventario-operativo` hacia `main` y creacion de la rama del modulo `gastos-adiciones-pago-trabajadores`.
+- Rama actual: `feature/gastos-adiciones-pago-trabajadores`.
+- Fase actual: Fase 3, modulo 6 completado y validado.
+- Fase anterior validada: Fase 3, modulo 5: Inventario operativo.
+- Siguiente hito: merge del modulo `gastos-adiciones-pago-trabajadores` hacia `main` y creacion de la rama del modulo `cierre-caja-deposito`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -396,6 +396,68 @@ Observaciones:
 - Los ajustes de inventario con aprobacion quedan pendientes para una ampliacion posterior del flujo de inventario o auditoria transversal.
 - El conteo fisico final y diferencias de inventario diario se completaran con el modulo "Cierre de caja y deposito".
 
+## Fase 3: Modulo 6 - Gastos, adiciones y pago a trabajadores
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/gastos-adiciones-pago-trabajadores`.
+
+Tablas canonicas usadas:
+
+- `adiciones_diarias`.
+- `pagos_trabajadores_diarios`.
+- `gastos_caja`.
+- `cajas_diarias`.
+- `usuarios`.
+
+Cambios realizados:
+
+- Se implementaron entidades JPA para `adiciones_diarias`, `pagos_trabajadores_diarios` y `gastos_caja`.
+- Se agregaron repositorios para operaciones diarias de caja.
+- Se agrego servicio transaccional `OperacionesCajaService`.
+- Se agrego endpoint `POST /api/operaciones-caja/adiciones-diarias`.
+- Se agrego endpoint `GET /api/operaciones-caja/adiciones-diarias/abierta`.
+- Se agrego endpoint `POST /api/operaciones-caja/gastos-caja`.
+- Se agrego endpoint `GET /api/operaciones-caja/gastos-caja/abierta`.
+- Se agrego endpoint `PUT /api/operaciones-caja/gastos-caja/{idGastoCaja}`.
+- Se agrego endpoint `POST /api/operaciones-caja/gastos-caja/{idGastoCaja}/anular`.
+- Se agrego endpoint `POST /api/operaciones-caja/pagos-trabajadores-diarios`.
+- Se agrego endpoint `GET /api/operaciones-caja/pagos-trabajadores-diarios/abierta`.
+- Se agrego endpoint `POST /api/operaciones-caja/pagos-trabajadores-diarios/{idPagoTrabajadoresDiario}/confirmar`.
+- Se documento el modulo en `docs/modules/gastos-adiciones-pago-trabajadores.md`.
+
+Reglas validadas:
+
+- Sin usuario autenticado no se pueden consultar operaciones de caja.
+- No se registran gastos sin caja abierta.
+- El rol `vendedor` puede registrar gastos.
+- El rol `vendedor` no puede editar ni anular gastos.
+- `administrador` y `gerente` pueden editar y anular gastos.
+- Un gasto editado conserva usuario, fecha y motivo de edicion.
+- Un gasto anulado conserva usuario, fecha y motivo de anulacion.
+- Las adiciones tienen un unico registro por caja y se pueden actualizar mientras la caja esta abierta.
+- El pago diario a trabajadores puede registrarse y confirmarse para cierre.
+- Si el pago a trabajadores es cero, requiere confirmacion explicita.
+- El rol `vendedor` no puede registrar pago diario a trabajadores.
+
+Validacion realizada:
+
+- Comando: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 29.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas de operaciones diarias de caja.
+- La consolidacion contable de gastos, adiciones y pago a trabajadores queda para el modulo "Cierre de caja y deposito".
+- Evidencias de gastos quedan para el modulo "Evidencias y almacenamiento".
+- Auditoria explicita de ediciones y anulaciones queda para el modulo transversal de auditoria.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -423,15 +485,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `inventario-operativo` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `gastos-adiciones-pago-trabajadores` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/inventario-operativo
-git switch -c feature/gastos-adiciones-pago-trabajadores
+git merge --no-ff feature/gastos-adiciones-pago-trabajadores
+git switch -c feature/cierre-caja-deposito
 ```
 
-La siguiente implementacion sera Fase 3, modulo 6: Gastos, adiciones y pago a trabajadores.
+La siguiente implementacion sera Fase 3, modulo 7: Cierre de caja y deposito.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
