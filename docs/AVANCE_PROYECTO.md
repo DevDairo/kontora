@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/ventas-pagos`.
-- Fase actual: Fase 3, modulo 4 completado y validado.
-- Fase anterior validada: Fase 3, modulo 3: Catalogos base.
-- Siguiente hito: merge del modulo `ventas-pagos` hacia `main` y creacion de la rama del modulo `inventario-operativo`.
+- Rama actual: `feature/inventario-operativo`.
+- Fase actual: Fase 3, modulo 5 completado y validado.
+- Fase anterior validada: Fase 3, modulo 4: Ventas y pagos.
+- Siguiente hito: merge del modulo `inventario-operativo` hacia `main` y creacion de la rama del modulo `gastos-adiciones-pago-trabajadores`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -331,8 +331,70 @@ Validacion realizada:
 Observaciones:
 
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene ventas, detalles y pagos.
-- La anulacion con restauracion de stock diario queda para el modulo "Inventario operativo", donde tambien se implementaran movimientos de inventario.
+- La anulacion con restauracion de stock diario se implemento posteriormente en el modulo "Inventario operativo", junto con movimientos de inventario.
 - Evidencias de transferencia quedan para el modulo "Evidencias y almacenamiento".
+
+## Fase 3: Modulo 5 - Inventario operativo
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/inventario-operativo`.
+
+Tablas canonicas usadas:
+
+- `items_inventario`.
+- `existencias_inventario_general`.
+- `existencias_inventario_diario`.
+- `movimientos_inventario`.
+- `paquetes_vasos_abiertos`.
+- `consumos_diarios_inventario`.
+- `ventas`.
+- `detalles_venta`.
+- `cajas_diarias`.
+- `usuarios`.
+
+Cambios realizados:
+
+- Se implementaron entidades JPA para existencias generales, existencias diarias, movimientos, paquetes de vasos abiertos y consumos diarios.
+- Se agregaron repositorios para inventario operativo con bloqueo pesimista en filas de existencia modificables.
+- Se agrego endpoint `GET /api/inventario/existencias/general`.
+- Se agrego endpoint `GET /api/inventario/existencias/diarias/abierta`.
+- Se agrego endpoint `GET /api/inventario/existencias/diarias/caja/{idCajaDiaria}`.
+- Se agrego endpoint `POST /api/inventario/paquetes-vasos`.
+- Se agrego endpoint `POST /api/inventario/consumos-diarios`.
+- Se agrego endpoint `GET /api/inventario/movimientos`.
+- Se agrego endpoint `POST /api/ventas/{idVenta}/anular`.
+- Se integro `POST /api/ventas` con descuento automatico de vasos en stock diario.
+- Se integro anulacion de venta con restauracion de vasos en stock diario.
+- Se documento el modulo en `docs/modules/inventario-operativo.md`.
+- Se actualizo `docs/modules/ventas-pagos.md` para reflejar la anulacion implementada en este modulo.
+
+Reglas validadas:
+
+- Sin usuario autenticado no se puede consultar inventario.
+- Solo administrador o gerente puede registrar paquetes de vasos y consumos manuales.
+- La apertura de paquetes descuenta stock general y aumenta stock diario.
+- Los vasos rotos al abrir paquetes aumentan `cantidad_perdida`.
+- Todo cambio de stock genera movimiento de inventario.
+- Cada movimiento registra `referencia_origen` e `id_referencia_origen`.
+- No se permite consumo manual sobre items `automatico_por_venta`.
+- No se permiten movimientos que dejen stock general o diario negativo.
+- Una venta descuenta vasos de `existencias_inventario_diario`.
+- Una anulacion restaura vasos de `existencias_inventario_diario`.
+
+Validacion realizada:
+
+- Comando: `mvn clean test`.
+- Resultado: exitoso, `BUILD SUCCESS` reportado por el usuario.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas de inventario operativo.
+- No se implemento `items_inventario.cantidad_minima_alerta` porque esa columna no existe en `kontora_pos_schema.txt`.
+- Los ajustes de inventario con aprobacion quedan pendientes para una ampliacion posterior del flujo de inventario o auditoria transversal.
+- El conteo fisico final y diferencias de inventario diario se completaran con el modulo "Cierre de caja y deposito".
 
 ## Reglas activas para las siguientes fases
 
@@ -361,15 +423,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `ventas-pagos` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `inventario-operativo` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/ventas-pagos
-git switch -c feature/inventario-operativo
+git merge --no-ff feature/inventario-operativo
+git switch -c feature/gastos-adiciones-pago-trabajadores
 ```
 
-La siguiente implementacion sera Fase 3, modulo 5: Inventario operativo.
+La siguiente implementacion sera Fase 3, modulo 6: Gastos, adiciones y pago a trabajadores.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 

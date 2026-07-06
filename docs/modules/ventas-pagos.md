@@ -34,6 +34,7 @@ El modulo se implementa sobre las tablas reales del schema:
 | Metodo | Ruta | Autenticacion | Proposito |
 | :- | :- | :- | :- |
 | POST | `/api/ventas` | Si | Registrar venta con detalles y pagos. |
+| POST | `/api/ventas/{idVenta}/anular` | Si | Anular una venta registrada. La restauracion de stock diario se implementa en el modulo "Inventario operativo". |
 
 ## Flujo de venta normal
 
@@ -100,7 +101,5 @@ El modulo se implementa sobre las tablas reales del schema:
 
 ## Pendientes
 
-- Anulacion con restauracion de stock diario se implementara en el modulo "Inventario operativo".
-- Registro de movimientos de inventario por venta/anulacion se implementara en el modulo "Inventario operativo".
 - Evidencias de transferencia se implementaran en el modulo "Evidencias y almacenamiento".
 - Auditoria explicita de anulaciones y validaciones se implementara en el modulo transversal de auditoria.
