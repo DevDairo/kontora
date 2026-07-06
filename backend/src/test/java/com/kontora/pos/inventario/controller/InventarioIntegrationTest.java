@@ -377,6 +377,16 @@ class InventarioIntegrationTest {
                 )
                 """);
         jdbcTemplate.update("""
+                DELETE FROM movimientos_deposito
+                WHERE id_cierre_caja IN (
+                    SELECT cc.id_cierre_caja
+                    FROM cierres_caja cc
+                    JOIN cajas_diarias cd ON cd.id_caja_diaria = cc.id_caja_diaria
+                    WHERE cd.fecha_operacion >= DATE '2099-01-01'
+                    OR cd.observaciones LIKE 'test_inventario_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM cierres_caja
                 WHERE id_caja_diaria IN (
                     SELECT id_caja_diaria
