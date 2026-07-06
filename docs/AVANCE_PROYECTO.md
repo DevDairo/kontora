@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/caja-diaria`.
-- Fase actual: Fase 3, modulo 2 completado y validado.
-- Fase anterior validada: Fase 3, modulo 1: Seguridad, usuarios y sesiones.
-- Siguiente hito: merge del modulo `caja-diaria` hacia `main` y creacion de la rama del modulo `catalogos-base`.
+- Rama actual: `feature/catalogos-base`.
+- Fase actual: Fase 3, modulo 3 completado y validado.
+- Fase anterior validada: Fase 3, modulo 2: Caja diaria.
+- Siguiente hito: merge del modulo `catalogos-base` hacia `main` y creacion de la rama del modulo `ventas-pagos`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -214,6 +214,67 @@ Observaciones:
 - `valor_base` se conserva en apertura porque existe en el schema, pero sigue excluido de efectivo contado y deposito segun la documentacion.
 - El cierre contable completo queda pendiente para el modulo "Cierre de caja y deposito".
 
+## Fase 3: Modulo 3 - Catalogos base
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/catalogos-base`.
+
+Tablas canonicas usadas:
+
+- `roles`.
+- `metodos_pago`.
+- `tipos_granizado`.
+- `tamanos_vaso`.
+- `precios_granizado`.
+- `promociones`.
+- `dias_promocion`.
+- `categorias_inventario`.
+- `unidades_medida`.
+- `items_inventario`.
+- `tipos_servicio`.
+
+Cambios realizados:
+
+- Se implementaron entidades JPA para los catalogos definidos por el schema.
+- Se agregaron repositorios de lectura con consultas nativas para filtrar enums por valores canonicos.
+- Se agrego endpoint `GET /api/catalogos/roles`.
+- Se agrego endpoint `GET /api/catalogos/metodos-pago`.
+- Se agrego endpoint `GET /api/catalogos/tipos-granizado`.
+- Se agrego endpoint `GET /api/catalogos/tamanos-vaso`.
+- Se agrego endpoint `GET /api/catalogos/categorias-inventario`.
+- Se agrego endpoint `GET /api/catalogos/unidades-medida`.
+- Se agrego endpoint `GET /api/catalogos/items-inventario`.
+- Se agrego endpoint `GET /api/catalogos/precios-granizado/vigentes`.
+- Se agrego endpoint `GET /api/catalogos/promociones/vigentes`.
+- Se agrego endpoint `GET /api/catalogos/tipos-servicio`.
+- Se documento el modulo en `docs/modules/catalogos-base.md`.
+
+Reglas validadas:
+
+- Sin usuario autenticado no se pueden consultar catalogos internos.
+- Los catalogos base activos se consultan correctamente.
+- Los precios vigentes se filtran por fecha y estado.
+- Las promociones vigentes se filtran por fecha y estado.
+- Las promociones devuelven sus dias configurados en `dias_promocion`.
+- Los items inactivos no aparecen en operaciones normales.
+
+Validacion realizada:
+
+- Comando: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 12.
+- Fallos: 0.
+- Errores: 0.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas y datos iniciales de catalogos.
+- No se implemento `items_inventario.cantidad_minima_alerta` porque esa columna aparece en documentacion adaptada, pero no existe en `kontora_pos_schema.txt`.
+- La aplicacion exacta de promociones por tipo de comprador y dia de semana queda para el modulo "Ventas y pagos".
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -241,15 +302,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `caja-diaria` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `catalogos-base` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/caja-diaria
-git switch -c feature/catalogos-base
+git merge --no-ff feature/catalogos-base
+git switch -c feature/ventas-pagos
 ```
 
-La siguiente implementacion sera Fase 3, modulo 3: Catalogos base.
+La siguiente implementacion sera Fase 3, modulo 4: Ventas y pagos.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
