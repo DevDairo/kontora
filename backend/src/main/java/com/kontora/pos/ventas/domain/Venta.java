@@ -156,11 +156,23 @@ public class Venta {
         return motivoAnulacion;
     }
 
+    public void setMotivoAnulacion(String motivoAnulacion) {
+        this.motivoAnulacion = motivoAnulacion;
+    }
+
     public OffsetDateTime getFechaAnulacion() {
         return fechaAnulacion;
     }
 
+    public void setFechaAnulacion(OffsetDateTime fechaAnulacion) {
+        this.fechaAnulacion = fechaAnulacion;
+    }
+
     public Usuario getUsuarioAnulacion() {
         return usuarioAnulacion;
+    }
+
+    public void setUsuarioAnulacion(Usuario usuarioAnulacion) {
+        this.usuarioAnulacion = usuarioAnulacion;
     }
 }

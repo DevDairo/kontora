@@ -3,8 +3,10 @@ package com.kontora.pos.catalogos.repository;
 import com.kontora.pos.catalogos.domain.ItemInventario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ItemInventarioRepository extends JpaRepository<ItemInventario, UUID> {
@@ -22,4 +24,14 @@ public interface ItemInventarioRepository extends JpaRepository<ItemInventario, 
             ORDER BY ii.nombre_item
             """, nativeQuery = true)
     List<ItemInventario> findActivosParaOperacion();
+
+    @Query(value = """
+            SELECT ii.*
+            FROM items_inventario ii
+            WHERE ii.id_tamano_vaso = :idTamanoVaso
+              AND ii.tipo_control = 'automatico_por_venta'
+              AND ii.estado = 'activo'
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<ItemInventario> findVasoActivoPorTamano(@Param("idTamanoVaso") UUID idTamanoVaso);
 }

@@ -216,7 +216,7 @@ class VentasIntegrationTest {
     }
 
     private void crearCajaAbierta() {
-        jdbcTemplate.update("""
+        UUID idCajaDiaria = jdbcTemplate.queryForObject("""
                 INSERT INTO cajas_diarias (
                     fecha_operacion,
                     estado_caja,
@@ -225,7 +225,32 @@ class VentasIntegrationTest {
                     observaciones
                 )
                 VALUES (?, 'abierta'::estado_caja_enum, 300000, ?, 'test_ventas_caja')
-                """, FECHA_CAJA, idUsuarioAdmin);
+                RETURNING id_caja_diaria
+                """, UUID.class, FECHA_CAJA, idUsuarioAdmin);
+        crearStockDiarioVaso(idCajaDiaria, 8, 20);
+    }
+
+    private void crearStockDiarioVaso(UUID idCajaDiaria, int onzas, int cantidadInicial) {
+        UUID idItemInventario = jdbcTemplate.queryForObject("""
+                SELECT ii.id_item_inventario
+                FROM items_inventario ii
+                JOIN tamanos_vaso tv ON tv.id_tamano_vaso = ii.id_tamano_vaso
+                WHERE tv.onzas = ?
+                AND ii.tipo_control = 'automatico_por_venta'
+                """, UUID.class, onzas);
+        jdbcTemplate.update("""
+                INSERT INTO existencias_inventario_diario (
+                    id_caja_diaria,
+                    id_item_inventario,
+                    cantidad_inicial,
+                    cantidad_ingresada,
+                    cantidad_vendida,
+                    cantidad_perdida,
+                    cantidad_ajustada,
+                    cantidad_final_teorica
+                )
+                VALUES (?, ?, ?, 0, 0, 0, 0, ?)
+                """, idCajaDiaria, idItemInventario, cantidadInicial, cantidadInicial);
     }
 
     private String iniciarSesion(String nombreUsuario) throws Exception {
@@ -270,7 +295,28 @@ class VentasIntegrationTest {
 
     private void limpiarDatosDePrueba() {
         jdbcTemplate.update("""
+                DELETE FROM movimientos_inventario
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_ventas_%'
+                )
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM ventas
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_%'
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM existencias_inventario_diario
                 WHERE id_caja_diaria IN (
                     SELECT id_caja_diaria
                     FROM cajas_diarias
