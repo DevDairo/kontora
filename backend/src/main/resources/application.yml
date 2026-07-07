@@ -29,3 +29,9 @@ management:
       exposure:
         include: health,info
 
+kontora:
+  storage:
+    supabase:
+      url: ${SUPABASE_URL:}
+      service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+      bucket: ${SUPABASE_STORAGE_BUCKET:evidencias}
