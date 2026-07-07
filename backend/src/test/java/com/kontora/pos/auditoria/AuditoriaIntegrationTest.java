@@ -394,6 +394,18 @@ class AuditoriaIntegrationTest {
                 )
                 """);
         jdbcTemplate.update("""
+                DELETE FROM gastos_caja
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auditoria_%'
+                )
+                OR id_usuario_ultima_edicion IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auditoria_%'
+                )
+                OR id_usuario_anulacion IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auditoria_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM adiciones_diarias
                 WHERE id_caja_diaria IN (
                     SELECT id_caja_diaria
