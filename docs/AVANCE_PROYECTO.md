@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/auditoria-operaciones`.
-- Fase actual: Fase 3, modulo 9 completado y validado.
-- Fase anterior validada: Fase 3, modulo 8: Evidencias y almacenamiento.
-- Siguiente hito: merge del modulo `auditoria-operaciones` hacia `main` e inicio del modulo `consultas-operativas`.
+- Rama actual: `feature/consultas-operativas`.
+- Fase actual: Fase 3, modulo 10 completado y validado.
+- Fase anterior validada: Fase 3, modulo 9: Auditoria transversal.
+- Siguiente hito: merge manual del modulo `consultas-operativas` hacia `main` y definicion de la siguiente fase.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -694,6 +694,87 @@ Observaciones:
 - Solicitud, aprobacion y rechazo de ajustes de inventario quedan pendientes porque el flujo operativo de `ajustes_inventario` aun no esta implementado.
 - Cambios de precios, promociones y configuraciones quedan pendientes hasta implementar sus flujos administrativos.
 - La consulta filtrada de auditoria queda para el modulo "Consultas operativas".
+
+## Fase 3: Modulo 10 - Consultas operativas
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/consultas-operativas`.
+
+Tablas canonicas usadas:
+
+- `ventas`.
+- `pagos_venta`.
+- `metodos_pago`.
+- `cajas_diarias`.
+- `cierres_caja`.
+- `gastos_caja`.
+- `items_inventario`.
+- `categorias_inventario`.
+- `unidades_medida`.
+- `tamanos_vaso`.
+- `existencias_inventario_general`.
+- `existencias_inventario_diario`.
+- `movimientos_inventario`.
+- `movimientos_deposito`.
+- `archivos_evidencia`.
+- `auditoria_operaciones`.
+- `usuarios`.
+
+Cambios realizados:
+
+- Se implemento el modulo backend `consultas` para consultas de solo lectura.
+- Se agrego controlador `GET /api/consultas/...`.
+- Se agrego servicio transaccional de lectura con validacion de permisos por rol.
+- Se agrego repositorio de consultas nativas tipadas con `NamedParameterJdbcTemplate`.
+- Se agrego endpoint `GET /api/consultas/ventas`.
+- Se agrego endpoint `GET /api/consultas/cierre`.
+- Se agrego endpoint `GET /api/consultas/gastos`.
+- Se agrego endpoint `GET /api/consultas/inventario/actual`.
+- Se agrego endpoint `GET /api/consultas/inventario/movimientos`.
+- Se agrego endpoint `GET /api/consultas/deposito/movimientos`.
+- Se agrego endpoint `GET /api/consultas/transferencias`.
+- Se agrego endpoint `GET /api/consultas/auditoria`.
+- Se reforzo la limpieza de `AuditoriaIntegrationTest` para eliminar gastos residuales asociados a usuarios de prueba antes de borrar dichos usuarios.
+- Se documento el modulo en `docs/modules/consultas-operativas.md`.
+
+Reglas validadas:
+
+- Las consultas no modifican informacion.
+- Un `vendedor` solo consulta ventas, gastos y transferencias propias.
+- Un `vendedor` puede consultar informacion operativa de inventario.
+- Un `vendedor` no puede consultar cierre, deposito ni auditoria.
+- Un `administrador` consulta cierre, deposito y auditoria operativa.
+- Un `administrador` no recibe auditoria de seguridad sobre `sesiones_usuario`.
+- Un `gerente` tiene visibilidad completa de auditoria.
+- Las transferencias pendientes o rechazadas se consultan usando `pagos_venta.estado_validacion`.
+- El inventario actual consulta `existencias_inventario_general` y `existencias_inventario_diario`.
+
+Validacion realizada:
+
+- Comando de modulo: `mvn -Dtest=ConsultasOperativasIntegrationTest test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 5.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Comando completo: `mvn clean test`.
+- Resultado: exitoso, `BUILD SUCCESS`.
+- Pruebas ejecutadas: 48.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Tiempo total reportado: 01:33 min.
+- Fecha/hora de finalizacion reportada: 2026-07-06T22:48:34-05:00.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene todas las tablas consultadas.
+- Las consultas usan endpoints `GET` y transacciones `readOnly`.
+- El modulo no crea, edita ni anula informacion.
+- Reportes exportables o agregados para tableros administrativos quedan pendientes para definicion de la siguiente fase.
 
 ## Reglas activas para las siguientes fases
 
