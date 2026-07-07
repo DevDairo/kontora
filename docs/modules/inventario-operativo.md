@@ -97,6 +97,6 @@ El modulo se implementa sobre las tablas reales del schema:
 
 ## Pendientes
 
-- Ajustes de inventario con aprobacion de gerente quedan pendientes para una ampliacion del modulo o para auditoria transversal.
+- Ajustes de inventario con aprobacion de gerente quedan pendientes para una ampliacion posterior del flujo de inventario.
 - Alertas por cantidad minima quedan pendientes porque `cantidad_minima_alerta` no existe en el schema canonico actual.
 - Conteo fisico final y diferencias de cierre se completaran en el modulo "Cierre de caja y deposito".

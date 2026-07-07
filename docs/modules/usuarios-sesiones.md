@@ -57,6 +57,9 @@ El modulo se implementa sobre las tablas reales del schema:
 
 ## Pendientes
 
-- Auditoria explicita de login/logout se implementara en el modulo transversal de auditoria.
 - Administracion completa de usuarios y cambio de contrasena se desarrollara cuando se definan sus flujos operativos.
+
+## Actualizaciones posteriores
+
+- En el modulo "Auditoria transversal" se implemento auditoria explicita de login/logout sobre `auditoria_operaciones`.
 

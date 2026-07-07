@@ -117,12 +117,24 @@ public class PagoVenta {
         return usuarioValidacion;
     }
 
+    public void setUsuarioValidacion(Usuario usuarioValidacion) {
+        this.usuarioValidacion = usuarioValidacion;
+    }
+
     public OffsetDateTime getFechaValidacion() {
         return fechaValidacion;
     }
 
+    public void setFechaValidacion(OffsetDateTime fechaValidacion) {
+        this.fechaValidacion = fechaValidacion;
+    }
+
     public String getObservacionValidacion() {
         return observacionValidacion;
+    }
+
+    public void setObservacionValidacion(String observacionValidacion) {
+        this.observacionValidacion = observacionValidacion;
     }
 
     public OffsetDateTime getFechaRegistro() {

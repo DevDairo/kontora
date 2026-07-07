@@ -122,6 +122,12 @@ class AutenticacionIntegrationTest {
 
     private void limpiarUsuariosDePrueba() {
         jdbcTemplate.update("""
+                DELETE FROM auditoria_operaciones
+                WHERE id_usuario IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auth_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM sesiones_usuario
                 WHERE id_usuario IN (
                     SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auth_%'

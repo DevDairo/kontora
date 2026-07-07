@@ -1,5 +1,6 @@
 package com.kontora.pos.caja.service;
 
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.caja.domain.CajaDiaria;
 import com.kontora.pos.caja.dto.AbrirCajaDiariaRequest;
 import com.kontora.pos.caja.dto.CajaDiariaResponse;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Locale;
 
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
+
 @Service
 public class CajaDiariaService {
 
@@ -23,10 +26,15 @@ public class CajaDiariaService {
 
     private final CajaDiariaRepository cajaDiariaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
 
-    public CajaDiariaService(CajaDiariaRepository cajaDiariaRepository, UsuarioRepository usuarioRepository) {
+    public CajaDiariaService(
+            CajaDiariaRepository cajaDiariaRepository,
+            UsuarioRepository usuarioRepository,
+            AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -47,11 +55,27 @@ public class CajaDiariaService {
         cajaDiaria.setUsuarioApertura(usuarioApertura);
         cajaDiaria.setObservaciones(normalizarObservaciones(request.observaciones()));
 
+        CajaDiaria cajaGuardada;
         try {
-            return toResponse(cajaDiariaRepository.saveAndFlush(cajaDiaria));
+            cajaGuardada = cajaDiariaRepository.saveAndFlush(cajaDiaria);
         } catch (DataIntegrityViolationException exception) {
             throw cajaDuplicada();
         }
+        auditoriaService.registrar(
+                usuarioApertura,
+                "cajas_diarias",
+                cajaGuardada.getIdCajaDiaria(),
+                "abrir",
+                null,
+                valores(
+                        "fecha_operacion", cajaGuardada.getFechaOperacion(),
+                        "estado_caja", cajaGuardada.getEstadoCaja(),
+                        "valor_base", cajaGuardada.getValorBase(),
+                        "fecha_apertura", cajaGuardada.getFechaApertura(),
+                        "id_usuario_apertura", usuarioApertura.getIdUsuario(),
+                        "observaciones", cajaGuardada.getObservaciones()),
+                "Apertura de caja diaria");
+        return toResponse(cajaGuardada);
     }
 
     @Transactional(readOnly = true)

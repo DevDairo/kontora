@@ -1,5 +1,6 @@
 package com.kontora.pos.ventas.service;
 
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.caja.domain.CajaDiaria;
 import com.kontora.pos.caja.repository.CajaDiariaRepository;
 import com.kontora.pos.catalogos.domain.MetodoPago;
@@ -42,6 +43,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
+
 @Service
 public class VentasService {
 
@@ -63,6 +66,7 @@ public class VentasService {
     private final PagoVentaRepository pagoVentaRepository;
     private final InventarioService inventarioService;
     private final EntityManager entityManager;
+    private final AuditoriaService auditoriaService;
 
     public VentasService(
             CajaDiariaRepository cajaDiariaRepository,
@@ -74,7 +78,8 @@ public class VentasService {
             DetalleVentaRepository detalleVentaRepository,
             PagoVentaRepository pagoVentaRepository,
             InventarioService inventarioService,
-            EntityManager entityManager) {
+            EntityManager entityManager,
+            AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.usuarioRepository = usuarioRepository;
         this.metodoPagoRepository = metodoPagoRepository;
@@ -85,6 +90,7 @@ public class VentasService {
         this.pagoVentaRepository = pagoVentaRepository;
         this.inventarioService = inventarioService;
         this.entityManager = entityManager;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -141,6 +147,7 @@ public class VentasService {
         }
 
         Usuario usuarioAnulacion = obtenerUsuario(principalUsuario.idUsuario(), "Usuario anulacion no encontrado");
+        Map<String, Object> valorAnterior = snapshotVenta(venta);
         List<DetalleVenta> detalles = detalleVentaRepository.findByVenta_IdVenta(idVenta);
         inventarioService.restaurarVasosPorAnulacion(venta, detalles, usuarioAnulacion);
 
@@ -150,6 +157,14 @@ public class VentasService {
         venta.setUsuarioAnulacion(usuarioAnulacion);
         Venta ventaGuardada = ventaRepository.saveAndFlush(venta);
         List<PagoVenta> pagos = pagoVentaRepository.findByVenta_IdVenta(idVenta);
+        auditoriaService.registrar(
+                usuarioAnulacion,
+                "ventas",
+                ventaGuardada.getIdVenta(),
+                "anular",
+                valorAnterior,
+                snapshotVenta(ventaGuardada),
+                "Anulacion de venta");
 
         return toResponse(ventaGuardada, detalles, pagos);
     }
@@ -387,11 +402,34 @@ public class VentasService {
                 pago.getValorRecibidoEfectivo(),
                 pago.getCambioEntregado(),
                 pago.getEstadoValidacion(),
-                pago.getFechaRegistro());
+                pago.getFechaRegistro(),
+                pago.getUsuarioValidacion() == null ? null : pago.getUsuarioValidacion().getIdUsuario(),
+                pago.getUsuarioValidacion() == null ? null : pago.getUsuarioValidacion().getNombreUsuario(),
+                pago.getFechaValidacion(),
+                pago.getObservacionValidacion());
     }
 
     private BigDecimal normalizarMoneda(BigDecimal valor) {
         return valor.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private Map<String, Object> snapshotVenta(Venta venta) {
+        Usuario usuarioComprador = venta.getUsuarioComprador();
+        Usuario usuarioAnulacion = venta.getUsuarioAnulacion();
+        return valores(
+                "id_venta", venta.getIdVenta(),
+                "id_caja_diaria", venta.getCajaDiaria().getIdCajaDiaria(),
+                "id_usuario_vendedor", venta.getUsuarioVendedor().getIdUsuario(),
+                "tipo_comprador", venta.getTipoComprador(),
+                "id_usuario_comprador", usuarioComprador == null ? null : usuarioComprador.getIdUsuario(),
+                "numero_venta", venta.getNumeroVenta(),
+                "estado_venta", venta.getEstadoVenta(),
+                "subtotal_venta", venta.getSubtotalVenta(),
+                "descuento_promocion", venta.getDescuentoPromocion(),
+                "total_venta", venta.getTotalVenta(),
+                "motivo_anulacion", venta.getMotivoAnulacion(),
+                "fecha_anulacion", venta.getFechaAnulacion(),
+                "id_usuario_anulacion", usuarioAnulacion == null ? null : usuarioAnulacion.getIdUsuario());
     }
 
     private record DetalleKey(UUID idTipoGranizado, UUID idTamanoVaso) {

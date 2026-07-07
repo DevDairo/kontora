@@ -197,6 +197,12 @@ class CatalogosIntegrationTest {
     private void limpiarDatosDePrueba() {
         jdbcTemplate.update("DELETE FROM items_inventario WHERE nombre_item = ?", ITEM_INACTIVO);
         jdbcTemplate.update("""
+                DELETE FROM auditoria_operaciones
+                WHERE id_usuario IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_catalogos_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM sesiones_usuario
                 WHERE id_usuario IN (
                     SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_catalogos_%'

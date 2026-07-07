@@ -12,6 +12,10 @@ public record PagoVentaResponse(
         BigDecimal valorRecibidoEfectivo,
         BigDecimal cambioEntregado,
         String estadoValidacion,
-        OffsetDateTime fechaRegistro
+        OffsetDateTime fechaRegistro,
+        UUID idUsuarioValidacion,
+        String nombreUsuarioValidacion,
+        OffsetDateTime fechaValidacion,
+        String observacionValidacion
 ) {
 }

@@ -35,6 +35,8 @@ El modulo se implementa sobre las tablas reales del schema:
 | :- | :- | :- | :- |
 | POST | `/api/ventas` | Si | Registrar venta con detalles y pagos. |
 | POST | `/api/ventas/{idVenta}/anular` | Si | Anular una venta registrada. La restauracion de stock diario se implementa en el modulo "Inventario operativo". |
+| POST | `/api/pagos-venta/{idPagoVenta}/validar` | Si | Validar una transferencia pendiente. Implementado en el modulo "Auditoria transversal". |
+| POST | `/api/pagos-venta/{idPagoVenta}/rechazar` | Si | Rechazar una transferencia pendiente. Implementado en el modulo "Auditoria transversal". |
 
 ## Flujo de venta normal
 
@@ -59,7 +61,7 @@ El modulo se implementa sobre las tablas reales del schema:
 - Registra `valor_pago`.
 - No usa `valor_recibido_efectivo`.
 - Guarda `estado_validacion = 'pendiente'`.
-- La validacion o rechazo posterior corresponde a los modulos de cierre, evidencias y auditoria.
+- La validacion o rechazo posterior se implemento en el modulo "Auditoria transversal".
 
 ## Flujo de pago hibrido
 
@@ -102,4 +104,9 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Pendientes
 
 - Evidencias de transferencia se implementaran en el modulo "Evidencias y almacenamiento".
-- Auditoria explicita de anulaciones y validaciones se implementara en el modulo transversal de auditoria.
+
+## Actualizaciones posteriores
+
+- En el modulo "Inventario operativo" se implemento la anulacion con restauracion de stock diario.
+- En el modulo "Auditoria transversal" se implemento auditoria explicita de anulaciones de ventas.
+- En el modulo "Auditoria transversal" se implemento validacion y rechazo de transferencias con auditoria sobre `pagos_venta`.

@@ -82,5 +82,8 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Pendientes
 
 - Evidencias de transferencias, gastos, consignaciones y pagos de servicios quedan para el modulo "Evidencias y almacenamiento".
-- Auditoria explicita del cierre y movimientos de deposito queda para el modulo transversal de auditoria.
 - Consignaciones bancarias y pagos de servicios desde deposito quedan para los modulos posteriores definidos en la fase 3.
+
+## Actualizaciones posteriores
+
+- En el modulo "Auditoria transversal" se implemento auditoria explicita del cierre de caja y del movimiento automatico de deposito.
