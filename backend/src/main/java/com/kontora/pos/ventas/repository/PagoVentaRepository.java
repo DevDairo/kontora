@@ -8,12 +8,16 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PagoVentaRepository extends JpaRepository<PagoVenta, UUID> {
 
     @EntityGraph(attributePaths = "metodoPago")
     List<PagoVenta> findByVenta_IdVenta(UUID idVenta);
+
+    @EntityGraph(attributePaths = {"venta", "venta.usuarioVendedor", "metodoPago"})
+    Optional<PagoVenta> findByIdPagoVenta(UUID idPagoVenta);
 
     @Query(value = """
             SELECT COALESCE(SUM(pv.valor_pago), 0)

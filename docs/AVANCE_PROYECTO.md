@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/cierre-caja-deposito`.
-- Fase actual: Fase 3, modulo 7 completado y validado.
-- Fase anterior validada: Fase 3, modulo 6: Gastos, adiciones y pago a trabajadores.
-- Siguiente hito: merge del modulo `cierre-caja-deposito` hacia `main` y creacion de la rama del modulo `evidencias-storage`.
+- Rama actual: `feature/evidencias-storage`.
+- Fase actual: Fase 3, modulo 8 completado y validado.
+- Fase anterior validada: Fase 3, modulo 7: Cierre de caja y deposito.
+- Siguiente hito: merge del modulo `evidencias-storage` hacia `main` y creacion de la rama del modulo `auditoria-operaciones`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -531,6 +531,82 @@ Observaciones:
 - Evidencias de transferencias, gastos, consignaciones y pagos de servicios quedan para el modulo "Evidencias y almacenamiento".
 - Auditoria explicita del cierre y movimientos de deposito queda para el modulo transversal de auditoria.
 
+## Fase 3: Modulo 8 - Evidencias y almacenamiento
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/evidencias-storage`.
+
+Tablas canonicas usadas:
+
+- `archivos_evidencia`.
+- `pagos_venta`.
+- `gastos_caja`.
+- `consignaciones_bancarias`.
+- `pagos_servicios`.
+- `movimientos_deposito`.
+- `usuarios`.
+
+Cambios realizados:
+
+- Se implemento entidad JPA `ArchivoEvidencia` respetando la tabla `archivos_evidencia`.
+- Se implementaron entidades JPA `ConsignacionBancaria` y `PagoServicio` para soportar las relaciones reales del schema.
+- Se agregaron repositorios para evidencias, consignaciones bancarias y pagos de servicios.
+- Se agrego cliente configurable para Supabase Storage.
+- Se agregaron variables de configuracion `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_STORAGE_BUCKET`.
+- Se agrego servicio transaccional `EvidenciasService`.
+- Se agrego endpoint `POST /api/evidencias/pagos-venta/{idPagoVenta}`.
+- Se agrego endpoint `GET /api/evidencias/pagos-venta/{idPagoVenta}`.
+- Se agrego endpoint `POST /api/evidencias/gastos-caja/{idGastoCaja}`.
+- Se agrego endpoint `GET /api/evidencias/gastos-caja/{idGastoCaja}`.
+- Se agrego endpoint `POST /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}`.
+- Se agrego endpoint `GET /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}`.
+- Se agrego endpoint `POST /api/evidencias/pagos-servicios/{idPagoServicio}`.
+- Se agrego endpoint `GET /api/evidencias/pagos-servicios/{idPagoServicio}`.
+- Se agrego endpoint `GET /api/evidencias/{idArchivoEvidencia}`.
+- Se implemento carga multipart con parte `archivo`.
+- Se implemento compresion backend para imagenes `jpg`, `jpeg` y `png`, guardandolas como `jpg`.
+- Se guardan rutas y metadatos en `archivos_evidencia`, sin binarios en PostgreSQL.
+- Se documento el modulo en `docs/modules/evidencias-storage.md`.
+
+Reglas validadas:
+
+- Sin usuario autenticado no se pueden consultar evidencias.
+- El archivo se almacena fuera de PostgreSQL.
+- PostgreSQL guarda solo ruta y metadatos.
+- Una evidencia queda asociada a un solo proceso.
+- Solo se cargan evidencias de `pagos_venta` si el metodo de pago real es `transferencia`.
+- No se permite cargar evidencia a un pago en efectivo.
+- Un vendedor solo puede consultar evidencias de pagos o gastos propios.
+- `administrador` y `gerente` pueden gestionar evidencias de deposito.
+- Las imagenes se comprimen desde backend.
+- Los PDF se conservan sin compresion.
+
+Validacion realizada:
+
+- Comando de modulo: `mvn -Dtest=EvidenciasIntegrationTest test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 5.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Comando completo: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 39.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene `archivos_evidencia`, `consignaciones_bancarias` y `pagos_servicios`.
+- La base de datos conserva la restriccion `chk_archivos_relacion_unica`, que exige una unica relacion por evidencia.
+- Las pruebas mockean el cliente de storage para no depender de red ni credenciales reales de Supabase.
+- La validacion o rechazo formal de transferencias queda pendiente para auditoria transversal o consultas operativas, segun se defina el flujo final.
+- La implementacion operativa completa de consignaciones bancarias y pagos de servicios queda para modulos posteriores.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -558,15 +634,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `cierre-caja-deposito` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `evidencias-storage` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/cierre-caja-deposito
-git switch -c feature/evidencias-storage
+git merge --no-ff feature/evidencias-storage
+git switch -c feature/auditoria-operaciones
 ```
 
-La siguiente implementacion sera Fase 3, modulo 8: Evidencias y almacenamiento.
+La siguiente implementacion sera Fase 3, modulo 9: Auditoria transversal.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
