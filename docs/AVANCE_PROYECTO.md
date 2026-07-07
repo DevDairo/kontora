@@ -4,11 +4,11 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 ## Estado actual
 
-- Fecha de registro: 2026-07-06.
-- Rama actual: `feature/consultas-operativas`.
-- Fase actual: Fase 3, modulo 10 completado y validado.
-- Fase anterior validada: Fase 3, modulo 9: Auditoria transversal.
-- Siguiente hito: merge manual del modulo `consultas-operativas` hacia `main` y definicion de la siguiente fase.
+- Fecha de registro: 2026-07-07.
+- Rama actual: `chore/inicializacion-frontend`.
+- Fase actual: Fase 4, PR 1 de inicializacion frontend completada y validada.
+- Fase anterior validada: Fase 3, modulo 10: Consultas operativas.
+- Siguiente hito: merge manual de `chore/inicializacion-frontend` hacia `main` e inicio de `feature/frontend-auth`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -776,6 +776,91 @@ Observaciones:
 - El modulo no crea, edita ni anula informacion.
 - Reportes exportables o agregados para tableros administrativos quedan pendientes para definicion de la siguiente fase.
 
+## Fase 4: PR 1 - Inicializacion frontend
+
+Estado: completada y validada.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Inicializar frontend React + TypeScript + Vite en `frontend/`.
+- Crear estructura modular base para Fase 4.
+- Configurar `VITE_API_URL=http://localhost:8080/api`.
+- Crear cliente HTTP base.
+- Conectar contra `GET /api/health`.
+- Crear documentacion inicial del frontend.
+
+Documentacion incorporada:
+
+- Se copio `C:\Users\corre\Downloads\fase_4_frontend_validacion.md` dentro del repo como `docs/development/fases/fase_4_frontend_validacion.md`.
+- Se crearon:
+  - `docs/frontend/estructura-frontend.md`.
+  - `docs/frontend/flujo-autenticacion-frontend.md`.
+  - `docs/frontend/guia-componentes.md`.
+  - `docs/frontend/pantallas.md`.
+  - `docs/frontend/integracion-backend-local.md`.
+
+Cambios realizados:
+
+- Se inicializo `frontend/package.json` con React, TypeScript, Vite y `lucide-react`.
+- Se agrego `frontend/.env.example` con `VITE_API_URL=http://localhost:8080/api`.
+- Se creo `frontend/src/app` para providers y rutas.
+- Se creo `frontend/src/modules` con modulos base de autenticacion, caja, catalogos, ventas, inventario, gastos, deposito, evidencias y auditoria.
+- Se creo `frontend/src/shared` con componentes, hooks, servicios, tipos y utilidades.
+- Se implemento cliente HTTP base en `frontend/src/shared/services/apiClient.ts`.
+- Se implemento servicio y hook de salud backend usando `GET /api/health`.
+- Se creo una pantalla inicial operativa inspirada visualmente en la maqueta, sin copiarla como HTML/CSS estatico final.
+- Se configuro CORS backend para permitir el frontend local de Vite en `http://localhost:5173` y `http://127.0.0.1:5173`.
+- Se mantuvo la autenticacion backend: solo `OPTIONS /api/**`, `GET /api/health` y `POST /api/auth/login` quedan sin token; el resto sigue protegido por `anyRequest().authenticated()`.
+
+Validacion realizada:
+
+- Comando: `npm install`.
+- Resultado: exitoso.
+- Auditoria npm: 0 vulnerabilidades.
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Vite generado en `frontend/dist`.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+- Validacion CORS local desde navegador:
+
+```javascript
+{ status: "ok", service: "kontora-pos-backend" }
+```
+
+- Validacion enfocada de backend:
+
+```text
+mvn "-Dtest=HealthEndpointIntegrationTest,AutenticacionIntegrationTest" test
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+- Validacion completa de backend tras CORS:
+
+```text
+mvn clean test
+Tests run: 49, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Observaciones:
+
+- El primer intento de `npm install` dentro del sandbox excedio el tiempo sin generar `package-lock.json`; se repitio con permisos aprobados para descargar dependencias.
+- El primer intento de `npm run build` dentro del sandbox fallo por permisos de lectura de esbuild hacia directorios superiores; se repitio con permisos aprobados y compilo correctamente.
+- La primera prueba en navegador detecto bloqueo CORS: el backend respondia `200 OK`, pero sin `Access-Control-Allow-Origin` para `http://127.0.0.1:5173`.
+- `mvn spring-boot:run` no pudo iniciar en `8080` porque el contenedor Docker `kontora_pos_backend_local` ya estaba ocupando ese puerto.
+- El contenedor Docker activo estaba construido con una imagen anterior al ajuste CORS; se reconstruyo con `docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend up -d --build backend`.
+- No se implementaron pantallas funcionales por modulo en esta PR.
+- La siguiente PR sugerida por Fase 4 es `feature/frontend-auth`.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -788,6 +873,9 @@ Observaciones:
 - Al terminar un modulo, se debe ejecutar `mvn clean test`.
 - Solo si compila y las pruebas pasan, se hace merge del modulo hacia `main`.
 - No se inicia el siguiente modulo desde una rama anterior; siempre se parte de `main` actualizado.
+- El frontend debe consumir la API real del backend.
+- Las reglas criticas de negocio y permisos viven en backend.
+- La maqueta visual es referencia de experiencia, no contrato de endpoints, campos ni reglas.
 
 ## Flujo Git por modulo
 
@@ -803,15 +891,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `auditoria-operaciones` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual de `chore/inicializacion-frontend` hacia `main`, iniciar la siguiente PR de frontend desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/auditoria-operaciones
-git switch -c feature/consultas-operativas
+git merge --no-ff chore/inicializacion-frontend
+git switch -c feature/frontend-auth
 ```
 
-La siguiente implementacion sera Fase 3, modulo 10: Consultas operativas.
+La siguiente implementacion sera Fase 4, PR 2: Autenticacion frontend.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 

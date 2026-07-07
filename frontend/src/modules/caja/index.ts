@@ -1,0 +1,1 @@
+export type CajaModuleStatus = "pendiente";
