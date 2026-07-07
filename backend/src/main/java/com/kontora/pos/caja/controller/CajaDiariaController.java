@@ -2,7 +2,10 @@ package com.kontora.pos.caja.controller;
 
 import com.kontora.pos.caja.dto.AbrirCajaDiariaRequest;
 import com.kontora.pos.caja.dto.CajaDiariaResponse;
+import com.kontora.pos.caja.dto.CerrarCajaRequest;
+import com.kontora.pos.caja.dto.CierreCajaResponse;
 import com.kontora.pos.caja.service.CajaDiariaService;
+import com.kontora.pos.caja.service.CierreCajaService;
 import com.kontora.pos.common.security.PrincipalUsuario;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,15 +20,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/cajas-diarias")
 public class CajaDiariaController {
 
     private final CajaDiariaService cajaDiariaService;
+    private final CierreCajaService cierreCajaService;
 
-    public CajaDiariaController(CajaDiariaService cajaDiariaService) {
+    public CajaDiariaController(CajaDiariaService cajaDiariaService, CierreCajaService cierreCajaService) {
         this.cajaDiariaService = cajaDiariaService;
+        this.cierreCajaService = cierreCajaService;
     }
 
     @PostMapping
@@ -45,5 +51,21 @@ public class CajaDiariaController {
     public CajaDiariaResponse obtenerCajaPorFecha(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaOperacion) {
         return cajaDiariaService.obtenerCajaPorFecha(fechaOperacion);
+    }
+
+    @PostMapping("/{idCajaDiaria}/cerrar")
+    public CierreCajaResponse cerrarCaja(
+            @PathVariable UUID idCajaDiaria,
+            @Valid @RequestBody CerrarCajaRequest request,
+            Authentication authentication) {
+        return cierreCajaService.cerrarCaja(
+                idCajaDiaria,
+                request,
+                (PrincipalUsuario) authentication.getPrincipal());
+    }
+
+    @GetMapping("/{idCajaDiaria}/cierre")
+    public CierreCajaResponse obtenerCierrePorCaja(@PathVariable UUID idCajaDiaria) {
+        return cierreCajaService.obtenerCierrePorCaja(idCajaDiaria);
     }
 }

@@ -1,0 +1,290 @@
+package com.kontora.pos.caja.service;
+
+import com.kontora.pos.caja.domain.AdicionDiaria;
+import com.kontora.pos.caja.domain.CajaDiaria;
+import com.kontora.pos.caja.domain.CierreCaja;
+import com.kontora.pos.caja.domain.PagoTrabajadoresDiario;
+import com.kontora.pos.caja.dto.CerrarCajaRequest;
+import com.kontora.pos.caja.dto.CierreCajaResponse;
+import com.kontora.pos.caja.repository.AdicionDiariaRepository;
+import com.kontora.pos.caja.repository.CajaDiariaRepository;
+import com.kontora.pos.caja.repository.CierreCajaRepository;
+import com.kontora.pos.caja.repository.GastoCajaRepository;
+import com.kontora.pos.caja.repository.PagoTrabajadoresDiarioRepository;
+import com.kontora.pos.common.exception.ApiException;
+import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.deposito.domain.MovimientoDeposito;
+import com.kontora.pos.deposito.dto.MovimientoDepositoResponse;
+import com.kontora.pos.deposito.repository.MovimientoDepositoRepository;
+import com.kontora.pos.usuarios.domain.Usuario;
+import com.kontora.pos.usuarios.repository.UsuarioRepository;
+import com.kontora.pos.ventas.repository.PagoVentaRepository;
+import com.kontora.pos.ventas.repository.VentaRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.OffsetDateTime;
+import java.util.Locale;
+import java.util.UUID;
+
+@Service
+public class CierreCajaService {
+
+    private static final String ESTADO_CAJA_ABIERTA = "abierta";
+    private static final String METODO_EFECTIVO = "efectivo";
+    private static final String METODO_TRANSFERENCIA = "transferencia";
+    private static final String TRANSFERENCIA_PENDIENTE = "pendiente";
+    private static final String TRANSFERENCIA_VALIDADA = "validada";
+    private static final String TRANSFERENCIA_RECHAZADA = "rechazada";
+    private static final String TIPO_MOVIMIENTO_ENTRADA_CIERRE = "entrada_cierre";
+
+    private final CajaDiariaRepository cajaDiariaRepository;
+    private final CierreCajaRepository cierreCajaRepository;
+    private final AdicionDiariaRepository adicionDiariaRepository;
+    private final PagoTrabajadoresDiarioRepository pagoTrabajadoresDiarioRepository;
+    private final GastoCajaRepository gastoCajaRepository;
+    private final VentaRepository ventaRepository;
+    private final PagoVentaRepository pagoVentaRepository;
+    private final MovimientoDepositoRepository movimientoDepositoRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    public CierreCajaService(
+            CajaDiariaRepository cajaDiariaRepository,
+            CierreCajaRepository cierreCajaRepository,
+            AdicionDiariaRepository adicionDiariaRepository,
+            PagoTrabajadoresDiarioRepository pagoTrabajadoresDiarioRepository,
+            GastoCajaRepository gastoCajaRepository,
+            VentaRepository ventaRepository,
+            PagoVentaRepository pagoVentaRepository,
+            MovimientoDepositoRepository movimientoDepositoRepository,
+            UsuarioRepository usuarioRepository) {
+        this.cajaDiariaRepository = cajaDiariaRepository;
+        this.cierreCajaRepository = cierreCajaRepository;
+        this.adicionDiariaRepository = adicionDiariaRepository;
+        this.pagoTrabajadoresDiarioRepository = pagoTrabajadoresDiarioRepository;
+        this.gastoCajaRepository = gastoCajaRepository;
+        this.ventaRepository = ventaRepository;
+        this.pagoVentaRepository = pagoVentaRepository;
+        this.movimientoDepositoRepository = movimientoDepositoRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
+
+    @Transactional
+    public CierreCajaResponse cerrarCaja(
+            UUID idCajaDiaria,
+            CerrarCajaRequest request,
+            PrincipalUsuario principalUsuario) {
+        validarRolCierre(principalUsuario);
+        CajaDiaria cajaDiaria = cajaDiariaRepository.findById(idCajaDiaria)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Caja diaria no encontrada"));
+        validarCajaAbierta(cajaDiaria);
+        if (cierreCajaRepository.existsByCajaDiaria_IdCajaDiaria(idCajaDiaria)) {
+            throw new ApiException(HttpStatus.CONFLICT, "La caja diaria ya tiene cierre registrado");
+        }
+
+        AdicionDiaria adicionDiaria = adicionDiariaRepository.findByCajaDiaria_IdCajaDiaria(idCajaDiaria)
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Debe existir registro de adiciones diarias antes del cierre"));
+        PagoTrabajadoresDiario pagoTrabajadores = pagoTrabajadoresDiarioRepository.findByCajaDiaria_IdCajaDiaria(idCajaDiaria)
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "No se puede cerrar caja sin registrar y confirmar el pago diario de trabajadores"));
+        if (!pagoTrabajadores.isConfirmadoParaCierre()) {
+            throw new ApiException(HttpStatus.CONFLICT, "No se puede cerrar caja sin registrar y confirmar el pago diario de trabajadores");
+        }
+
+        Usuario usuarioCierre = usuarioRepository.findById(principalUsuario.idUsuario())
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Usuario autenticado no encontrado"));
+
+        TotalesCierre totales = calcularTotales(idCajaDiaria, adicionDiaria, pagoTrabajadores, request);
+        OffsetDateTime fechaCierre = OffsetDateTime.now();
+
+        CierreCaja cierreCaja = new CierreCaja();
+        cierreCaja.setCajaDiaria(cajaDiaria);
+        cierreCaja.setTotalVentas(totales.totalVentas());
+        cierreCaja.setTotalVentasEfectivo(totales.totalVentasEfectivo());
+        cierreCaja.setTotalVentasTransferencia(totales.totalVentasTransferencia());
+        cierreCaja.setTotalTransferenciasPendientes(totales.totalTransferenciasPendientes());
+        cierreCaja.setTotalTransferenciasValidadas(totales.totalTransferenciasValidadas());
+        cierreCaja.setTotalTransferenciasRechazadas(totales.totalTransferenciasRechazadas());
+        cierreCaja.setTotalGastos(totales.totalGastos());
+        cierreCaja.setTotalAdiciones(totales.totalAdiciones());
+        cierreCaja.setTotalPagoTrabajadores(totales.totalPagoTrabajadores());
+        cierreCaja.setEfectivoEsperadoSinBase(totales.efectivoEsperadoSinBase());
+        cierreCaja.setEfectivoContadoSinBase(totales.efectivoContadoSinBase());
+        cierreCaja.setDiferenciaCaja(totales.diferenciaCaja());
+        cierreCaja.setValorADeposito(totales.valorADeposito());
+        cierreCaja.setFechaCierre(fechaCierre);
+        cierreCaja.setUsuarioCierre(usuarioCierre);
+        cierreCaja.setObservaciones(normalizarTextoOpcional(request.observaciones()));
+
+        CierreCaja cierreGuardado = cierreCajaRepository.saveAndFlush(cierreCaja);
+        MovimientoDeposito movimientoDeposito = crearMovimientoDeposito(cierreGuardado, usuarioCierre, fechaCierre);
+
+        return toResponse(cierreGuardado, movimientoDeposito);
+    }
+
+    @Transactional(readOnly = true)
+    public CierreCajaResponse obtenerCierrePorCaja(UUID idCajaDiaria) {
+        CierreCaja cierreCaja = cierreCajaRepository.findByCajaDiaria_IdCajaDiaria(idCajaDiaria)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "La caja diaria no tiene cierre registrado"));
+        MovimientoDeposito movimientoDeposito = movimientoDepositoRepository
+                .findByCierreCaja_IdCierreCaja(cierreCaja.getIdCierreCaja())
+                .orElse(null);
+        return toResponse(cierreCaja, movimientoDeposito);
+    }
+
+    private TotalesCierre calcularTotales(
+            UUID idCajaDiaria,
+            AdicionDiaria adicionDiaria,
+            PagoTrabajadoresDiario pagoTrabajadores,
+            CerrarCajaRequest request) {
+        BigDecimal totalVentas = normalizarMoneda(ventaRepository.sumarVentasRegistradasPorCaja(idCajaDiaria));
+        BigDecimal totalVentasEfectivo = normalizarMoneda(
+                pagoVentaRepository.sumarPagosRegistradosPorCajaYMetodo(idCajaDiaria, METODO_EFECTIVO));
+        BigDecimal totalVentasTransferencia = normalizarMoneda(
+                pagoVentaRepository.sumarPagosRegistradosPorCajaYMetodo(idCajaDiaria, METODO_TRANSFERENCIA));
+        BigDecimal totalTransferenciasPendientes = normalizarMoneda(
+                pagoVentaRepository.sumarTransferenciasRegistradasPorCajaYEstado(idCajaDiaria, TRANSFERENCIA_PENDIENTE));
+        BigDecimal totalTransferenciasValidadas = normalizarMoneda(
+                pagoVentaRepository.sumarTransferenciasRegistradasPorCajaYEstado(idCajaDiaria, TRANSFERENCIA_VALIDADA));
+        BigDecimal totalTransferenciasRechazadas = normalizarMoneda(
+                pagoVentaRepository.sumarTransferenciasRegistradasPorCajaYEstado(idCajaDiaria, TRANSFERENCIA_RECHAZADA));
+        BigDecimal totalGastos = normalizarMoneda(gastoCajaRepository.sumarGastosVigentesPorCaja(idCajaDiaria));
+        BigDecimal totalAdiciones = normalizarMoneda(adicionDiaria.getValorTotal());
+        BigDecimal totalPagoTrabajadores = normalizarMoneda(pagoTrabajadores.getValorTotalPagado());
+        BigDecimal efectivoEsperadoSinBase = totalVentasEfectivo
+                .add(totalAdiciones)
+                .subtract(totalGastos)
+                .subtract(totalPagoTrabajadores)
+                .setScale(2, RoundingMode.HALF_UP);
+        if (efectivoEsperadoSinBase.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "El efectivo esperado sin base no puede ser negativo");
+        }
+        BigDecimal efectivoContadoSinBase = normalizarMoneda(request.efectivoContadoSinBase());
+        BigDecimal diferenciaCaja = efectivoContadoSinBase
+                .subtract(efectivoEsperadoSinBase)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        return new TotalesCierre(
+                totalVentas,
+                totalVentasEfectivo,
+                totalVentasTransferencia,
+                totalTransferenciasPendientes,
+                totalTransferenciasValidadas,
+                totalTransferenciasRechazadas,
+                totalGastos,
+                totalAdiciones,
+                totalPagoTrabajadores,
+                efectivoEsperadoSinBase,
+                efectivoContadoSinBase,
+                diferenciaCaja,
+                efectivoContadoSinBase);
+    }
+
+    private MovimientoDeposito crearMovimientoDeposito(
+            CierreCaja cierreCaja,
+            Usuario usuarioCierre,
+            OffsetDateTime fechaMovimiento) {
+        if (cierreCaja.getValorADeposito().compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        BigDecimal saldoAnterior = normalizarMoneda(movimientoDepositoRepository.obtenerSaldoActual());
+        BigDecimal saldoPosterior = saldoAnterior
+                .add(cierreCaja.getValorADeposito())
+                .setScale(2, RoundingMode.HALF_UP);
+
+        MovimientoDeposito movimientoDeposito = new MovimientoDeposito();
+        movimientoDeposito.setTipoMovimientoDeposito(TIPO_MOVIMIENTO_ENTRADA_CIERRE);
+        movimientoDeposito.setValorMovimiento(cierreCaja.getValorADeposito());
+        movimientoDeposito.setSaldoAnterior(saldoAnterior);
+        movimientoDeposito.setSaldoPosterior(saldoPosterior);
+        movimientoDeposito.setCierreCaja(cierreCaja);
+        movimientoDeposito.setUsuarioRegistro(usuarioCierre);
+        movimientoDeposito.setFechaMovimiento(fechaMovimiento);
+        movimientoDeposito.setObservacion("Entrada automatica por cierre de caja");
+        return movimientoDepositoRepository.saveAndFlush(movimientoDeposito);
+    }
+
+    private void validarRolCierre(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
+        if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede cerrar caja diaria");
+        }
+    }
+
+    private void validarCajaAbierta(CajaDiaria cajaDiaria) {
+        if (!ESTADO_CAJA_ABIERTA.equals(cajaDiaria.getEstadoCaja())) {
+            throw new ApiException(HttpStatus.CONFLICT, "No se puede cerrar una caja que no este abierta");
+        }
+    }
+
+    private BigDecimal normalizarMoneda(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String normalizarTextoOpcional(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return null;
+        }
+        return texto.trim();
+    }
+
+    private CierreCajaResponse toResponse(CierreCaja cierreCaja, MovimientoDeposito movimientoDeposito) {
+        Usuario usuarioCierre = cierreCaja.getUsuarioCierre();
+        return new CierreCajaResponse(
+                cierreCaja.getIdCierreCaja(),
+                cierreCaja.getCajaDiaria().getIdCajaDiaria(),
+                cierreCaja.getTotalVentas(),
+                cierreCaja.getTotalVentasEfectivo(),
+                cierreCaja.getTotalVentasTransferencia(),
+                cierreCaja.getTotalTransferenciasPendientes(),
+                cierreCaja.getTotalTransferenciasValidadas(),
+                cierreCaja.getTotalTransferenciasRechazadas(),
+                cierreCaja.getTotalGastos(),
+                cierreCaja.getTotalAdiciones(),
+                cierreCaja.getTotalPagoTrabajadores(),
+                cierreCaja.getEfectivoEsperadoSinBase(),
+                cierreCaja.getEfectivoContadoSinBase(),
+                cierreCaja.getDiferenciaCaja(),
+                cierreCaja.getValorADeposito(),
+                cierreCaja.getFechaCierre(),
+                usuarioCierre.getIdUsuario(),
+                usuarioCierre.getNombreUsuario(),
+                cierreCaja.getObservaciones(),
+                movimientoDeposito == null ? null : toResponse(movimientoDeposito));
+    }
+
+    private MovimientoDepositoResponse toResponse(MovimientoDeposito movimientoDeposito) {
+        Usuario usuarioRegistro = movimientoDeposito.getUsuarioRegistro();
+        CierreCaja cierreCaja = movimientoDeposito.getCierreCaja();
+        return new MovimientoDepositoResponse(
+                movimientoDeposito.getIdMovimientoDeposito(),
+                movimientoDeposito.getTipoMovimientoDeposito(),
+                movimientoDeposito.getValorMovimiento(),
+                movimientoDeposito.getSaldoAnterior(),
+                movimientoDeposito.getSaldoPosterior(),
+                cierreCaja == null ? null : cierreCaja.getIdCierreCaja(),
+                usuarioRegistro.getIdUsuario(),
+                usuarioRegistro.getNombreUsuario(),
+                movimientoDeposito.getFechaMovimiento(),
+                movimientoDeposito.getObservacion());
+    }
+
+    private record TotalesCierre(
+            BigDecimal totalVentas,
+            BigDecimal totalVentasEfectivo,
+            BigDecimal totalVentasTransferencia,
+            BigDecimal totalTransferenciasPendientes,
+            BigDecimal totalTransferenciasValidadas,
+            BigDecimal totalTransferenciasRechazadas,
+            BigDecimal totalGastos,
+            BigDecimal totalAdiciones,
+            BigDecimal totalPagoTrabajadores,
+            BigDecimal efectivoEsperadoSinBase,
+            BigDecimal efectivoContadoSinBase,
+            BigDecimal diferenciaCaja,
+            BigDecimal valorADeposito
+    ) {
+    }
+}

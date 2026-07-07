@@ -87,67 +87,135 @@ public class CierreCaja {
         return cajaDiaria;
     }
 
+    public void setCajaDiaria(CajaDiaria cajaDiaria) {
+        this.cajaDiaria = cajaDiaria;
+    }
+
     public BigDecimal getTotalVentas() {
         return totalVentas;
+    }
+
+    public void setTotalVentas(BigDecimal totalVentas) {
+        this.totalVentas = totalVentas;
     }
 
     public BigDecimal getTotalVentasEfectivo() {
         return totalVentasEfectivo;
     }
 
+    public void setTotalVentasEfectivo(BigDecimal totalVentasEfectivo) {
+        this.totalVentasEfectivo = totalVentasEfectivo;
+    }
+
     public BigDecimal getTotalVentasTransferencia() {
         return totalVentasTransferencia;
+    }
+
+    public void setTotalVentasTransferencia(BigDecimal totalVentasTransferencia) {
+        this.totalVentasTransferencia = totalVentasTransferencia;
     }
 
     public BigDecimal getTotalTransferenciasPendientes() {
         return totalTransferenciasPendientes;
     }
 
+    public void setTotalTransferenciasPendientes(BigDecimal totalTransferenciasPendientes) {
+        this.totalTransferenciasPendientes = totalTransferenciasPendientes;
+    }
+
     public BigDecimal getTotalTransferenciasValidadas() {
         return totalTransferenciasValidadas;
+    }
+
+    public void setTotalTransferenciasValidadas(BigDecimal totalTransferenciasValidadas) {
+        this.totalTransferenciasValidadas = totalTransferenciasValidadas;
     }
 
     public BigDecimal getTotalTransferenciasRechazadas() {
         return totalTransferenciasRechazadas;
     }
 
+    public void setTotalTransferenciasRechazadas(BigDecimal totalTransferenciasRechazadas) {
+        this.totalTransferenciasRechazadas = totalTransferenciasRechazadas;
+    }
+
     public BigDecimal getTotalGastos() {
         return totalGastos;
+    }
+
+    public void setTotalGastos(BigDecimal totalGastos) {
+        this.totalGastos = totalGastos;
     }
 
     public BigDecimal getTotalAdiciones() {
         return totalAdiciones;
     }
 
+    public void setTotalAdiciones(BigDecimal totalAdiciones) {
+        this.totalAdiciones = totalAdiciones;
+    }
+
     public BigDecimal getTotalPagoTrabajadores() {
         return totalPagoTrabajadores;
+    }
+
+    public void setTotalPagoTrabajadores(BigDecimal totalPagoTrabajadores) {
+        this.totalPagoTrabajadores = totalPagoTrabajadores;
     }
 
     public BigDecimal getEfectivoEsperadoSinBase() {
         return efectivoEsperadoSinBase;
     }
 
+    public void setEfectivoEsperadoSinBase(BigDecimal efectivoEsperadoSinBase) {
+        this.efectivoEsperadoSinBase = efectivoEsperadoSinBase;
+    }
+
     public BigDecimal getEfectivoContadoSinBase() {
         return efectivoContadoSinBase;
+    }
+
+    public void setEfectivoContadoSinBase(BigDecimal efectivoContadoSinBase) {
+        this.efectivoContadoSinBase = efectivoContadoSinBase;
     }
 
     public BigDecimal getDiferenciaCaja() {
         return diferenciaCaja;
     }
 
+    public void setDiferenciaCaja(BigDecimal diferenciaCaja) {
+        this.diferenciaCaja = diferenciaCaja;
+    }
+
     public BigDecimal getValorADeposito() {
         return valorADeposito;
+    }
+
+    public void setValorADeposito(BigDecimal valorADeposito) {
+        this.valorADeposito = valorADeposito;
     }
 
     public OffsetDateTime getFechaCierre() {
         return fechaCierre;
     }
 
+    public void setFechaCierre(OffsetDateTime fechaCierre) {
+        this.fechaCierre = fechaCierre;
+    }
+
     public Usuario getUsuarioCierre() {
         return usuarioCierre;
     }
 
+    public void setUsuarioCierre(Usuario usuarioCierre) {
+        this.usuarioCierre = usuarioCierre;
+    }
+
     public String getObservaciones() {
         return observaciones;
+    }
+
+    public void setObservaciones(String observaciones) {
+        this.observaciones = observaciones;
     }
 }

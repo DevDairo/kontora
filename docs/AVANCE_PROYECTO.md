@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/gastos-adiciones-pago-trabajadores`.
-- Fase actual: Fase 3, modulo 6 completado y validado.
-- Fase anterior validada: Fase 3, modulo 5: Inventario operativo.
-- Siguiente hito: merge del modulo `gastos-adiciones-pago-trabajadores` hacia `main` y creacion de la rama del modulo `cierre-caja-deposito`.
+- Rama actual: `feature/cierre-caja-deposito`.
+- Fase actual: Fase 3, modulo 7 completado y validado.
+- Fase anterior validada: Fase 3, modulo 6: Gastos, adiciones y pago a trabajadores.
+- Siguiente hito: merge del modulo `cierre-caja-deposito` hacia `main` y creacion de la rama del modulo `evidencias-storage`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -458,6 +458,79 @@ Observaciones:
 - Evidencias de gastos quedan para el modulo "Evidencias y almacenamiento".
 - Auditoria explicita de ediciones y anulaciones queda para el modulo transversal de auditoria.
 
+## Fase 3: Modulo 7 - Cierre de caja y deposito
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/cierre-caja-deposito`.
+
+Tablas canonicas usadas:
+
+- `cajas_diarias`.
+- `cierres_caja`.
+- `ventas`.
+- `pagos_venta`.
+- `metodos_pago`.
+- `gastos_caja`.
+- `adiciones_diarias`.
+- `pagos_trabajadores_diarios`.
+- `movimientos_deposito`.
+- `usuarios`.
+
+Cambios realizados:
+
+- Se completo la entidad JPA `CierreCaja` para persistir los totales del cierre.
+- Se implemento entidad JPA `MovimientoDeposito` respetando la tabla `movimientos_deposito`.
+- Se agrego repositorio para `movimientos_deposito`.
+- Se agregaron consultas agregadas para ventas, pagos por metodo, transferencias por `estado_validacion` y gastos vigentes.
+- Se agrego servicio transaccional `CierreCajaService`.
+- Se agrego endpoint `POST /api/cajas-diarias/{idCajaDiaria}/cerrar`.
+- Se agrego endpoint `GET /api/cajas-diarias/{idCajaDiaria}/cierre`.
+- Se calcula `efectivo_esperado_sin_base`.
+- Se registra `efectivo_contado_sin_base`.
+- Se calcula `diferencia_caja`.
+- Se calcula `valor_a_deposito` excluyendo `cajas_diarias.valor_base`.
+- Se crea automaticamente `movimientos_deposito` con `tipo_movimiento_deposito = 'entrada_cierre'` cuando `valor_a_deposito > 0`.
+- Se ajustaron fixtures de pruebas existentes para borrar `movimientos_deposito` antes de `cierres_caja`.
+- Se documento el modulo en `docs/modules/cierre-caja-deposito.md`.
+
+Reglas validadas:
+
+- Solo `administrador` o `gerente` puede cerrar caja.
+- No se puede cerrar una caja inexistente o que no este abierta.
+- No se puede cerrar una caja sin registro de adiciones diarias.
+- No se puede cerrar una caja sin pago diario a trabajadores confirmado.
+- El cierre consolida ventas registradas.
+- El cierre separa pagos en efectivo y transferencias.
+- El cierre muestra transferencias pendientes, validadas y rechazadas.
+- El cierre consolida gastos no anulados.
+- La base de caja no se suma al deposito.
+- El movimiento de deposito coincide con `valor_a_deposito`.
+- Despues del cierre no se permiten nuevas ventas.
+- Despues del cierre no se permiten anulaciones.
+
+Validacion realizada:
+
+- Comando inicial: `mvn clean test`.
+- Error encontrado: fixtures de pruebas antiguas intentaban borrar `cierres_caja` antes de borrar `movimientos_deposito`, violando la FK `movimientos_deposito_id_cierre_caja_fkey`.
+- Correccion aplicada: las limpiezas de pruebas borran primero `movimientos_deposito` para cajas de prueba.
+- Comando final: `mvn clean test`.
+- Resultado: exitoso.
+- Pruebas ejecutadas: 34.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene `cierres_caja` y `movimientos_deposito`.
+- El trigger canonico de base de datos actualiza `cajas_diarias` a estado `cerrada` despues de insertar un cierre.
+- Si `valor_a_deposito` es cero, no se crea movimiento de deposito porque `movimientos_deposito.valor_movimiento` exige valor mayor que cero.
+- Evidencias de transferencias, gastos, consignaciones y pagos de servicios quedan para el modulo "Evidencias y almacenamiento".
+- Auditoria explicita del cierre y movimientos de deposito queda para el modulo transversal de auditoria.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -485,15 +558,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `gastos-adiciones-pago-trabajadores` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `cierre-caja-deposito` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/gastos-adiciones-pago-trabajadores
-git switch -c feature/cierre-caja-deposito
+git merge --no-ff feature/cierre-caja-deposito
+git switch -c feature/evidencias-storage
 ```
 
-La siguiente implementacion sera Fase 3, modulo 7: Cierre de caja y deposito.
+La siguiente implementacion sera Fase 3, modulo 8: Evidencias y almacenamiento.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 
