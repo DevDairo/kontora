@@ -52,9 +52,10 @@ Ubicacion: `frontend/src/shared/components/AppShell.tsx`.
 
 Responsabilidades:
 
-- Renderizar marca, navegacion principal y topbar.
+- Renderizar marca, navegacion principal filtrada por rol y topbar.
 - Mostrar estado resumido de salud de API.
 - Mostrar usuario autenticado y rol.
+- Permitir navegacion interna entre vistas base.
 - Ejecutar cierre de sesion desde la topbar.
 - Contener la pantalla activa.
 
@@ -74,9 +75,44 @@ Ubicacion: `frontend/src/shared/components/ModuleOverview.tsx`.
 
 Responsabilidades:
 
-- Mostrar el orden base de modulos frontend de Fase 4.
-- Referenciar endpoints reales documentados.
-- Mantener los modulos no implementados como pendientes.
+- Mostrar la navegacion visible para el rol autenticado.
+- Referenciar endpoints reales documentados segun rol cuando aplica.
+- Permitir navegar a vistas base de modulos pendientes.
+
+### `RouteWorkspace`
+
+Ubicacion: `frontend/src/shared/components/RouteWorkspace.tsx`.
+
+Responsabilidades:
+
+- Renderizar una vista base para cada modulo pendiente.
+- Mostrar descripcion de la pantalla segun rol cuando aplica.
+- Mostrar endpoints backend documentados sin ejecutar operaciones de negocio.
+- Recordar que el filtro de rol en frontend es de experiencia y no reemplaza permisos backend.
+
+### `appRoutes`
+
+Ubicacion: `frontend/src/app/routes/appRoutes.ts`.
+
+Responsabilidades:
+
+- Centralizar rutas visibles del layout principal.
+- Definir roles visibles: `vendedor`, `administrador`, `gerente`.
+- Definir estado de pantalla: `base` o `pendiente`.
+- Asociar cada ruta con endpoints reales ya documentados.
+- Normalizar `nombreRol` recibido desde `/api/auth/me`.
+
+### `CajaAbiertaPanel`
+
+Ubicacion: `frontend/src/modules/caja/components/CajaAbiertaPanel.tsx`.
+
+Responsabilidades:
+
+- Consumir `GET /api/cajas-diarias/abierta` con token real.
+- Mostrar estado de carga, caja abierta, ausencia de caja y error.
+- Mostrar datos reales de la caja diaria abierta.
+- Mostrar formulario de apertura solo para `administrador` y `gerente` cuando no existe caja abierta.
+- Ejecutar `POST /api/cajas-diarias` sin asumir que el frontend tiene la decision final de permisos.
 
 ## Convenciones iniciales
 

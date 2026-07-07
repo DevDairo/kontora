@@ -49,6 +49,50 @@ frontend/
 - `src/shared/types`: tipos compartidos de contratos API.
 - `src/shared/utils`: utilidades de configuracion.
 
+## Layout principal por rol
+
+El layout principal queda implementado sobre la sesion confirmada por backend.
+
+Archivos principales:
+
+```text
+frontend/src/App.tsx
+frontend/src/app/routes/appRoutes.ts
+frontend/src/shared/components/AppShell.tsx
+frontend/src/shared/components/ModuleOverview.tsx
+frontend/src/shared/components/RouteWorkspace.tsx
+```
+
+Responsabilidades:
+
+- `appRoutes.ts` centraliza rutas visibles, roles, estado de pantalla y endpoints documentados.
+- `App.tsx` filtra rutas con `nombreRol` devuelto por `/api/auth/me`.
+- `AppShell` renderiza sidebar, topbar, usuario autenticado, estado de API y navegacion.
+- `ModuleOverview` muestra la navegacion visible para el rol autenticado.
+- `RouteWorkspace` muestra vistas base de modulos pendientes con endpoints reales documentados.
+
+El filtro por rol en frontend es solo una mejora de experiencia. Los permisos finales se mantienen en backend.
+
+## Panel de caja abierta
+
+El panel de caja abierta queda implementado dentro de `src/modules/caja`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/caja/components/CajaAbiertaPanel.tsx
+frontend/src/modules/caja/services/cajaService.ts
+frontend/src/modules/caja/types.ts
+```
+
+Responsabilidades:
+
+- `CajaAbiertaPanel` consulta y muestra la caja diaria abierta.
+- `cajaService` consume `GET /api/cajas-diarias/abierta` y `POST /api/cajas-diarias`.
+- `types.ts` conserva el contrato real de `CajaDiariaResponse`.
+
+La apertura visible para `administrador` y `gerente` no reemplaza la validacion del backend.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.

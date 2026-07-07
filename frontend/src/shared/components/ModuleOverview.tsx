@@ -1,93 +1,53 @@
 import {
-  BadgeDollarSign,
-  Boxes,
-  ClipboardList,
-  FileCheck2,
-  LockKeyhole,
-  ReceiptText,
-  ShieldCheck,
-  WalletCards,
-} from "lucide-react";
-import type { ComponentType } from "react";
+  getRouteEndpointsForRole,
+  routeStatusLabels,
+  type AppRoute,
+  type UserRole,
+} from "../../app/routes/appRoutes";
 
-type ModuleCard = {
-  title: string;
-  endpoint: string;
-  status: "Implementado" | "Pendiente";
-  icon: ComponentType<{ size?: number; strokeWidth?: number }>;
+type ModuleOverviewProps = {
+  routes: AppRoute[];
+  activePath: string;
+  role: UserRole | null;
+  roleLabel: string;
+  onNavigate: (path: string) => void;
 };
 
-const modules: ModuleCard[] = [
-  {
-    title: "Autenticacion",
-    endpoint: "POST /api/auth/login",
-    status: "Implementado",
-    icon: LockKeyhole,
-  },
-  {
-    title: "Caja diaria",
-    endpoint: "GET /api/cajas-diarias/abierta",
-    status: "Pendiente",
-    icon: WalletCards,
-  },
-  { title: "Ventas y pagos", endpoint: "POST /api/ventas", status: "Pendiente", icon: BadgeDollarSign },
-  {
-    title: "Inventario",
-    endpoint: "GET /api/inventario/existencias/general",
-    status: "Pendiente",
-    icon: Boxes,
-  },
-  {
-    title: "Gastos",
-    endpoint: "GET /api/operaciones-caja/gastos-caja/abierta",
-    status: "Pendiente",
-    icon: ReceiptText,
-  },
-  {
-    title: "Cierre y deposito",
-    endpoint: "GET /api/cajas-diarias/{id}/cierre",
-    status: "Pendiente",
-    icon: FileCheck2,
-  },
-  {
-    title: "Evidencias",
-    endpoint: "POST /api/evidencias/...",
-    status: "Pendiente",
-    icon: ClipboardList,
-  },
-  {
-    title: "Auditoria",
-    endpoint: "GET /api/consultas/auditoria",
-    status: "Pendiente",
-    icon: ShieldCheck,
-  },
-];
+export function ModuleOverview({ routes, activePath, role, roleLabel, onNavigate }: ModuleOverviewProps) {
+  const moduleRoutes = routes.filter((route) => route.id !== "inicio");
 
-export function ModuleOverview() {
   return (
     <article className="panel">
       <div className="panel-title">
         <div>
-          <h2>Modulos frontend</h2>
-          <p>Orden base de Fase 4</p>
+          <h2>Navegacion visible</h2>
+          <p>{roleLabel}</p>
         </div>
-        <span className="badge">PR 1</span>
+        <span className="badge">Layout</span>
       </div>
 
       <div className="module-grid">
-        {modules.map((module) => {
-          const Icon = module.icon;
+        {moduleRoutes.map((route) => {
+          const Icon = route.icon;
+          const isActive = route.path === activePath;
+          const endpoints = getRouteEndpointsForRole(route, role);
           return (
-            <div className="metric-card" key={module.title}>
+            <button
+              className={`metric-card route-card-button ${isActive ? "active" : ""}`}
+              key={route.path}
+              type="button"
+              onClick={() => onNavigate(route.path)}
+              aria-current={isActive ? "page" : undefined}
+            >
               <div className="metric-icon">
                 <Icon size={19} strokeWidth={2.2} />
               </div>
               <div>
-                <h3>{module.title}</h3>
-                <span>{module.status}</span>
+                <h3>{route.label}</h3>
+                <span>{routeStatusLabels[route.status]}</span>
               </div>
-              <p>{module.endpoint}</p>
-            </div>
+              <p>{endpoints[0]}</p>
+            </button>
           );
         })}
       </div>

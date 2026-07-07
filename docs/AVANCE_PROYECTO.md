@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-07.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, autenticacion frontend completada y validada manualmente en navegador.
+- Fase actual: Fase 4, panel de caja abierta completado y validado manualmente en navegador.
 - Fase anterior validada: Fase 4, PR 1 de inicializacion frontend.
-- Siguiente hito: guardar cambios de autenticacion en `chore/inicializacion-frontend` y continuar con layout principal por rol.
+- Siguiente hito: continuar con catalogos necesarios para formularios.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -929,6 +929,147 @@ Observaciones:
 - No se hizo merge ni cambio de rama.
 - El siguiente modulo frontend sera layout principal por rol.
 
+## Fase 4: Layout principal por rol
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Implementar shell principal navegable despues de autenticacion.
+- Mostrar navegacion visible segun rol (`vendedor`, `administrador`, `gerente`).
+- Mantener backend como autoridad de permisos y reglas criticas.
+- Dejar pantallas de negocio como pendientes hasta implementarlas por modulo.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/layout-principal-roles-frontend.md`.
+
+Cambios realizados:
+
+- Se centralizo la declaracion de rutas frontend en `frontend/src/app/routes/appRoutes.ts`.
+- Cada ruta define roles visibles, estado de pantalla, descripcion y endpoints documentados.
+- Se agrego normalizacion de rol para consumir `nombreRol` devuelto por `/api/auth/me`.
+- Se actualizo `AppShell` para filtrar navegacion por rol y permitir navegacion interna.
+- Se agregaron paneles de inicio especificos para `vendedor`, `administrador` y `gerente`.
+- Se agrego `RouteWorkspace` como vista base para modulos pendientes.
+- Se ajusto `ModuleOverview` para mostrar solo la navegacion visible del rol autenticado.
+- Se ajustaron estilos responsive para sidebar, tarjetas navegables, paneles por rol y vistas base.
+
+Reglas respetadas:
+
+- El frontend oculta o muestra opciones solo como mejora de experiencia.
+- Los permisos finales siguen siendo responsabilidad del backend.
+- No se inventaron endpoints nuevos; las rutas visibles referencian contratos ya documentados.
+- Las pantallas de modulos operativos permanecen marcadas como pendientes.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion en navegador integrado contra backend real:
+  - Login con `vendedor` muestra panel de vendedor y navegacion operativa.
+  - Login con `administrador` muestra panel de administrador y navegacion administrativa.
+  - Login con `gerente` muestra panel de gerente y navegacion gerencial.
+  - La ruta `Transferencias` para `vendedor` muestra solo consulta documentada, no acciones de validacion.
+  - Logout vuelve a `/login`.
+  - Consola del navegador sin errores ni advertencias.
+
+- Validacion manual del usuario:
+  - El usuario confirmo que la verificacion en navegador quedo lista para continuar.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- No se marca ninguna pantalla de negocio como completada.
+- El siguiente modulo frontend sera panel de caja abierta.
+
+## Fase 4: Panel de caja abierta
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Mostrar la caja diaria abierta dentro del layout autenticado.
+- Consumir la API real `GET /api/cajas-diarias/abierta`.
+- Permitir apertura de caja desde frontend solo para `administrador` y `gerente` cuando no exista caja abierta.
+- Mantener backend como autoridad de permisos.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/caja-diaria-frontend.md`.
+
+Cambios realizados:
+
+- Se agrego `frontend/src/modules/caja/types.ts` con el contrato real `CajaDiaria`.
+- Se agrego `frontend/src/modules/caja/services/cajaService.ts`.
+- Se implemento `CajaAbiertaPanel` para consultar y mostrar caja abierta.
+- Se conecto la ruta `Caja` del layout al panel funcional.
+- Se agregaron estados de carga, caja abierta, ausencia de caja y error de consulta.
+- Se agrego formulario de apertura para `administrador` y `gerente` cuando no hay caja abierta.
+
+Reglas respetadas:
+
+- `vendedor` puede consultar el estado de caja, pero no ve formulario de apertura.
+- La apertura visible en frontend es solo una mejora de experiencia.
+- El backend sigue validando que solo `administrador` o `gerente` puedan abrir caja.
+- No se inventaron campos; se usaron los campos reales de `CajaDiariaResponse`.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion API real:
+
+```json
+{
+  "estadoCaja": "abierta",
+  "fechaOperacion": "2200-01-01",
+  "valorBase": 300000.00
+}
+```
+
+- Validacion en navegador integrado contra backend real:
+  - Login con `vendedor` muestra `/caja` con caja abierta.
+  - Login con `administrador` muestra `/caja` con caja abierta.
+  - El panel muestra fecha de operacion, estado, valor base, fecha de apertura, usuario de apertura y observaciones.
+  - Logout vuelve a `/login`.
+  - Consola del navegador sin errores ni advertencias.
+
+- Validacion manual del usuario:
+  - El usuario confirmo que se puede continuar despues de verificar el panel en navegador.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- Como ya existe caja abierta en la base local, la validacion no creo una caja nueva.
+- El siguiente modulo frontend sera catalogos necesarios para formularios.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -959,15 +1100,16 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios actuales de autenticacion frontend en `chore/inicializacion-frontend`.
+Guardar los cambios actuales de panel de caja abierta en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: layout principal por rol.
+La siguiente implementacion sera Fase 4: catalogos necesarios para formularios.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador del layout autenticado.
-- Navegacion visible segun rol (`vendedor`, `administrador`, `gerente`) sin duplicar reglas criticas del backend.
+- Verificacion en navegador del panel de catalogos.
+- Consumo de API real para catalogos base.
+- Mostrar catalogos utiles para formularios sin crear ni editar datos.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

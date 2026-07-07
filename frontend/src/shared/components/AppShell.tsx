@@ -1,16 +1,18 @@
 import { LogOut, Server, UserRound } from "lucide-react";
 import type { PropsWithChildren } from "react";
-import type { AppRoute } from "../../app/routes/appRoutes";
+import { routeStatusLabels, type AppRoute } from "../../app/routes/appRoutes";
 import type { HealthStatus } from "../hooks/useHealthCheck";
 
 type AppShellProps = PropsWithChildren<{
   routes: AppRoute[];
+  activePath: string;
   healthStatus: HealthStatus;
   user: {
     nombreCompleto: string;
     nombreUsuario: string;
     nombreRol: string;
   };
+  onNavigate: (path: string) => void;
   onLogout: () => void;
   isLoggingOut?: boolean;
 }>;
@@ -24,8 +26,10 @@ const healthLabels: Record<HealthStatus, string> = {
 
 export function AppShell({
   routes,
+  activePath,
   healthStatus,
   user,
+  onNavigate,
   onLogout,
   isLoggingOut = false,
   children,
@@ -41,17 +45,21 @@ export function AppShell({
         <nav className="menu" aria-label="Navegacion principal">
           {routes.map((route) => {
             const Icon = route.icon;
+            const isActive = route.path === activePath;
             return (
               <button
                 key={route.path}
-                className={route.status === "activo" ? "active" : undefined}
+                className={isActive ? "active" : undefined}
                 type="button"
-                aria-current={route.status === "activo" ? "page" : undefined}
-                disabled={route.status !== "activo"}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => onNavigate(route.path)}
               >
                 <Icon size={18} strokeWidth={2.2} />
-                <span>{route.label}</span>
-                <span className="menu-status" aria-hidden="true" />
+                <span className="menu-label">
+                  <span>{route.label}</span>
+                  <small>{routeStatusLabels[route.status]}</small>
+                </span>
+                <span className={`menu-status ${route.status}`} aria-hidden="true" />
               </button>
             );
           })}
