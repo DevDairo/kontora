@@ -83,6 +83,9 @@ El modulo se implementa sobre las tablas reales del schema:
 
 ## Pendientes
 
-- La validacion o rechazo administrativo de transferencias queda para el modulo transversal de auditoria o consultas operativas segun se defina el flujo final.
-- La auditoria explicita de carga y consulta de evidencias queda para el modulo "Auditoria transversal".
+- La auditoria explicita de carga y consulta de evidencias queda pendiente para una ampliacion posterior de auditoria.
 - La implementacion operativa completa de consignaciones bancarias y pagos de servicios queda para modulos posteriores.
+
+## Actualizaciones posteriores
+
+- En el modulo "Auditoria transversal" se implemento validacion y rechazo administrativo de transferencias.

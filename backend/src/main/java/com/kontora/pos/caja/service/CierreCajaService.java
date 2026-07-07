@@ -1,5 +1,6 @@
 package com.kontora.pos.caja.service;
 
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.caja.domain.AdicionDiaria;
 import com.kontora.pos.caja.domain.CajaDiaria;
 import com.kontora.pos.caja.domain.CierreCaja;
@@ -28,7 +29,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
 
 @Service
 public class CierreCajaService {
@@ -50,6 +54,7 @@ public class CierreCajaService {
     private final PagoVentaRepository pagoVentaRepository;
     private final MovimientoDepositoRepository movimientoDepositoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
 
     public CierreCajaService(
             CajaDiariaRepository cajaDiariaRepository,
@@ -60,7 +65,8 @@ public class CierreCajaService {
             VentaRepository ventaRepository,
             PagoVentaRepository pagoVentaRepository,
             MovimientoDepositoRepository movimientoDepositoRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.cierreCajaRepository = cierreCajaRepository;
         this.adicionDiariaRepository = adicionDiariaRepository;
@@ -70,6 +76,7 @@ public class CierreCajaService {
         this.pagoVentaRepository = pagoVentaRepository;
         this.movimientoDepositoRepository = movimientoDepositoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -120,6 +127,24 @@ public class CierreCajaService {
 
         CierreCaja cierreGuardado = cierreCajaRepository.saveAndFlush(cierreCaja);
         MovimientoDeposito movimientoDeposito = crearMovimientoDeposito(cierreGuardado, usuarioCierre, fechaCierre);
+        auditoriaService.registrar(
+                usuarioCierre,
+                "cierres_caja",
+                cierreGuardado.getIdCierreCaja(),
+                "cerrar",
+                null,
+                snapshotCierre(cierreGuardado),
+                "Cierre de caja diaria");
+        if (movimientoDeposito != null) {
+            auditoriaService.registrar(
+                    usuarioCierre,
+                    "movimientos_deposito",
+                    movimientoDeposito.getIdMovimientoDeposito(),
+                    "crear",
+                    null,
+                    snapshotMovimientoDeposito(movimientoDeposito),
+                    "Movimiento de deposito por cierre de caja");
+        }
 
         return toResponse(cierreGuardado, movimientoDeposito);
     }
@@ -228,6 +253,42 @@ public class CierreCajaService {
             return null;
         }
         return texto.trim();
+    }
+
+    private Map<String, Object> snapshotCierre(CierreCaja cierreCaja) {
+        return valores(
+                "id_cierre_caja", cierreCaja.getIdCierreCaja(),
+                "id_caja_diaria", cierreCaja.getCajaDiaria().getIdCajaDiaria(),
+                "total_ventas", cierreCaja.getTotalVentas(),
+                "total_ventas_efectivo", cierreCaja.getTotalVentasEfectivo(),
+                "total_ventas_transferencia", cierreCaja.getTotalVentasTransferencia(),
+                "total_transferencias_pendientes", cierreCaja.getTotalTransferenciasPendientes(),
+                "total_transferencias_validadas", cierreCaja.getTotalTransferenciasValidadas(),
+                "total_transferencias_rechazadas", cierreCaja.getTotalTransferenciasRechazadas(),
+                "total_gastos", cierreCaja.getTotalGastos(),
+                "total_adiciones", cierreCaja.getTotalAdiciones(),
+                "total_pago_trabajadores", cierreCaja.getTotalPagoTrabajadores(),
+                "efectivo_esperado_sin_base", cierreCaja.getEfectivoEsperadoSinBase(),
+                "efectivo_contado_sin_base", cierreCaja.getEfectivoContadoSinBase(),
+                "diferencia_caja", cierreCaja.getDiferenciaCaja(),
+                "valor_a_deposito", cierreCaja.getValorADeposito(),
+                "fecha_cierre", cierreCaja.getFechaCierre(),
+                "id_usuario_cierre", cierreCaja.getUsuarioCierre().getIdUsuario(),
+                "observaciones", cierreCaja.getObservaciones());
+    }
+
+    private Map<String, Object> snapshotMovimientoDeposito(MovimientoDeposito movimientoDeposito) {
+        CierreCaja cierreCaja = movimientoDeposito.getCierreCaja();
+        return valores(
+                "id_movimiento_deposito", movimientoDeposito.getIdMovimientoDeposito(),
+                "tipo_movimiento_deposito", movimientoDeposito.getTipoMovimientoDeposito(),
+                "valor_movimiento", movimientoDeposito.getValorMovimiento(),
+                "saldo_anterior", movimientoDeposito.getSaldoAnterior(),
+                "saldo_posterior", movimientoDeposito.getSaldoPosterior(),
+                "id_cierre_caja", cierreCaja == null ? null : cierreCaja.getIdCierreCaja(),
+                "id_usuario_registro", movimientoDeposito.getUsuarioRegistro().getIdUsuario(),
+                "fecha_movimiento", movimientoDeposito.getFechaMovimiento(),
+                "observacion", movimientoDeposito.getObservacion());
     }
 
     private CierreCajaResponse toResponse(CierreCaja cierreCaja, MovimientoDeposito movimientoDeposito) {

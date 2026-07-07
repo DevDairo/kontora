@@ -16,7 +16,7 @@ public interface PagoVentaRepository extends JpaRepository<PagoVenta, UUID> {
     @EntityGraph(attributePaths = "metodoPago")
     List<PagoVenta> findByVenta_IdVenta(UUID idVenta);
 
-    @EntityGraph(attributePaths = {"venta", "venta.usuarioVendedor", "metodoPago"})
+    @EntityGraph(attributePaths = {"venta", "venta.usuarioVendedor", "metodoPago", "usuarioValidacion"})
     Optional<PagoVenta> findByIdPagoVenta(UUID idPagoVenta);
 
     @Query(value = """

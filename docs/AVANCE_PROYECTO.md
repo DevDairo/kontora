@@ -5,10 +5,10 @@ Este documento registra el avance real del proyecto para mantener control de con
 ## Estado actual
 
 - Fecha de registro: 2026-07-06.
-- Rama actual: `feature/evidencias-storage`.
-- Fase actual: Fase 3, modulo 8 completado y validado.
-- Fase anterior validada: Fase 3, modulo 7: Cierre de caja y deposito.
-- Siguiente hito: merge del modulo `evidencias-storage` hacia `main` y creacion de la rama del modulo `auditoria-operaciones`.
+- Rama actual: `feature/auditoria-operaciones`.
+- Fase actual: Fase 3, modulo 9 completado y validado.
+- Fase anterior validada: Fase 3, modulo 8: Evidencias y almacenamiento.
+- Siguiente hito: merge del modulo `auditoria-operaciones` hacia `main` e inicio del modulo `consultas-operativas`.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -161,7 +161,8 @@ Validacion realizada:
 Observaciones:
 
 - No se modifico el schema para acomodarlo al codigo.
-- La administracion completa de usuarios, cambio de contrasena y auditoria explicita quedan fuera de este modulo inicial y se retomaran cuando correspondan por flujo documentado.
+- La auditoria explicita de login/logout quedo implementada posteriormente en el modulo "Auditoria transversal".
+- La administracion completa de usuarios y cambio de contrasena quedan fuera de este modulo inicial y se retomaran cuando correspondan por flujo documentado.
 
 ## Fase 3: Modulo 2 - Caja diaria
 
@@ -393,7 +394,7 @@ Observaciones:
 
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas de inventario operativo.
 - No se implemento `items_inventario.cantidad_minima_alerta` porque esa columna no existe en `kontora_pos_schema.txt`.
-- Los ajustes de inventario con aprobacion quedan pendientes para una ampliacion posterior del flujo de inventario o auditoria transversal.
+- Los ajustes de inventario con aprobacion quedan pendientes para una ampliacion posterior del flujo de inventario.
 - El conteo fisico final y diferencias de inventario diario se completaran con el modulo "Cierre de caja y deposito".
 
 ## Fase 3: Modulo 6 - Gastos, adiciones y pago a trabajadores
@@ -456,7 +457,7 @@ Observaciones:
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas de operaciones diarias de caja.
 - La consolidacion contable de gastos, adiciones y pago a trabajadores queda para el modulo "Cierre de caja y deposito".
 - Evidencias de gastos quedan para el modulo "Evidencias y almacenamiento".
-- Auditoria explicita de ediciones y anulaciones queda para el modulo transversal de auditoria.
+- La auditoria explicita de ediciones y anulaciones quedo implementada posteriormente en el modulo "Auditoria transversal".
 
 ## Fase 3: Modulo 7 - Cierre de caja y deposito
 
@@ -529,7 +530,7 @@ Observaciones:
 - El trigger canonico de base de datos actualiza `cajas_diarias` a estado `cerrada` despues de insertar un cierre.
 - Si `valor_a_deposito` es cero, no se crea movimiento de deposito porque `movimientos_deposito.valor_movimiento` exige valor mayor que cero.
 - Evidencias de transferencias, gastos, consignaciones y pagos de servicios quedan para el modulo "Evidencias y almacenamiento".
-- Auditoria explicita del cierre y movimientos de deposito queda para el modulo transversal de auditoria.
+- La auditoria explicita del cierre y movimientos de deposito quedo implementada posteriormente en el modulo "Auditoria transversal".
 
 ## Fase 3: Modulo 8 - Evidencias y almacenamiento
 
@@ -604,8 +605,95 @@ Observaciones:
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene `archivos_evidencia`, `consignaciones_bancarias` y `pagos_servicios`.
 - La base de datos conserva la restriccion `chk_archivos_relacion_unica`, que exige una unica relacion por evidencia.
 - Las pruebas mockean el cliente de storage para no depender de red ni credenciales reales de Supabase.
-- La validacion o rechazo formal de transferencias queda pendiente para auditoria transversal o consultas operativas, segun se defina el flujo final.
+- La validacion y rechazo formal de transferencias quedo implementada posteriormente en el modulo "Auditoria transversal".
 - La implementacion operativa completa de consignaciones bancarias y pagos de servicios queda para modulos posteriores.
+
+## Fase 3: Modulo 9 - Auditoria transversal
+
+Estado: completado y validado.
+
+Rama de trabajo:
+
+- `feature/auditoria-operaciones`.
+
+Tablas canonicas usadas:
+
+- `auditoria_operaciones`.
+- `usuarios`.
+- `sesiones_usuario`.
+- `cajas_diarias`.
+- `cierres_caja`.
+- `ventas`.
+- `pagos_venta`.
+- `gastos_caja`.
+- `movimientos_deposito`.
+
+Cambios realizados:
+
+- Se implemento entidad JPA `AuditoriaOperacion` respetando la tabla `auditoria_operaciones`.
+- Se agrego repositorio para auditoria.
+- Se agrego servicio transversal `AuditoriaService`.
+- Se implemento persistencia de `valor_anterior` y `valor_nuevo` como JSONB.
+- Se captura `direccion_ip` desde el request HTTP, priorizando `X-Forwarded-For`.
+- Se agrego helper `AuditoriaValores` para construir snapshots de auditoria.
+- Se audita login sobre `sesiones_usuario` con accion `login`.
+- Se audita logout sobre `sesiones_usuario` con accion `logout`.
+- Se audita apertura de caja sobre `cajas_diarias` con accion `abrir`.
+- Se audita cierre de caja sobre `cierres_caja` con accion `cerrar`.
+- Se audita el movimiento automatico de deposito sobre `movimientos_deposito` con accion `crear`.
+- Se auditan ediciones de gastos sobre `gastos_caja` con accion `editar`.
+- Se auditan anulaciones de gastos sobre `gastos_caja` con accion `anular`.
+- Se auditan anulaciones de ventas sobre `ventas` con accion `anular`.
+- Se agrego endpoint `POST /api/pagos-venta/{idPagoVenta}/validar`.
+- Se agrego endpoint `POST /api/pagos-venta/{idPagoVenta}/rechazar`.
+- Se implemento validacion y rechazo de transferencias pendientes usando `pagos_venta.estado_validacion`.
+- Se registran `id_usuario_validacion`, `fecha_validacion` y `observacion_validacion` al validar o rechazar transferencias.
+- Se ajustaron limpiezas de pruebas para borrar `auditoria_operaciones` antes de borrar usuarios de fixture.
+- Se documento el modulo en `docs/modules/auditoria-operaciones.md`.
+- Se actualizaron documentos de modulos relacionados para reflejar pendientes resueltos.
+
+Reglas validadas:
+
+- Login genera registro en `auditoria_operaciones`.
+- Logout genera registro en `auditoria_operaciones`.
+- La auditoria registra usuario responsable.
+- La auditoria registra tabla afectada.
+- La auditoria registra accion realizada.
+- La auditoria registra valores anteriores y nuevos cuando aplica.
+- Apertura de caja genera auditoria.
+- Cierre de caja genera auditoria.
+- Movimiento automatico de deposito genera auditoria.
+- Edicion y anulacion de gastos generan auditoria.
+- Anulacion de ventas genera auditoria.
+- Solo `administrador` y `gerente` pueden validar o rechazar transferencias.
+- Solo pagos por transferencia pueden validarse o rechazarse.
+- Solo transferencias pendientes pueden pasar a `validada` o `rechazada`.
+- Validacion y rechazo de transferencias generan auditoria.
+
+Validacion realizada:
+
+- Comando de modulo: `mvn -Dtest=AuditoriaIntegrationTest test`.
+- Resultado: exitoso, `BUILD SUCCESS` reportado por el usuario.
+- Pruebas ejecutadas: 4.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Comando completo: `mvn clean test`.
+- Resultado: exitoso, `BUILD SUCCESS` reportado por el usuario.
+- Pruebas ejecutadas: 43.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Tiempo total reportado: 01:03 min.
+- Fecha/hora de finalizacion reportada: 2026-07-06T22:25:04-05:00.
+
+Observaciones:
+
+- No se agregaron migraciones nuevas porque el schema canonico ya contiene `auditoria_operaciones` y los campos de validacion de `pagos_venta`.
+- La auditoria se implemento desde backend, no con triggers de base de datos.
+- Solicitud, aprobacion y rechazo de ajustes de inventario quedan pendientes porque el flujo operativo de `ajustes_inventario` aun no esta implementado.
+- Cambios de precios, promociones y configuraciones quedan pendientes hasta implementar sus flujos administrativos.
+- La consulta filtrada de auditoria queda para el modulo "Consultas operativas".
 
 ## Reglas activas para las siguientes fases
 
@@ -634,15 +722,15 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `evidencias-storage` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Despues del merge manual del modulo `auditoria-operaciones` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
 
 ```powershell
 git switch main
-git merge --no-ff feature/evidencias-storage
-git switch -c feature/auditoria-operaciones
+git merge --no-ff feature/auditoria-operaciones
+git switch -c feature/consultas-operativas
 ```
 
-La siguiente implementacion sera Fase 3, modulo 9: Auditoria transversal.
+La siguiente implementacion sera Fase 3, modulo 10: Consultas operativas.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 

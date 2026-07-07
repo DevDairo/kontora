@@ -1,5 +1,6 @@
 package com.kontora.pos.caja.service;
 
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.caja.domain.AdicionDiaria;
 import com.kontora.pos.caja.domain.CajaDiaria;
 import com.kontora.pos.caja.domain.GastoCaja;
@@ -30,7 +31,10 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
 
 @Service
 public class OperacionesCajaService {
@@ -47,6 +51,7 @@ public class OperacionesCajaService {
     private final PagoTrabajadoresDiarioRepository pagoTrabajadoresDiarioRepository;
     private final GastoCajaRepository gastoCajaRepository;
     private final EntityManager entityManager;
+    private final AuditoriaService auditoriaService;
 
     public OperacionesCajaService(
             CajaDiariaRepository cajaDiariaRepository,
@@ -54,13 +59,15 @@ public class OperacionesCajaService {
             AdicionDiariaRepository adicionDiariaRepository,
             PagoTrabajadoresDiarioRepository pagoTrabajadoresDiarioRepository,
             GastoCajaRepository gastoCajaRepository,
-            EntityManager entityManager) {
+            EntityManager entityManager,
+            AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.usuarioRepository = usuarioRepository;
         this.adicionDiariaRepository = adicionDiariaRepository;
         this.pagoTrabajadoresDiarioRepository = pagoTrabajadoresDiarioRepository;
         this.gastoCajaRepository = gastoCajaRepository;
         this.entityManager = entityManager;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -168,6 +175,7 @@ public class OperacionesCajaService {
         GastoCaja gasto = obtenerGasto(idGastoCaja);
         validarGastoEditable(gasto);
         Usuario usuario = obtenerUsuario(principalUsuario.idUsuario());
+        Map<String, Object> valorAnterior = snapshotGasto(gasto);
 
         gasto.setValorGasto(normalizarMoneda(request.valorGasto()));
         gasto.setDescripcion(request.descripcion().trim());
@@ -176,7 +184,16 @@ public class OperacionesCajaService {
         gasto.setFechaUltimaEdicion(OffsetDateTime.now());
         gasto.setMotivoEdicion(request.motivoEdicion().trim());
 
-        return toResponse(gastoCajaRepository.saveAndFlush(gasto));
+        GastoCaja gastoGuardado = gastoCajaRepository.saveAndFlush(gasto);
+        auditoriaService.registrar(
+                usuario,
+                "gastos_caja",
+                gastoGuardado.getIdGastoCaja(),
+                "editar",
+                valorAnterior,
+                snapshotGasto(gastoGuardado),
+                "Edicion de gasto de caja");
+        return toResponse(gastoGuardado);
     }
 
     @Transactional
@@ -188,13 +205,23 @@ public class OperacionesCajaService {
         GastoCaja gasto = obtenerGasto(idGastoCaja);
         validarGastoEditable(gasto);
         Usuario usuario = obtenerUsuario(principalUsuario.idUsuario());
+        Map<String, Object> valorAnterior = snapshotGasto(gasto);
 
         gasto.setEstadoGasto(ESTADO_GASTO_ANULADO);
         gasto.setUsuarioAnulacion(usuario);
         gasto.setFechaAnulacion(OffsetDateTime.now());
         gasto.setMotivoAnulacion(request.motivoAnulacion().trim());
 
-        return toResponse(gastoCajaRepository.saveAndFlush(gasto));
+        GastoCaja gastoGuardado = gastoCajaRepository.saveAndFlush(gasto);
+        auditoriaService.registrar(
+                usuario,
+                "gastos_caja",
+                gastoGuardado.getIdGastoCaja(),
+                "anular",
+                valorAnterior,
+                snapshotGasto(gastoGuardado),
+                "Anulacion de gasto de caja");
+        return toResponse(gastoGuardado);
     }
 
     @Transactional(readOnly = true)
@@ -250,6 +277,24 @@ public class OperacionesCajaService {
             return null;
         }
         return texto.trim();
+    }
+
+    private Map<String, Object> snapshotGasto(GastoCaja gasto) {
+        Usuario usuarioUltimaEdicion = gasto.getUsuarioUltimaEdicion();
+        Usuario usuarioAnulacion = gasto.getUsuarioAnulacion();
+        return valores(
+                "id_gasto_caja", gasto.getIdGastoCaja(),
+                "id_caja_diaria", gasto.getCajaDiaria().getIdCajaDiaria(),
+                "valor_gasto", gasto.getValorGasto(),
+                "descripcion", gasto.getDescripcion(),
+                "estado_gasto", gasto.getEstadoGasto(),
+                "id_usuario_registro", gasto.getUsuarioRegistro().getIdUsuario(),
+                "id_usuario_ultima_edicion", usuarioUltimaEdicion == null ? null : usuarioUltimaEdicion.getIdUsuario(),
+                "fecha_ultima_edicion", gasto.getFechaUltimaEdicion(),
+                "motivo_edicion", gasto.getMotivoEdicion(),
+                "id_usuario_anulacion", usuarioAnulacion == null ? null : usuarioAnulacion.getIdUsuario(),
+                "fecha_anulacion", gasto.getFechaAnulacion(),
+                "motivo_anulacion", gasto.getMotivoAnulacion());
     }
 
     private AdicionDiariaResponse toResponse(AdicionDiaria adicionDiaria) {

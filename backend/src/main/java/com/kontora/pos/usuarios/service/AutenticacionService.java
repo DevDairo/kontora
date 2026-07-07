@@ -2,6 +2,7 @@ package com.kontora.pos.usuarios.service;
 
 import com.kontora.pos.common.exception.ApiException;
 import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.usuarios.domain.CredencialUsuario;
 import com.kontora.pos.usuarios.domain.SesionUsuario;
 import com.kontora.pos.usuarios.domain.Usuario;
@@ -19,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
+
 @Service
 public class AutenticacionService {
 
@@ -27,18 +30,21 @@ public class AutenticacionService {
     private final SesionUsuarioRepository sesionUsuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuditoriaService auditoriaService;
 
     public AutenticacionService(
             UsuarioRepository usuarioRepository,
             CredencialUsuarioRepository credencialUsuarioRepository,
             SesionUsuarioRepository sesionUsuarioRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.credencialUsuarioRepository = credencialUsuarioRepository;
         this.sesionUsuarioRepository = sesionUsuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -60,7 +66,21 @@ public class AutenticacionService {
         credencial.setIntentosFallidos(0);
         credencial.setFechaUltimoAcceso(fechaInicio);
         credencialUsuarioRepository.save(credencial);
-        sesionUsuarioRepository.save(crearSesion(usuario, tokenGenerado, fechaInicio, fechaExpiracion, direccionIp, userAgent));
+        SesionUsuario sesion = sesionUsuarioRepository.saveAndFlush(
+                crearSesion(usuario, tokenGenerado, fechaInicio, fechaExpiracion, direccionIp, userAgent));
+        auditoriaService.registrar(
+                usuario,
+                "sesiones_usuario",
+                sesion.getIdSesionUsuario(),
+                "login",
+                null,
+                valores(
+                        "id_sesion_usuario", sesion.getIdSesionUsuario(),
+                        "estado_sesion", sesion.getEstadoSesion(),
+                        "fecha_inicio", sesion.getFechaInicio(),
+                        "fecha_expiracion", sesion.getFechaExpiracion(),
+                        "direccion_ip", sesion.getDireccionIp()),
+                "Inicio de sesion");
 
         return new LoginResponse(
                 tokenGenerado.token(),
@@ -78,9 +98,22 @@ public class AutenticacionService {
     public void logout(PrincipalUsuario principalUsuario) {
         SesionUsuario sesion = sesionUsuarioRepository.findByTokenIdentificador(principalUsuario.tokenIdentificador())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Sesion no encontrada"));
+        var valorAnterior = valores(
+                "estado_sesion", sesion.getEstadoSesion(),
+                "fecha_cierre", sesion.getFechaCierre());
         sesion.setEstadoSesion("cerrada");
         sesion.setFechaCierre(OffsetDateTime.now());
-        sesionUsuarioRepository.save(sesion);
+        SesionUsuario sesionGuardada = sesionUsuarioRepository.saveAndFlush(sesion);
+        auditoriaService.registrar(
+                sesionGuardada.getUsuario(),
+                "sesiones_usuario",
+                sesionGuardada.getIdSesionUsuario(),
+                "logout",
+                valorAnterior,
+                valores(
+                        "estado_sesion", sesionGuardada.getEstadoSesion(),
+                        "fecha_cierre", sesionGuardada.getFechaCierre()),
+                "Cierre de sesion");
     }
 
     public UsuarioAutenticadoResponse obtenerUsuarioAutenticado(PrincipalUsuario principalUsuario) {

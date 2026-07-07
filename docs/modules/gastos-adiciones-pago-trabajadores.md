@@ -86,5 +86,8 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Pendientes
 
 - La consolidacion contable de gastos, adiciones y pago a trabajadores se usara en el modulo "Cierre de caja y deposito".
-- La auditoria explicita de ediciones y anulaciones se implementara en el modulo transversal de auditoria.
 - Evidencias asociadas a gastos se implementaran en el modulo "Evidencias y almacenamiento".
+
+## Actualizaciones posteriores
+
+- En el modulo "Auditoria transversal" se implemento auditoria explicita de ediciones y anulaciones de gastos.
