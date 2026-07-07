@@ -1,4 +1,4 @@
-import { Server } from "lucide-react";
+import { LogOut, Server, UserRound } from "lucide-react";
 import type { PropsWithChildren } from "react";
 import type { AppRoute } from "../../app/routes/appRoutes";
 import type { HealthStatus } from "../hooks/useHealthCheck";
@@ -6,6 +6,13 @@ import type { HealthStatus } from "../hooks/useHealthCheck";
 type AppShellProps = PropsWithChildren<{
   routes: AppRoute[];
   healthStatus: HealthStatus;
+  user: {
+    nombreCompleto: string;
+    nombreUsuario: string;
+    nombreRol: string;
+  };
+  onLogout: () => void;
+  isLoggingOut?: boolean;
 }>;
 
 const healthLabels: Record<HealthStatus, string> = {
@@ -15,7 +22,14 @@ const healthLabels: Record<HealthStatus, string> = {
   offline: "API no disponible",
 };
 
-export function AppShell({ routes, healthStatus, children }: AppShellProps) {
+export function AppShell({
+  routes,
+  healthStatus,
+  user,
+  onLogout,
+  isLoggingOut = false,
+  children,
+}: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -55,9 +69,35 @@ export function AppShell({ routes, healthStatus, children }: AppShellProps) {
             <Server size={20} strokeWidth={2.2} />
             <span>Integracion local</span>
           </div>
-          <div className={`status-pill ${healthStatus}`}>
-            <span className="status-dot" aria-hidden="true" />
-            <span>{healthLabels[healthStatus]}</span>
+
+          <div className="topbar-actions">
+            <div className={`status-pill ${healthStatus}`}>
+              <span className="status-dot" aria-hidden="true" />
+              <span>{healthLabels[healthStatus]}</span>
+            </div>
+
+            <div className="user-chip">
+              <span className="avatar" aria-hidden="true">
+                <UserRound size={17} strokeWidth={2.2} />
+              </span>
+              <span>
+                <strong>{user.nombreCompleto}</strong>
+                <small>
+                  {user.nombreRol} · {user.nombreUsuario}
+                </small>
+              </span>
+            </div>
+
+            <button
+              className="icon-button"
+              type="button"
+              onClick={onLogout}
+              disabled={isLoggingOut}
+              aria-label="Cerrar sesion"
+              title="Cerrar sesion"
+            >
+              <LogOut size={18} strokeWidth={2.2} />
+            </button>
           </div>
         </header>
 

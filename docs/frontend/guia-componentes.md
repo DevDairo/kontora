@@ -22,6 +22,30 @@ La maqueta no es contrato funcional. El frontend real se implementa con React, T
 
 ## Componentes base
 
+### `LoginPage`
+
+Ubicacion: `frontend/src/modules/auth/components/LoginPage.tsx`.
+
+Responsabilidades:
+
+- Renderizar el formulario de inicio de sesion.
+- Validar campos vacios antes de enviar.
+- Consumir `POST /api/auth/login` mediante el provider de autenticacion.
+- Mostrar errores devueltos por el backend.
+- Mostrar estado local de la API mediante el health check.
+
+### `AuthProvider`
+
+Ubicacion: `frontend/src/modules/auth/context/AuthContext.tsx`.
+
+Responsabilidades:
+
+- Mantener estado de sesion autenticada.
+- Guardar y limpiar el token en `sessionStorage`.
+- Reconstruir sesion con `GET /api/auth/me`.
+- Ejecutar logout contra `POST /api/auth/logout`.
+- Exponer `useAuth` para pantallas y shell.
+
 ### `AppShell`
 
 Ubicacion: `frontend/src/shared/components/AppShell.tsx`.
@@ -30,6 +54,8 @@ Responsabilidades:
 
 - Renderizar marca, navegacion principal y topbar.
 - Mostrar estado resumido de salud de API.
+- Mostrar usuario autenticado y rol.
+- Ejecutar cierre de sesion desde la topbar.
 - Contener la pantalla activa.
 
 ### `HealthCheckPanel`
@@ -57,6 +83,7 @@ Responsabilidades:
 - Componentes React en PascalCase.
 - Hooks con prefijo `use`.
 - Servicios API en `src/shared/services`.
+- Servicios por modulo en `src/modules/[modulo]/services` cuando consumen contratos propios del modulo.
 - Tipos API compartidos en `src/shared/types`.
 - Un modulo visual no debe inventar endpoints ni campos.
 - Los formularios deben validar experiencia de usuario, no reemplazar reglas backend.

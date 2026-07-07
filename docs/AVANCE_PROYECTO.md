@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-07.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, PR 1 de inicializacion frontend completada y validada.
-- Fase anterior validada: Fase 3, modulo 10: Consultas operativas.
-- Siguiente hito: merge manual de `chore/inicializacion-frontend` hacia `main` e inicio de `feature/frontend-auth`.
+- Fase actual: Fase 4, autenticacion frontend completada y validada manualmente en navegador.
+- Fase anterior validada: Fase 4, PR 1 de inicializacion frontend.
+- Siguiente hito: guardar cambios de autenticacion en `chore/inicializacion-frontend` y continuar con layout principal por rol.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -861,6 +861,74 @@ Observaciones:
 - No se implementaron pantallas funcionales por modulo en esta PR.
 - La siguiente PR sugerida por Fase 4 es `feature/frontend-auth`.
 
+## Fase 4: Autenticacion frontend
+
+Estado: completada y validada manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Implementar login consumiendo `POST /api/auth/login`.
+- Manejar token de forma controlada en frontend.
+- Reconstruir sesion con `GET /api/auth/me`.
+- Cerrar sesion con `POST /api/auth/logout`.
+- Proteger la shell principal cuando no exista una sesion valida.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/flujo-autenticacion-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/usuarios-sesiones-frontend.md`.
+
+Cambios realizados:
+
+- Se implemento `AuthProvider` para centralizar estado de sesion, usuario autenticado, token, login, logout y reconstruccion de sesion.
+- Se implemento `LoginPage` con formulario para `nombreUsuario` y `contrasena`.
+- Se implemento `authService` para consumir endpoints reales `/auth/login`, `/auth/me` y `/auth/logout`.
+- Se almacena el JWT en `sessionStorage` mediante `tokenStorage.ts`.
+- Se protegio la app: sin token valido se muestra `/login`; con token valido se confirma sesion contra backend antes de mostrar la shell.
+- Se actualizo `AppShell` para mostrar usuario autenticado, rol, estado de API y boton de logout.
+- Se marco autenticacion como implementada dentro del resumen de modulos frontend.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion auth contra backend real con fixture local existente:
+
+```text
+POST /api/auth/login -> ok
+GET /api/auth/me -> usuario test_auth_activo, rol vendedor
+POST /api/auth/logout -> ok
+```
+
+- Validacion en navegador integrado:
+  - `/login` muestra `Iniciar sesion`.
+  - La pantalla muestra `API disponible`.
+  - Login redirige a `/`.
+  - La shell protegida muestra `Sesion activa`, usuario y rol.
+  - Logout vuelve a `/login`.
+  - Consola sin errores durante login/logout.
+- Validacion manual del usuario:
+  - El login funciona sin errores aparentes en navegador.
+
+Observaciones:
+
+- Por decision operativa del usuario, el frontend se continuara trabajando sobre `chore/inicializacion-frontend`.
+- No se hizo merge ni cambio de rama.
+- El siguiente modulo frontend sera layout principal por rol.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -891,15 +959,16 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual de `chore/inicializacion-frontend` hacia `main`, iniciar la siguiente PR de frontend desde `main` actualizado:
+Guardar los cambios actuales de autenticacion frontend en `chore/inicializacion-frontend`.
 
-```powershell
-git switch main
-git merge --no-ff chore/inicializacion-frontend
-git switch -c feature/frontend-auth
-```
+La siguiente implementacion sera Fase 4: layout principal por rol.
 
-La siguiente implementacion sera Fase 4, PR 2: Autenticacion frontend.
+Validacion esperada del siguiente modulo:
+
+- `npm run build` en `frontend/`.
+- Verificacion en navegador del layout autenticado.
+- Navegacion visible segun rol (`vendedor`, `administrador`, `gerente`) sin duplicar reglas criticas del backend.
+- Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 

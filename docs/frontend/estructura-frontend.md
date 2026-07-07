@@ -42,6 +42,7 @@ frontend/
 
 - `src/app`: composicion global, providers y rutas declaradas.
 - `src/modules`: superficie reservada para pantallas por modulo funcional.
+- `src/modules/auth`: login, proveedor de sesion, servicio de autenticacion y almacenamiento controlado de token.
 - `src/shared/components`: componentes visuales reutilizables.
 - `src/shared/hooks`: hooks transversales como validacion de salud backend.
 - `src/shared/services`: cliente HTTP y servicios de API.
@@ -57,6 +58,27 @@ El cliente base esta en `frontend/src/shared/services/apiClient.ts`.
 - Permite adjuntar token Bearer cuando los modulos autenticados lo necesiten.
 - Respeta `FormData` para futuras cargas multipart de evidencias.
 - Propaga errores HTTP mediante `ApiClientError`.
+
+## Autenticacion frontend
+
+La autenticacion se implementa en `frontend/src/modules/auth`.
+
+Estructura principal:
+
+```text
+frontend/src/modules/auth/
+|-- components/LoginPage.tsx
+|-- context/AuthContext.tsx
+|-- hooks/useAuth.ts
+|-- services/authService.ts
+|-- utils/tokenStorage.ts
+|-- index.ts
+`-- types.ts
+```
+
+El token JWT se almacena en `sessionStorage` mediante `tokenStorage.ts` y se adjunta a las llamadas protegidas usando la opcion `token` del cliente HTTP.
+
+La app reconstruye la sesion con `GET /api/auth/me`; si el backend rechaza el token, el frontend limpia la sesion local y vuelve al login.
 
 ## Variable de entorno
 
