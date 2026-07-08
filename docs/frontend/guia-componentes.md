@@ -114,6 +114,18 @@ Responsabilidades:
 - Mostrar formulario de apertura solo para `administrador` y `gerente` cuando no existe caja abierta.
 - Ejecutar `POST /api/cajas-diarias` sin asumir que el frontend tiene la decision final de permisos.
 
+### `CatalogosPanel`
+
+Ubicacion: `frontend/src/modules/catalogos/components/CatalogosPanel.tsx`.
+
+Responsabilidades:
+
+- Consumir catalogos autenticados desde `GET /api/catalogos/...`.
+- Mostrar conteos de metodos de pago, tipos de granizado, items y promociones vigentes.
+- Mostrar precios vigentes, promociones, inventario activo y listas base.
+- Permitir filtrar localmente por granizado, item o promocion.
+- Permitir cambiar la fecha de vigencia para precios y promociones sin crear ni modificar datos.
+
 ## Convenciones iniciales
 
 - Componentes React en PascalCase.

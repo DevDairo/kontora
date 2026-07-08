@@ -32,12 +32,14 @@ body {
 }
 
 button,
-input {
+input,
+select {
   border: 0;
   font: inherit;
 }
 
-input {
+input,
+select {
   min-width: 0;
 }
 
@@ -570,13 +572,49 @@ h3 {
   padding: 0 14px 0 43px;
 }
 
-.field-control input:focus {
+.field-control select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  padding: 0 14px;
+}
+
+.field-control input:focus,
+.field-control select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(7, 95, 242, 0.12);
 }
 
 .field-control.plain input {
   padding: 0 14px;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.file-control {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0 12px;
+}
+
+.file-control input {
+  width: 100%;
 }
 
 .form-alert {
@@ -1152,6 +1190,182 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.ventas-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.ventas-form-panel,
+.ventas-payment-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.ventas-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ventas-controls.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.venta-line-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.venta-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 40px;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.venta-line strong,
+.venta-line small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.venta-line small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.quantity-stepper {
+  display: grid;
+  grid-template-columns: 30px 34px 30px;
+  align-items: center;
+  min-height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.quantity-stepper button {
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.quantity-stepper span {
+  text-align: center;
+  font-weight: 800;
+}
+
+.venta-totals,
+.payment-breakdown,
+.venta-result-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.venta-totals div,
+.payment-breakdown div,
+.venta-result-grid div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.venta-totals span,
+.payment-breakdown span,
+.venta-result-grid span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.venta-totals strong,
+.payment-breakdown strong,
+.venta-result-grid strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.payment-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.payment-mode-grid button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.payment-mode-grid button.active {
+  border-color: rgba(7, 95, 242, 0.35);
+  background: #eef5ff;
+  color: var(--primary);
+}
+
+.change-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #bee8d2;
+  border-radius: 8px;
+  background: #eaf8f1;
+  color: var(--green);
+  padding: 12px;
+  font-weight: 800;
+}
+
+.change-preview.danger {
+  border-color: #ffd5d9;
+  background: #fff0f1;
+  color: var(--danger);
+}
+
+.venta-result {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.venta-evidence-alert {
+  margin-top: 0;
+}
+
+.success-alert {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #bee8d2;
+  border-radius: 8px;
+  background: #eaf8f1;
+  color: var(--green);
+  padding: 11px 12px;
+  font-weight: 700;
+}
+
 @media (max-width: 1100px) {
   .login-page {
     grid-template-columns: 1fr;
@@ -1193,6 +1407,10 @@ h3 {
   }
 
   .route-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ventas-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1248,8 +1466,20 @@ h3 {
   .menu,
   .module-grid,
   .caja-detail-grid,
-  .catalog-toolbar {
+  .catalog-toolbar,
+  .ventas-controls,
+  .ventas-controls.two-columns,
+  .payment-mode-grid {
     grid-template-columns: 1fr;
+  }
+
+  .venta-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .venta-line .icon-button,
+  .quantity-stepper {
+    width: 100%;
   }
 
   h1 {

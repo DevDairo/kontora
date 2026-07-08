@@ -93,6 +93,26 @@ Responsabilidades:
 
 La apertura visible para `administrador` y `gerente` no reemplaza la validacion del backend.
 
+## Catalogos para formularios
+
+El panel de catalogos queda implementado dentro de `src/modules/catalogos`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/catalogos/components/CatalogosPanel.tsx
+frontend/src/modules/catalogos/services/catalogosService.ts
+frontend/src/modules/catalogos/types.ts
+```
+
+Responsabilidades:
+
+- `CatalogosPanel` consulta y muestra datos maestros activos para formularios.
+- `catalogosService` consume endpoints reales de `GET /api/catalogos/...`.
+- `types.ts` conserva los contratos reales de catalogos, precios vigentes, promociones e items de inventario.
+
+La pantalla es de solo lectura. La vigencia definitiva y las reglas de aplicacion se mantienen en backend.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.

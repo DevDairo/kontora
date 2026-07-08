@@ -10,6 +10,7 @@ import {
 import { LoginPage, useAuth } from "./modules/auth";
 import { CajaAbiertaPanel } from "./modules/caja";
 import { CatalogosPanel } from "./modules/catalogos";
+import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
 import { HealthCheckPanel } from "./shared/components/HealthCheckPanel";
 import { ModuleOverview } from "./shared/components/ModuleOverview";
@@ -192,6 +193,8 @@ function AppContent() {
         />
       ) : activeRoute.id === "caja" ? (
         <CajaAbiertaPanel token={auth.token ?? ""} role={role} />
+      ) : activeRoute.id === "ventas" ? (
+        <VentasPanel token={auth.token ?? ""} usuario={auth.user} />
       ) : activeRoute.id === "catalogos" ? (
         <CatalogosPanel token={auth.token ?? ""} />
       ) : (

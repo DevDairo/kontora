@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-07.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, panel de caja abierta completado y validado manualmente en navegador.
+- Fase actual: Fase 4, catalogos para formularios completado y validado manualmente en navegador.
 - Fase anterior validada: Fase 4, PR 1 de inicializacion frontend.
-- Siguiente hito: continuar con catalogos necesarios para formularios.
+- Siguiente hito: implementar registro de venta y pagos.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1070,6 +1070,83 @@ Observaciones:
 - Como ya existe caja abierta en la base local, la validacion no creo una caja nueva.
 - El siguiente modulo frontend sera catalogos necesarios para formularios.
 
+## Fase 4: Catalogos para formularios
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Consultar catalogos base activos desde la API real para preparar formularios operativos.
+- Mostrar precios vigentes, promociones vigentes, inventario activo y listas base.
+- Mantener el modulo como solo lectura; las reglas definitivas quedan en backend.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/catalogos-base-frontend.md`.
+
+Cambios realizados:
+
+- Se agrego `frontend/src/modules/catalogos/types.ts` con contratos reales de catalogos.
+- Se agrego `frontend/src/modules/catalogos/services/catalogosService.ts`.
+- Se implemento `CatalogosPanel` para consultar catalogos con token real.
+- Se conecto la ruta `Catalogos` del layout al panel funcional.
+- Se agrego filtro local por nombre de granizado, item o promocion.
+- Se agrego selector de fecha para consultar precios y promociones vigentes.
+- Se actualizaron estados visibles del layout para reflejar `Caja` y `Catalogos` como base lista.
+
+Reglas respetadas:
+
+- La pantalla no crea, edita ni elimina catalogos.
+- La vigencia definitiva de precios y promociones queda en backend.
+- La aplicacion real de promociones queda en el modulo de ventas y pagos.
+- No se inventaron endpoints; se usaron los contratos de `docs/modules/catalogos-base.md`.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion API real con token:
+
+```text
+GET /api/catalogos/metodos-pago -> 2 registros
+GET /api/catalogos/tipos-granizado -> 2 registros
+GET /api/catalogos/tamanos-vaso -> 6 registros
+GET /api/catalogos/categorias-inventario -> 5 registros
+GET /api/catalogos/unidades-medida -> 4 registros
+GET /api/catalogos/items-inventario -> 16 registros
+GET /api/catalogos/precios-granizado/vigentes?fecha=2026-07-07 -> 12 registros
+GET /api/catalogos/promociones/vigentes?fecha=2026-07-07 -> 12 registros
+GET /api/catalogos/tipos-servicio -> 5 registros
+```
+
+- Validacion en navegador integrado contra backend real:
+  - Login con `test_auth_activo` muestra la shell protegida.
+  - `/catalogos` muestra datos reales de precios, promociones, inventario y listas base.
+  - La ruta `Caja` aparece como `Base lista`.
+  - La ruta `Catalogos` aparece como `Base lista` despues de la confirmacion manual.
+  - Consola del navegador sin errores ni advertencias.
+
+- Validacion manual del usuario:
+  - El usuario confirmo continuar despues de revisar el panel en navegador.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- El siguiente modulo frontend sera registro de venta y pagos.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1100,16 +1177,17 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios actuales de panel de caja abierta en `chore/inicializacion-frontend`.
+Guardar los cambios actuales de catalogos para formularios en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: catalogos necesarios para formularios.
+La siguiente implementacion sera Fase 4: registro de venta y pagos.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador del panel de catalogos.
-- Consumo de API real para catalogos base.
-- Mostrar catalogos utiles para formularios sin crear ni editar datos.
+- Verificacion en navegador del registro de venta y pagos.
+- Consumo de API real para `POST /api/ventas`.
+- Uso de catalogos reales para tipos de granizado, tamanos, precios vigentes, promociones y metodos de pago.
+- Registro de pagos en efectivo, transferencia o combinado segun contratos reales.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

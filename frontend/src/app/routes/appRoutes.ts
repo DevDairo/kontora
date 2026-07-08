@@ -68,7 +68,7 @@ export const appRoutes: AppRoute[] = [
     id: "caja",
     label: "Caja",
     path: "/caja",
-    status: "pendiente",
+    status: "base",
     description: "Consulta de caja abierta y apertura para roles autorizados por backend.",
     endpoints: ["GET /api/cajas-diarias/abierta", "POST /api/cajas-diarias"],
     roleDescriptions: {
@@ -184,7 +184,7 @@ export const appRoutes: AppRoute[] = [
     id: "catalogos",
     label: "Catalogos",
     path: "/catalogos",
-    status: "pendiente",
+    status: "base",
     description: "Catalogos activos usados por formularios operativos.",
     endpoints: [
       "GET /api/catalogos/metodos-pago",

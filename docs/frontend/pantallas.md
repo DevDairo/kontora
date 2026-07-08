@@ -167,6 +167,54 @@ Solo cuando no existe caja abierta y el rol visible es `administrador` o `gerent
 - Consola del navegador sin errores ni advertencias.
 - Verificacion manual del usuario completada antes de documentar el cierre.
 
+## Pantalla: Catalogos para formularios
+
+### Objetivo
+
+Consultar catalogos base activos desde la API real para preparar formularios operativos.
+
+### Actor principal
+
+Vendedor / Administrador / Gerente.
+
+### Endpoint consumido
+
+- `GET /api/catalogos/metodos-pago`
+- `GET /api/catalogos/tipos-granizado`
+- `GET /api/catalogos/tamanos-vaso`
+- `GET /api/catalogos/categorias-inventario`
+- `GET /api/catalogos/unidades-medida`
+- `GET /api/catalogos/items-inventario`
+- `GET /api/catalogos/precios-granizado/vigentes`
+- `GET /api/catalogos/promociones/vigentes`
+- `GET /api/catalogos/tipos-servicio`
+
+### Campos del formulario
+
+- `fechaVigencia`
+- `buscar`
+
+### Validaciones de interfaz
+
+- La consulta usa token activo.
+- La fecha de vigencia se envia como filtro para precios y promociones.
+- La busqueda es local sobre datos ya consultados.
+- Si la API devuelve error, se muestra el mensaje real.
+- La pantalla no crea ni edita catalogos.
+
+### Respuestas esperadas
+
+- Caso exitoso: se muestran conteos y listas de catalogos, precios, promociones e items.
+- Caso con error: se muestra mensaje de API y se permite reintento.
+
+### Evidencia de prueba
+
+- `npm run build`.
+- Endpoints de catalogos validados contra backend real con token.
+- Panel `/catalogos` validado en navegador integrado.
+- Consola del navegador sin errores ni advertencias.
+- Verificacion manual del usuario completada antes de documentar el cierre.
+
 ## Orden previsto de pantallas
 
 Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
@@ -174,8 +222,8 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 1. Login.
 2. Layout principal por rol. Implementado y validado.
 3. Panel de caja abierta. Implementado y validado.
-4. Catalogos necesarios para formularios. Siguiente modulo.
-5. Registro de venta y pagos.
+4. Catalogos necesarios para formularios. Implementado y validado.
+5. Registro de venta y pagos. Siguiente modulo.
 6. Inventario operativo.
 7. Gastos, adiciones y pago trabajadores.
 8. Cierre de caja.
