@@ -351,6 +351,7 @@ Tablas canonicas usadas:
 - `movimientos_inventario`.
 - `paquetes_vasos_abiertos`.
 - `consumos_diarios_inventario`.
+- `ajustes_inventario`.
 - `ventas`.
 - `detalles_venta`.
 - `cajas_diarias`.
@@ -366,9 +367,16 @@ Cambios realizados:
 - Se agrego endpoint `POST /api/inventario/paquetes-vasos`.
 - Se agrego endpoint `POST /api/inventario/consumos-diarios`.
 - Se agrego endpoint `GET /api/inventario/movimientos`.
+- Se agrego endpoint `GET /api/inventario/ajustes`.
+- Se agrego endpoint `POST /api/inventario/ajustes`.
+- Se agrego endpoint `POST /api/inventario/ajustes/{idAjusteInventario}/aprobar`.
+- Se agrego endpoint `POST /api/inventario/ajustes/{idAjusteInventario}/rechazar`.
 - Se agrego endpoint `POST /api/ventas/{idVenta}/anular`.
 - Se integro `POST /api/ventas` con descuento automatico de vasos en stock diario.
 - Se integro anulacion de venta con restauracion de vasos en stock diario.
+- Se implemento RF-47 usando `ajustes_inventario` para solicitud, aprobacion y rechazo de ajustes de stock general.
+- La aprobacion de ajustes actualiza `existencias_inventario_general` y crea movimiento `ajuste` en `movimientos_inventario`.
+- La solicitud, aprobacion y rechazo se registran en `auditoria_operaciones`.
 - Se documento el modulo en `docs/modules/inventario-operativo.md`.
 - Se actualizo `docs/modules/ventas-pagos.md` para reflejar la anulacion implementada en este modulo.
 
@@ -382,19 +390,29 @@ Reglas validadas:
 - Cada movimiento registra `referencia_origen` e `id_referencia_origen`.
 - No se permite consumo manual sobre items `automatico_por_venta`.
 - No se permiten movimientos que dejen stock general o diario negativo.
+- Administrador y gerente pueden solicitar ajustes de stock general.
+- Solo gerente puede aprobar o rechazar ajustes de inventario.
+- La solicitud de ajuste no modifica stock.
+- La aprobacion de ajuste modifica stock general y registra movimiento `ajuste`.
+- El rechazo de ajuste no modifica stock ni crea movimiento.
+- No se aprueban ajustes que dejen stock general negativo.
 - Una venta descuenta vasos de `existencias_inventario_diario`.
 - Una anulacion restaura vasos de `existencias_inventario_diario`.
 
 Validacion realizada:
 
 - Comando: `mvn clean test`.
-- Resultado: exitoso, `BUILD SUCCESS` reportado por el usuario.
+- Resultado: exitoso, `BUILD SUCCESS`.
+- Pruebas ejecutadas: 53.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Fecha/hora de finalizacion: 2026-07-08T23:03:11-05:00.
 
 Observaciones:
 
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas de inventario operativo.
 - No se implemento `items_inventario.cantidad_minima_alerta` porque esa columna no existe en `kontora_pos_schema.txt`.
-- Los ajustes de inventario con aprobacion quedan pendientes para una ampliacion posterior del flujo de inventario.
 - El conteo fisico final y diferencias de inventario diario se completaran con el modulo "Cierre de caja y deposito".
 
 ## Fase 3: Modulo 6 - Gastos, adiciones y pago a trabajadores
@@ -691,7 +709,7 @@ Observaciones:
 
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene `auditoria_operaciones` y los campos de validacion de `pagos_venta`.
 - La auditoria se implemento desde backend, no con triggers de base de datos.
-- Solicitud, aprobacion y rechazo de ajustes de inventario quedan pendientes porque el flujo operativo de `ajustes_inventario` aun no esta implementado.
+- Solicitud, aprobacion y rechazo de ajustes de inventario fueron resueltos posteriormente en la ampliacion RF-47 del modulo de inventario operativo.
 - Cambios de precios, promociones y configuraciones quedan pendientes hasta implementar sus flujos administrativos.
 - La consulta filtrada de auditoria queda para el modulo "Consultas operativas".
 

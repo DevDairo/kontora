@@ -1,5 +1,6 @@
 package com.kontora.pos.inventario.service;
 
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.caja.domain.CajaDiaria;
 import com.kontora.pos.caja.repository.CajaDiariaRepository;
 import com.kontora.pos.catalogos.domain.ItemInventario;
@@ -7,11 +8,13 @@ import com.kontora.pos.catalogos.domain.TamanoVaso;
 import com.kontora.pos.catalogos.repository.ItemInventarioRepository;
 import com.kontora.pos.common.exception.ApiException;
 import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.inventario.domain.AjusteInventario;
 import com.kontora.pos.inventario.domain.ConsumoDiarioInventario;
 import com.kontora.pos.inventario.domain.ExistenciaInventarioDiario;
 import com.kontora.pos.inventario.domain.ExistenciaInventarioGeneral;
 import com.kontora.pos.inventario.domain.MovimientoInventario;
 import com.kontora.pos.inventario.domain.PaqueteVasosAbierto;
+import com.kontora.pos.inventario.dto.AjusteInventarioResponse;
 import com.kontora.pos.inventario.dto.ConsumoDiarioInventarioResponse;
 import com.kontora.pos.inventario.dto.ExistenciaInventarioDiarioResponse;
 import com.kontora.pos.inventario.dto.ExistenciaInventarioGeneralResponse;
@@ -19,6 +22,9 @@ import com.kontora.pos.inventario.dto.MovimientoInventarioResponse;
 import com.kontora.pos.inventario.dto.PaqueteVasosAbiertoResponse;
 import com.kontora.pos.inventario.dto.RegistrarConsumoDiarioInventarioRequest;
 import com.kontora.pos.inventario.dto.RegistrarPaqueteVasosRequest;
+import com.kontora.pos.inventario.dto.ResolverAjusteInventarioRequest;
+import com.kontora.pos.inventario.dto.SolicitarAjusteInventarioRequest;
+import com.kontora.pos.inventario.repository.AjusteInventarioRepository;
 import com.kontora.pos.inventario.repository.ConsumoDiarioInventarioRepository;
 import com.kontora.pos.inventario.repository.ExistenciaInventarioDiarioRepository;
 import com.kontora.pos.inventario.repository.ExistenciaInventarioGeneralRepository;
@@ -36,7 +42,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
 
 @Service
 public class InventarioService {
@@ -51,41 +60,52 @@ public class InventarioService {
     private static final String MOVIMIENTO_VENTA = "venta";
     private static final String MOVIMIENTO_ANULACION_VENTA = "anulacion_venta";
     private static final String MOVIMIENTO_CONSUMO_DIARIO = "consumo_diario";
+    private static final String MOVIMIENTO_AJUSTE = "ajuste";
     private static final String SENTIDO_ENTRADA = "entrada";
     private static final String SENTIDO_SALIDA = "salida";
+    private static final String ESTADO_AJUSTE_PENDIENTE = "pendiente";
+    private static final String ESTADO_AJUSTE_APROBADO = "aprobado";
+    private static final String ESTADO_AJUSTE_RECHAZADO = "rechazado";
     private static final String REFERENCIA_PAQUETES = "paquetes_vasos_abiertos";
     private static final String REFERENCIA_CONSUMOS = "consumos_diarios_inventario";
     private static final String REFERENCIA_VENTAS = "ventas";
+    private static final String REFERENCIA_AJUSTES = "ajustes_inventario";
 
     private final CajaDiariaRepository cajaDiariaRepository;
     private final UsuarioRepository usuarioRepository;
     private final ItemInventarioRepository itemInventarioRepository;
+    private final AjusteInventarioRepository ajusteInventarioRepository;
     private final ExistenciaInventarioGeneralRepository existenciaGeneralRepository;
     private final ExistenciaInventarioDiarioRepository existenciaDiarioRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final PaqueteVasosAbiertoRepository paqueteVasosAbiertoRepository;
     private final ConsumoDiarioInventarioRepository consumoDiarioInventarioRepository;
     private final EntityManager entityManager;
+    private final AuditoriaService auditoriaService;
 
     public InventarioService(
             CajaDiariaRepository cajaDiariaRepository,
             UsuarioRepository usuarioRepository,
             ItemInventarioRepository itemInventarioRepository,
+            AjusteInventarioRepository ajusteInventarioRepository,
             ExistenciaInventarioGeneralRepository existenciaGeneralRepository,
             ExistenciaInventarioDiarioRepository existenciaDiarioRepository,
             MovimientoInventarioRepository movimientoInventarioRepository,
             PaqueteVasosAbiertoRepository paqueteVasosAbiertoRepository,
             ConsumoDiarioInventarioRepository consumoDiarioInventarioRepository,
-            EntityManager entityManager) {
+            EntityManager entityManager,
+            AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.usuarioRepository = usuarioRepository;
         this.itemInventarioRepository = itemInventarioRepository;
+        this.ajusteInventarioRepository = ajusteInventarioRepository;
         this.existenciaGeneralRepository = existenciaGeneralRepository;
         this.existenciaDiarioRepository = existenciaDiarioRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.paqueteVasosAbiertoRepository = paqueteVasosAbiertoRepository;
         this.consumoDiarioInventarioRepository = consumoDiarioInventarioRepository;
         this.entityManager = entityManager;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional(readOnly = true)
@@ -125,6 +145,104 @@ public class InventarioService {
             movimientos = movimientoInventarioRepository.findAllByOrderByFechaMovimientoDesc();
         }
         return movimientos.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AjusteInventarioResponse> consultarAjustes(String estadoAprobacion) {
+        String estadoNormalizado = normalizarEstadoAprobacionFiltro(estadoAprobacion);
+        List<AjusteInventario> ajustes = estadoNormalizado == null
+                ? ajusteInventarioRepository.findAllByOrderByFechaSolicitudDesc()
+                : ajusteInventarioRepository.findByEstadoAprobacionOrderByFechaSolicitudDesc(estadoNormalizado);
+        return ajustes.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional
+    public AjusteInventarioResponse solicitarAjusteInventario(
+            SolicitarAjusteInventarioRequest request,
+            PrincipalUsuario principalUsuario) {
+        validarRolSolicitudAjuste(principalUsuario);
+        Usuario usuarioSolicitante = obtenerUsuario(principalUsuario.idUsuario());
+        ItemInventario item = obtenerItemActivo(request.idItemInventario());
+        String tipoStock = normalizarTipoStockGeneral(request.tipoStock());
+        String sentidoAjuste = normalizarSentidoAjuste(request.sentidoAjuste());
+
+        AjusteInventario ajuste = new AjusteInventario();
+        ajuste.setItemInventario(item);
+        ajuste.setCajaDiaria(null);
+        ajuste.setTipoStock(tipoStock);
+        ajuste.setCantidadAjuste(request.cantidadAjuste());
+        ajuste.setSentidoAjuste(sentidoAjuste);
+        ajuste.setMotivoAjuste(request.motivoAjuste().trim());
+        ajuste.setEstadoAprobacion(ESTADO_AJUSTE_PENDIENTE);
+        ajuste.setUsuarioSolicitante(usuarioSolicitante);
+        ajuste.setFechaSolicitud(OffsetDateTime.now());
+
+        AjusteInventario ajusteGuardado = ajusteInventarioRepository.saveAndFlush(ajuste);
+        auditoriaService.registrar(
+                usuarioSolicitante,
+                "ajustes_inventario",
+                ajusteGuardado.getIdAjusteInventario(),
+                "crear",
+                null,
+                snapshotAjuste(ajusteGuardado),
+                "Solicitud de ajuste de inventario");
+        return toResponse(ajusteGuardado);
+    }
+
+    @Transactional
+    public AjusteInventarioResponse aprobarAjusteInventario(
+            UUID idAjusteInventario,
+            ResolverAjusteInventarioRequest request,
+            PrincipalUsuario principalUsuario) {
+        validarRolAprobacionAjuste(principalUsuario);
+        Usuario usuarioAprobador = obtenerUsuario(principalUsuario.idUsuario());
+        AjusteInventario ajuste = obtenerAjustePendienteBloqueado(idAjusteInventario);
+        Map<String, Object> valorAnterior = snapshotAjuste(ajuste);
+
+        aplicarAjusteStockGeneral(ajuste, usuarioAprobador, normalizarObservacion(request == null ? null : request.observacionAprobacion()));
+
+        ajuste.setEstadoAprobacion(ESTADO_AJUSTE_APROBADO);
+        ajuste.setUsuarioAprobador(usuarioAprobador);
+        ajuste.setFechaAprobacion(OffsetDateTime.now());
+        ajuste.setObservacionAprobacion(normalizarObservacion(request == null ? null : request.observacionAprobacion()));
+
+        AjusteInventario ajusteGuardado = ajusteInventarioRepository.saveAndFlush(ajuste);
+        auditoriaService.registrar(
+                usuarioAprobador,
+                "ajustes_inventario",
+                ajusteGuardado.getIdAjusteInventario(),
+                "aprobar",
+                valorAnterior,
+                snapshotAjuste(ajusteGuardado),
+                "Aprobacion de ajuste de inventario");
+        return toResponse(ajusteGuardado);
+    }
+
+    @Transactional
+    public AjusteInventarioResponse rechazarAjusteInventario(
+            UUID idAjusteInventario,
+            ResolverAjusteInventarioRequest request,
+            PrincipalUsuario principalUsuario) {
+        validarRolAprobacionAjuste(principalUsuario);
+        Usuario usuarioAprobador = obtenerUsuario(principalUsuario.idUsuario());
+        AjusteInventario ajuste = obtenerAjustePendienteBloqueado(idAjusteInventario);
+        Map<String, Object> valorAnterior = snapshotAjuste(ajuste);
+
+        ajuste.setEstadoAprobacion(ESTADO_AJUSTE_RECHAZADO);
+        ajuste.setUsuarioAprobador(usuarioAprobador);
+        ajuste.setFechaAprobacion(OffsetDateTime.now());
+        ajuste.setObservacionAprobacion(normalizarObservacion(request == null ? null : request.observacionAprobacion()));
+
+        AjusteInventario ajusteGuardado = ajusteInventarioRepository.saveAndFlush(ajuste);
+        auditoriaService.registrar(
+                usuarioAprobador,
+                "ajustes_inventario",
+                ajusteGuardado.getIdAjusteInventario(),
+                "rechazar",
+                valorAnterior,
+                snapshotAjuste(ajusteGuardado),
+                "Rechazo de ajuste de inventario");
+        return toResponse(ajusteGuardado);
     }
 
     @Transactional
@@ -311,6 +429,44 @@ public class InventarioService {
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "No existe caja diaria abierta para operar inventario"));
     }
 
+    private AjusteInventario obtenerAjustePendienteBloqueado(UUID idAjusteInventario) {
+        AjusteInventario ajuste = ajusteInventarioRepository.findByIdForUpdate(idAjusteInventario)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ajuste de inventario no encontrado"));
+        if (!ESTADO_AJUSTE_PENDIENTE.equals(ajuste.getEstadoAprobacion())) {
+            throw new ApiException(HttpStatus.CONFLICT, "El ajuste de inventario ya fue resuelto");
+        }
+        return ajuste;
+    }
+
+    private void aplicarAjusteStockGeneral(AjusteInventario ajuste, Usuario usuarioAprobador, String observacionAprobacion) {
+        if (!TIPO_STOCK_GENERAL.equals(ajuste.getTipoStock())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Solo se permiten ajustes sobre stock general");
+        }
+
+        ExistenciaInventarioGeneral existenciaGeneral = obtenerExistenciaGeneralBloqueada(ajuste.getItemInventario());
+        int cantidadActual = valor(existenciaGeneral.getCantidadActual());
+        int cantidadAjuste = ajuste.getCantidadAjuste();
+        int nuevaCantidad = SENTIDO_ENTRADA.equals(ajuste.getSentidoAjuste())
+                ? cantidadActual + cantidadAjuste
+                : cantidadActual - cantidadAjuste;
+        if (nuevaCantidad < 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "El ajuste dejaria stock general negativo");
+        }
+
+        existenciaGeneral.setCantidadActual(nuevaCantidad);
+        registrarMovimiento(
+                ajuste.getItemInventario(),
+                ajuste.getCajaDiaria(),
+                TIPO_STOCK_GENERAL,
+                MOVIMIENTO_AJUSTE,
+                cantidadAjuste,
+                ajuste.getSentidoAjuste(),
+                REFERENCIA_AJUSTES,
+                ajuste.getIdAjusteInventario(),
+                observacionMovimientoAjuste(ajuste, observacionAprobacion),
+                usuarioAprobador);
+    }
+
     private void validarCajaExiste(UUID idCajaDiaria) {
         if (!cajaDiariaRepository.existsById(idCajaDiaria)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe caja diaria para consultar inventario");
@@ -351,6 +507,56 @@ public class InventarioService {
         if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede modificar inventario operativo");
         }
+    }
+
+    private void validarRolSolicitudAjuste(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
+        if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede solicitar ajustes de inventario");
+        }
+    }
+
+    private void validarRolAprobacionAjuste(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
+        if (!"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo gerente puede aprobar o rechazar ajustes de inventario");
+        }
+    }
+
+    private String normalizarTipoStockGeneral(String tipoStock) {
+        String valorNormalizado = normalizarRequerido(tipoStock, "tipoStock");
+        if (!TIPO_STOCK_GENERAL.equals(valorNormalizado)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Solo se permiten ajustes sobre stock general");
+        }
+        return valorNormalizado;
+    }
+
+    private String normalizarSentidoAjuste(String sentidoAjuste) {
+        String valorNormalizado = normalizarRequerido(sentidoAjuste, "sentidoAjuste");
+        if (!SENTIDO_ENTRADA.equals(valorNormalizado) && !SENTIDO_SALIDA.equals(valorNormalizado)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "sentidoAjuste debe ser entrada o salida");
+        }
+        return valorNormalizado;
+    }
+
+    private String normalizarEstadoAprobacionFiltro(String estadoAprobacion) {
+        if (estadoAprobacion == null || estadoAprobacion.isBlank()) {
+            return null;
+        }
+        String valorNormalizado = estadoAprobacion.trim().toLowerCase(Locale.ROOT);
+        if (!ESTADO_AJUSTE_PENDIENTE.equals(valorNormalizado)
+                && !ESTADO_AJUSTE_APROBADO.equals(valorNormalizado)
+                && !ESTADO_AJUSTE_RECHAZADO.equals(valorNormalizado)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "estadoAprobacion debe ser pendiente, aprobado o rechazado");
+        }
+        return valorNormalizado;
+    }
+
+    private String normalizarRequerido(String valor, String campo) {
+        if (valor == null || valor.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, campo + " es obligatorio");
+        }
+        return valor.trim().toLowerCase(Locale.ROOT);
     }
 
     private ExistenciaInventarioGeneral obtenerExistenciaGeneralBloqueada(ItemInventario item) {
@@ -443,8 +649,33 @@ public class InventarioService {
         return observacion.trim();
     }
 
+    private String observacionMovimientoAjuste(AjusteInventario ajuste, String observacionAprobacion) {
+        if (observacionAprobacion != null && !observacionAprobacion.isBlank()) {
+            return observacionAprobacion.trim();
+        }
+        return ajuste.getMotivoAjuste();
+    }
+
     private int valor(Integer valor) {
         return valor == null ? 0 : valor;
+    }
+
+    private Map<String, Object> snapshotAjuste(AjusteInventario ajuste) {
+        Usuario usuarioAprobador = ajuste.getUsuarioAprobador();
+        return valores(
+                "id_ajuste_inventario", ajuste.getIdAjusteInventario(),
+                "id_item_inventario", ajuste.getItemInventario().getIdItemInventario(),
+                "id_caja_diaria", ajuste.getCajaDiaria() == null ? null : ajuste.getCajaDiaria().getIdCajaDiaria(),
+                "tipo_stock", ajuste.getTipoStock(),
+                "cantidad_ajuste", ajuste.getCantidadAjuste(),
+                "sentido_ajuste", ajuste.getSentidoAjuste(),
+                "motivo_ajuste", ajuste.getMotivoAjuste(),
+                "estado_aprobacion", ajuste.getEstadoAprobacion(),
+                "id_usuario_solicitante", ajuste.getUsuarioSolicitante().getIdUsuario(),
+                "id_usuario_aprobador", usuarioAprobador == null ? null : usuarioAprobador.getIdUsuario(),
+                "fecha_solicitud", ajuste.getFechaSolicitud(),
+                "fecha_aprobacion", ajuste.getFechaAprobacion(),
+                "observacion_aprobacion", ajuste.getObservacionAprobacion());
     }
 
     private ExistenciaInventarioGeneralResponse toResponse(ExistenciaInventarioGeneral existencia) {
@@ -459,6 +690,27 @@ public class InventarioService {
                 tamanoVaso == null ? null : tamanoVaso.getOnzas(),
                 existencia.getCantidadActual(),
                 existencia.getFechaActualizacion());
+    }
+
+    private AjusteInventarioResponse toResponse(AjusteInventario ajuste) {
+        Usuario usuarioAprobador = ajuste.getUsuarioAprobador();
+        return new AjusteInventarioResponse(
+                ajuste.getIdAjusteInventario(),
+                ajuste.getItemInventario().getIdItemInventario(),
+                ajuste.getItemInventario().getNombreItem(),
+                ajuste.getCajaDiaria() == null ? null : ajuste.getCajaDiaria().getIdCajaDiaria(),
+                ajuste.getTipoStock(),
+                ajuste.getCantidadAjuste(),
+                ajuste.getSentidoAjuste(),
+                ajuste.getMotivoAjuste(),
+                ajuste.getEstadoAprobacion(),
+                ajuste.getUsuarioSolicitante().getIdUsuario(),
+                ajuste.getUsuarioSolicitante().getNombreUsuario(),
+                usuarioAprobador == null ? null : usuarioAprobador.getIdUsuario(),
+                usuarioAprobador == null ? null : usuarioAprobador.getNombreUsuario(),
+                ajuste.getFechaSolicitud(),
+                ajuste.getFechaAprobacion(),
+                ajuste.getObservacionAprobacion());
     }
 
     private ExistenciaInventarioDiarioResponse toResponse(ExistenciaInventarioDiario existencia) {

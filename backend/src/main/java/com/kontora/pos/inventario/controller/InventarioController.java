@@ -1,6 +1,7 @@
 package com.kontora.pos.inventario.controller;
 
 import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.inventario.dto.AjusteInventarioResponse;
 import com.kontora.pos.inventario.dto.ConsumoDiarioInventarioResponse;
 import com.kontora.pos.inventario.dto.ExistenciaInventarioDiarioResponse;
 import com.kontora.pos.inventario.dto.ExistenciaInventarioGeneralResponse;
@@ -8,6 +9,8 @@ import com.kontora.pos.inventario.dto.MovimientoInventarioResponse;
 import com.kontora.pos.inventario.dto.PaqueteVasosAbiertoResponse;
 import com.kontora.pos.inventario.dto.RegistrarConsumoDiarioInventarioRequest;
 import com.kontora.pos.inventario.dto.RegistrarPaqueteVasosRequest;
+import com.kontora.pos.inventario.dto.ResolverAjusteInventarioRequest;
+import com.kontora.pos.inventario.dto.SolicitarAjusteInventarioRequest;
 import com.kontora.pos.inventario.service.InventarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -75,5 +78,43 @@ public class InventarioController {
             @RequestParam(required = false) UUID idCajaDiaria,
             @RequestParam(required = false) UUID idItemInventario) {
         return inventarioService.consultarMovimientos(idCajaDiaria, idItemInventario);
+    }
+
+    @GetMapping("/ajustes")
+    public List<AjusteInventarioResponse> consultarAjustes(
+            @RequestParam(required = false) String estadoAprobacion) {
+        return inventarioService.consultarAjustes(estadoAprobacion);
+    }
+
+    @PostMapping("/ajustes")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AjusteInventarioResponse solicitarAjuste(
+            @Valid @RequestBody SolicitarAjusteInventarioRequest request,
+            Authentication authentication) {
+        return inventarioService.solicitarAjusteInventario(
+                request,
+                (PrincipalUsuario) authentication.getPrincipal());
+    }
+
+    @PostMapping("/ajustes/{idAjusteInventario}/aprobar")
+    public AjusteInventarioResponse aprobarAjuste(
+            @PathVariable UUID idAjusteInventario,
+            @Valid @RequestBody(required = false) ResolverAjusteInventarioRequest request,
+            Authentication authentication) {
+        return inventarioService.aprobarAjusteInventario(
+                idAjusteInventario,
+                request,
+                (PrincipalUsuario) authentication.getPrincipal());
+    }
+
+    @PostMapping("/ajustes/{idAjusteInventario}/rechazar")
+    public AjusteInventarioResponse rechazarAjuste(
+            @PathVariable UUID idAjusteInventario,
+            @Valid @RequestBody(required = false) ResolverAjusteInventarioRequest request,
+            Authentication authentication) {
+        return inventarioService.rechazarAjusteInventario(
+                idAjusteInventario,
+                request,
+                (PrincipalUsuario) authentication.getPrincipal());
     }
 }

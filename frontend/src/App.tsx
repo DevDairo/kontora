@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ClipboardList, PackageOpen } from "lucide-react";
 import { AppProviders } from "./app/providers/AppProviders";
 import {
   findRouteByPath,
@@ -10,6 +11,7 @@ import {
 import { LoginPage, useAuth } from "./modules/auth";
 import { CajaAbiertaPanel } from "./modules/caja";
 import { CatalogosPanel } from "./modules/catalogos";
+import { InventarioPanel } from "./modules/inventario";
 import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
 import { HealthCheckPanel } from "./shared/components/HealthCheckPanel";
@@ -95,6 +97,8 @@ type RoleHomeProps = {
 function RoleHome({ role, health, routes, activePath, onNavigate }: RoleHomeProps) {
   const content = role ? roleHomeContent[role] : roleHomeContent.vendedor;
   const roleLabel = role ? roleLabels[role] : "Rol no reconocido";
+  const inventoryRoute = routes.find((route) => route.id === "inventario");
+  const canManageInventory = role === "administrador" || role === "gerente";
 
   return (
     <>
@@ -115,6 +119,25 @@ function RoleHome({ role, health, routes, activePath, onNavigate }: RoleHomeProp
           </article>
         ))}
       </div>
+
+      {canManageInventory && inventoryRoute ? (
+        <section className="inventory-shortcut-band" aria-labelledby="inventory-actions-title">
+          <div>
+            <p className="eyebrow">Inventario operativo</p>
+            <h2 id="inventory-actions-title">Acciones de jornada</h2>
+          </div>
+          <div className="inventory-shortcut-actions">
+            <button className="primary-button" type="button" onClick={() => onNavigate(inventoryRoute.path)}>
+              <PackageOpen size={18} strokeWidth={2.2} />
+              Abrir paquetes de vasos
+            </button>
+            <button className="ghost-button" type="button" onClick={() => onNavigate(inventoryRoute.path)}>
+              <ClipboardList size={18} strokeWidth={2.2} />
+              Registrar consumo diario
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <div className="dashboard-grid">
         <HealthCheckPanel health={health} />
@@ -195,6 +218,8 @@ function AppContent() {
         <CajaAbiertaPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "ventas" ? (
         <VentasPanel token={auth.token ?? ""} usuario={auth.user} />
+      ) : activeRoute.id === "inventario" ? (
+        <InventarioPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "catalogos" ? (
         <CatalogosPanel token={auth.token ?? ""} />
       ) : (
