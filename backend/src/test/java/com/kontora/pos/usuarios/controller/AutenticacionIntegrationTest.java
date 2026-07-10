@@ -1,6 +1,7 @@
 package com.kontora.pos.usuarios.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class AutenticacionIntegrationTest {
 
-    private static final String USERNAME_ACTIVO = "test_auth_activo";
-    private static final String USERNAME_BLOQUEADO = "test_auth_bloqueado";
     private static final String PASSWORD = "Clave12345";
 
     @Autowired
@@ -39,12 +38,20 @@ class AutenticacionIntegrationTest {
     private ObjectMapper objectMapper;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final String sufijoPrueba = UUID.randomUUID().toString().substring(0, 8);
+    private final String usernameActivo = "test_auth_it_" + sufijoPrueba + "_activo";
+    private final String usernameBloqueado = "test_auth_it_" + sufijoPrueba + "_bloqueado";
 
     @BeforeEach
     void setUp() {
         limpiarUsuariosDePrueba();
-        crearUsuarioConCredencial(USERNAME_ACTIVO, "Usuario Activo", "activo", "activa");
-        crearUsuarioConCredencial(USERNAME_BLOQUEADO, "Usuario Bloqueado", "bloqueado", "activa");
+        crearUsuarioConCredencial(usernameActivo, "Usuario Activo", "activo", "activa");
+        crearUsuarioConCredencial(usernameBloqueado, "Usuario Bloqueado", "bloqueado", "activa");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarUsuariosDePrueba();
     }
 
     @Test
@@ -52,7 +59,7 @@ class AutenticacionIntegrationTest {
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "nombreUsuario", USERNAME_ACTIVO,
+                                "nombreUsuario", usernameActivo,
                                 "contrasena", PASSWORD))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tipoToken").value("Bearer"))
@@ -66,13 +73,13 @@ class AutenticacionIntegrationTest {
                 FROM sesiones_usuario su
                 JOIN usuarios u ON u.id_usuario = su.id_usuario
                 WHERE u.nombre_usuario = ? AND su.estado_sesion = 'activa'
-                """, Integer.class, USERNAME_ACTIVO);
+                """, Integer.class, usernameActivo);
         assertThat(sesionesActivas).isEqualTo(1);
 
         mockMvc.perform(get("/api/auth/me")
                         .header(HttpHeaders.AUTHORIZATION, bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombreUsuario").value(USERNAME_ACTIVO))
+                .andExpect(jsonPath("$.nombreUsuario").value(usernameActivo))
                 .andExpect(jsonPath("$.nombreRol").value("vendedor"));
 
         mockMvc.perform(post("/api/auth/logout")
@@ -89,7 +96,7 @@ class AutenticacionIntegrationTest {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "nombreUsuario", USERNAME_BLOQUEADO,
+                                "nombreUsuario", usernameBloqueado,
                                 "contrasena", PASSWORD))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.mensaje").value("Usuario inactivo o bloqueado"));
@@ -124,21 +131,24 @@ class AutenticacionIntegrationTest {
         jdbcTemplate.update("""
                 DELETE FROM auditoria_operaciones
                 WHERE id_usuario IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auth_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?)
                 )
-                """);
+                """, usernameActivo, usernameBloqueado);
         jdbcTemplate.update("""
                 DELETE FROM sesiones_usuario
                 WHERE id_usuario IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auth_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?)
                 )
-                """);
+                """, usernameActivo, usernameBloqueado);
         jdbcTemplate.update("""
                 DELETE FROM credenciales_usuario
                 WHERE id_usuario IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_auth_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?)
                 )
-                """);
-        jdbcTemplate.update("DELETE FROM usuarios WHERE nombre_usuario LIKE 'test_auth_%'");
+                """, usernameActivo, usernameBloqueado);
+        jdbcTemplate.update(
+                "DELETE FROM usuarios WHERE nombre_usuario IN (?, ?)",
+                usernameActivo,
+                usernameBloqueado);
     }
 }

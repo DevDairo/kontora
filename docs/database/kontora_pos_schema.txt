@@ -254,6 +254,10 @@ COMMENT ON COLUMN cajas_diarias.valor_base IS 'Base fija de caja. Se excluye del
 
 CREATE INDEX IF NOT EXISTS idx_cajas_diarias_estado ON cajas_diarias(estado_caja);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cajas_diarias_una_abierta
+ON cajas_diarias (estado_caja)
+WHERE estado_caja = 'abierta'::estado_caja_enum;
+
 CREATE TABLE IF NOT EXISTS cierres_caja (
     id_cierre_caja UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     id_caja_diaria UUID NOT NULL UNIQUE REFERENCES cajas_diarias(id_caja_diaria),

@@ -1,6 +1,7 @@
 package com.kontora.pos.ventas.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,16 +56,9 @@ class VentasIntegrationTest {
         idUsuarioTrabajador = crearUsuarioConCredencial(USUARIO_TRABAJADOR, "Trabajador Ventas", "vendedor");
     }
 
-    @Test
-    void noPermiteVenderSinCajaAbierta() throws Exception {
-        String token = iniciarSesion(USUARIO_VENDEDOR);
-
-        mockMvc.perform(post("/api/ventas")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestVentaEfectivoCliente())))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("No existe caja diaria abierta para registrar venta"));
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test

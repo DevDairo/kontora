@@ -82,7 +82,7 @@ public class ConsultasOperativasController {
 
     @GetMapping("/deposito/movimientos")
     public List<ConsultaMovimientoDepositoResponse> consultarMovimientosDeposito(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             Authentication authentication) {
         return consultasService.consultarMovimientosDeposito(

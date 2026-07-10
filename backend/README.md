@@ -43,6 +43,14 @@ Respuesta esperada:
 {"status":"ok","service":"kontora-pos-backend"}
 ```
 
+Para desarrollo frontend local, el backend permite por defecto estos origenes Vite:
+
+```text
+http://localhost:5173,http://127.0.0.1:5173
+```
+
+Se puede ajustar con la variable `CORS_ALLOWED_ORIGINS`.
+
 ## Pruebas
 
 ```bash

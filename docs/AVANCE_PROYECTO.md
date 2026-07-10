@@ -4,11 +4,11 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 ## Estado actual
 
-- Fecha de registro: 2026-07-06.
-- Rama actual: `feature/consultas-operativas`.
-- Fase actual: Fase 3, modulo 10 completado y validado.
-- Fase anterior validada: Fase 3, modulo 9: Auditoria transversal.
-- Siguiente hito: merge manual del modulo `consultas-operativas` hacia `main` y definicion de la siguiente fase.
+- Fecha de registro: 2026-07-10.
+- Rama actual: `chore/inicializacion-frontend`.
+- Fase actual: Fase 4, Transferencias y validacion administrativa frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Evidencias frontend.
+- Siguiente hito: implementar Consultas operativas frontend.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -351,6 +351,7 @@ Tablas canonicas usadas:
 - `movimientos_inventario`.
 - `paquetes_vasos_abiertos`.
 - `consumos_diarios_inventario`.
+- `ajustes_inventario`.
 - `ventas`.
 - `detalles_venta`.
 - `cajas_diarias`.
@@ -366,9 +367,16 @@ Cambios realizados:
 - Se agrego endpoint `POST /api/inventario/paquetes-vasos`.
 - Se agrego endpoint `POST /api/inventario/consumos-diarios`.
 - Se agrego endpoint `GET /api/inventario/movimientos`.
+- Se agrego endpoint `GET /api/inventario/ajustes`.
+- Se agrego endpoint `POST /api/inventario/ajustes`.
+- Se agrego endpoint `POST /api/inventario/ajustes/{idAjusteInventario}/aprobar`.
+- Se agrego endpoint `POST /api/inventario/ajustes/{idAjusteInventario}/rechazar`.
 - Se agrego endpoint `POST /api/ventas/{idVenta}/anular`.
 - Se integro `POST /api/ventas` con descuento automatico de vasos en stock diario.
 - Se integro anulacion de venta con restauracion de vasos en stock diario.
+- Se implemento RF-47 usando `ajustes_inventario` para solicitud, aprobacion y rechazo de ajustes de stock general.
+- La aprobacion de ajustes actualiza `existencias_inventario_general` y crea movimiento `ajuste` en `movimientos_inventario`.
+- La solicitud, aprobacion y rechazo se registran en `auditoria_operaciones`.
 - Se documento el modulo en `docs/modules/inventario-operativo.md`.
 - Se actualizo `docs/modules/ventas-pagos.md` para reflejar la anulacion implementada en este modulo.
 
@@ -382,19 +390,30 @@ Reglas validadas:
 - Cada movimiento registra `referencia_origen` e `id_referencia_origen`.
 - No se permite consumo manual sobre items `automatico_por_venta`.
 - No se permiten movimientos que dejen stock general o diario negativo.
+- Administrador solicita ajustes de stock general; gerente aplica directamente sus propios ajustes como control de stock general.
+- Solo gerente puede aprobar o rechazar solicitudes pendientes de administrador.
+- La solicitud administrativa de ajuste no modifica stock.
+- La aprobacion de ajuste modifica stock general y registra movimiento `ajuste`.
+- El rechazo de ajuste no modifica stock ni crea movimiento.
+- No se aprueban ajustes que dejen stock general negativo.
 - Una venta descuenta vasos de `existencias_inventario_diario`.
 - Una anulacion restaura vasos de `existencias_inventario_diario`.
+- Al abrir una nueva caja, el stock diario de cada item de vaso conserva el remanente de la jornada anterior; no inicia en cero por el cambio de dia.
 
 Validacion realizada:
 
 - Comando: `mvn clean test`.
-- Resultado: exitoso, `BUILD SUCCESS` reportado por el usuario.
+- Resultado: exitoso, `BUILD SUCCESS`.
+- Pruebas ejecutadas: 53.
+- Fallos: 0.
+- Errores: 0.
+- Omitidas: 0.
+- Fecha/hora de finalizacion: 2026-07-08T23:03:11-05:00.
 
 Observaciones:
 
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene las tablas de inventario operativo.
 - No se implemento `items_inventario.cantidad_minima_alerta` porque esa columna no existe en `kontora_pos_schema.txt`.
-- Los ajustes de inventario con aprobacion quedan pendientes para una ampliacion posterior del flujo de inventario.
 - El conteo fisico final y diferencias de inventario diario se completaran con el modulo "Cierre de caja y deposito".
 
 ## Fase 3: Modulo 6 - Gastos, adiciones y pago a trabajadores
@@ -580,7 +599,7 @@ Reglas validadas:
 - Una evidencia queda asociada a un solo proceso.
 - Solo se cargan evidencias de `pagos_venta` si el metodo de pago real es `transferencia`.
 - No se permite cargar evidencia a un pago en efectivo.
-- Un vendedor solo puede consultar evidencias de pagos o gastos propios.
+- Un vendedor solo puede consultar evidencias de pagos o gastos propios desde el flujo que las origina; no dispone de una interfaz independiente de Evidencias.
 - `administrador` y `gerente` pueden gestionar evidencias de deposito.
 - Las imagenes se comprimen desde backend.
 - Los PDF se conservan sin compresion.
@@ -691,7 +710,7 @@ Observaciones:
 
 - No se agregaron migraciones nuevas porque el schema canonico ya contiene `auditoria_operaciones` y los campos de validacion de `pagos_venta`.
 - La auditoria se implemento desde backend, no con triggers de base de datos.
-- Solicitud, aprobacion y rechazo de ajustes de inventario quedan pendientes porque el flujo operativo de `ajustes_inventario` aun no esta implementado.
+- Solicitud, aprobacion y rechazo de ajustes de inventario fueron resueltos posteriormente en la ampliacion RF-47 del modulo de inventario operativo.
 - Cambios de precios, promociones y configuraciones quedan pendientes hasta implementar sus flujos administrativos.
 - La consulta filtrada de auditoria queda para el modulo "Consultas operativas".
 
@@ -744,7 +763,7 @@ Reglas validadas:
 
 - Las consultas no modifican informacion.
 - Un `vendedor` solo consulta ventas, gastos y transferencias propias.
-- Un `vendedor` puede consultar informacion operativa de inventario.
+- Un `vendedor` puede recibir informacion operativa de inventario solo dentro de las consultas permitidas por backend; esto no habilita una interfaz independiente de Inventario.
 - Un `vendedor` no puede consultar cierre, deposito ni auditoria.
 - Un `administrador` consulta cierre, deposito y auditoria operativa.
 - Un `administrador` no recibe auditoria de seguridad sobre `sesiones_usuario`.
@@ -776,6 +795,672 @@ Observaciones:
 - El modulo no crea, edita ni anula informacion.
 - Reportes exportables o agregados para tableros administrativos quedan pendientes para definicion de la siguiente fase.
 
+## Fase 4: PR 1 - Inicializacion frontend
+
+Estado: completada y validada.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Inicializar frontend React + TypeScript + Vite en `frontend/`.
+- Crear estructura modular base para Fase 4.
+- Configurar `VITE_API_URL=http://localhost:8080/api`.
+- Crear cliente HTTP base.
+- Conectar contra `GET /api/health`.
+- Crear documentacion inicial del frontend.
+
+Documentacion incorporada:
+
+- Se copio `C:\Users\corre\Downloads\fase_4_frontend_validacion.md` dentro del repo como `docs/development/fases/fase_4_frontend_validacion.md`.
+- Se crearon:
+  - `docs/frontend/estructura-frontend.md`.
+  - `docs/frontend/flujo-autenticacion-frontend.md`.
+  - `docs/frontend/guia-componentes.md`.
+  - `docs/frontend/pantallas.md`.
+  - `docs/frontend/integracion-backend-local.md`.
+
+Cambios realizados:
+
+- Se inicializo `frontend/package.json` con React, TypeScript, Vite y `lucide-react`.
+- Se agrego `frontend/.env.example` con `VITE_API_URL=http://localhost:8080/api`.
+- Se creo `frontend/src/app` para providers y rutas.
+- Se creo `frontend/src/modules` con modulos base de autenticacion, caja, catalogos, ventas, inventario, gastos, deposito, evidencias y auditoria.
+- Se creo `frontend/src/shared` con componentes, hooks, servicios, tipos y utilidades.
+- Se implemento cliente HTTP base en `frontend/src/shared/services/apiClient.ts`.
+- Se implemento servicio y hook de salud backend usando `GET /api/health`.
+- Se creo una pantalla inicial operativa inspirada visualmente en la maqueta, sin copiarla como HTML/CSS estatico final.
+- Se configuro CORS backend para permitir el frontend local de Vite en `http://localhost:5173` y `http://127.0.0.1:5173`.
+- Se mantuvo la autenticacion backend: solo `OPTIONS /api/**`, `GET /api/health` y `POST /api/auth/login` quedan sin token; el resto sigue protegido por `anyRequest().authenticated()`.
+
+Validacion realizada:
+
+- Comando: `npm install`.
+- Resultado: exitoso.
+- Auditoria npm: 0 vulnerabilidades.
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Vite generado en `frontend/dist`.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+- Validacion CORS local desde navegador:
+
+```javascript
+{ status: "ok", service: "kontora-pos-backend" }
+```
+
+- Validacion enfocada de backend:
+
+```text
+mvn "-Dtest=HealthEndpointIntegrationTest,AutenticacionIntegrationTest" test
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+- Validacion completa de backend tras CORS:
+
+```text
+mvn clean test
+Tests run: 49, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Observaciones:
+
+- El primer intento de `npm install` dentro del sandbox excedio el tiempo sin generar `package-lock.json`; se repitio con permisos aprobados para descargar dependencias.
+- El primer intento de `npm run build` dentro del sandbox fallo por permisos de lectura de esbuild hacia directorios superiores; se repitio con permisos aprobados y compilo correctamente.
+- La primera prueba en navegador detecto bloqueo CORS: el backend respondia `200 OK`, pero sin `Access-Control-Allow-Origin` para `http://127.0.0.1:5173`.
+- `mvn spring-boot:run` no pudo iniciar en `8080` porque el contenedor Docker `kontora_pos_backend_local` ya estaba ocupando ese puerto.
+- El contenedor Docker activo estaba construido con una imagen anterior al ajuste CORS; se reconstruyo con `docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend up -d --build backend`.
+- No se implementaron pantallas funcionales por modulo en esta PR.
+- La siguiente PR sugerida por Fase 4 es `feature/frontend-auth`.
+
+## Fase 4: Autenticacion frontend
+
+Estado: completada y validada manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Implementar login consumiendo `POST /api/auth/login`.
+- Manejar token de forma controlada en frontend.
+- Reconstruir sesion con `GET /api/auth/me`.
+- Cerrar sesion con `POST /api/auth/logout`.
+- Proteger la shell principal cuando no exista una sesion valida.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/flujo-autenticacion-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/usuarios-sesiones-frontend.md`.
+
+Cambios realizados:
+
+- Se implemento `AuthProvider` para centralizar estado de sesion, usuario autenticado, token, login, logout y reconstruccion de sesion.
+- Se implemento `LoginPage` con formulario para `nombreUsuario` y `contrasena`.
+- Se implemento `authService` para consumir endpoints reales `/auth/login`, `/auth/me` y `/auth/logout`.
+- Se almacena el JWT en `sessionStorage` mediante `tokenStorage.ts`.
+- Se protegio la app: sin token valido se muestra `/login`; con token valido se confirma sesion contra backend antes de mostrar la shell.
+- Se actualizo `AppShell` para mostrar usuario autenticado, rol, estado de API y boton de logout.
+- Se marco autenticacion como implementada dentro del resumen de modulos frontend.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion auth contra backend real con fixture local existente:
+
+```text
+POST /api/auth/login -> ok
+GET /api/auth/me -> usuario test_auth_activo, rol vendedor
+POST /api/auth/logout -> ok
+```
+
+- Validacion en navegador integrado:
+  - `/login` muestra `Iniciar sesion`.
+  - La pantalla muestra `API disponible`.
+  - Login redirige a `/`.
+  - La shell protegida muestra `Sesion activa`, usuario y rol.
+  - Logout vuelve a `/login`.
+  - Consola sin errores durante login/logout.
+- Validacion manual del usuario:
+  - El login funciona sin errores aparentes en navegador.
+
+Observaciones:
+
+- Por decision operativa del usuario, el frontend se continuara trabajando sobre `chore/inicializacion-frontend`.
+- No se hizo merge ni cambio de rama.
+- El siguiente modulo frontend sera layout principal por rol.
+
+## Fase 4: Layout principal por rol
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Implementar shell principal navegable despues de autenticacion.
+- Mostrar navegacion visible segun rol (`vendedor`, `administrador`, `gerente`).
+- Mantener backend como autoridad de permisos y reglas criticas.
+- Dejar pantallas de negocio como pendientes hasta implementarlas por modulo.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/layout-principal-roles-frontend.md`.
+
+Cambios realizados:
+
+- Se centralizo la declaracion de rutas frontend en `frontend/src/app/routes/appRoutes.ts`.
+- Cada ruta define roles visibles, estado de pantalla, descripcion y endpoints documentados.
+- Se agrego normalizacion de rol para consumir `nombreRol` devuelto por `/api/auth/me`.
+- Se actualizo `AppShell` para filtrar navegacion por rol y permitir navegacion interna.
+- Se agregaron paneles de inicio especificos para `vendedor`, `administrador` y `gerente`.
+- Se agrego `RouteWorkspace` como vista base para modulos pendientes.
+- Se ajusto `ModuleOverview` para mostrar solo la navegacion visible del rol autenticado.
+- Se ajustaron estilos responsive para sidebar, tarjetas navegables, paneles por rol y vistas base.
+
+Reglas respetadas:
+
+- El frontend oculta o muestra opciones solo como mejora de experiencia.
+- Los permisos finales siguen siendo responsabilidad del backend.
+- No se inventaron endpoints nuevos; las rutas visibles referencian contratos ya documentados.
+- Las pantallas de modulos operativos permanecen marcadas como pendientes.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion en navegador integrado contra backend real:
+  - Login con `vendedor` muestra panel de vendedor y navegacion operativa.
+  - Login con `administrador` muestra panel de administrador y navegacion administrativa.
+  - Login con `gerente` muestra panel de gerente y navegacion gerencial.
+  - La ruta `Transferencias` para `vendedor` muestra solo consulta documentada, no acciones de validacion.
+  - Logout vuelve a `/login`.
+  - Consola del navegador sin errores ni advertencias.
+
+- Validacion manual del usuario:
+  - El usuario confirmo que la verificacion en navegador quedo lista para continuar.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- No se marca ninguna pantalla de negocio como completada.
+- El siguiente modulo frontend sera panel de caja abierta.
+
+## Fase 4: Panel de caja abierta
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Mostrar la caja diaria abierta dentro del layout autenticado.
+- Consumir la API real `GET /api/cajas-diarias/abierta`.
+- Permitir apertura de caja desde frontend solo para `administrador` y `gerente` cuando no exista caja abierta.
+- Mantener backend como autoridad de permisos.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/caja-diaria-frontend.md`.
+
+Cambios realizados:
+
+- Se agrego `frontend/src/modules/caja/types.ts` con el contrato real `CajaDiaria`.
+- Se agrego `frontend/src/modules/caja/services/cajaService.ts`.
+- Se implemento `CajaAbiertaPanel` para consultar y mostrar caja abierta.
+- Se conecto la ruta `Caja` del layout al panel funcional.
+- Se agregaron estados de carga, caja abierta, ausencia de caja y error de consulta.
+- Se agrego formulario de apertura para `administrador` y `gerente` cuando no hay caja abierta.
+
+Reglas respetadas:
+
+- `vendedor` puede consultar el estado de caja, pero no ve formulario de apertura.
+- La apertura visible en frontend es solo una mejora de experiencia.
+- El backend sigue validando que solo `administrador` o `gerente` puedan abrir caja.
+- No se inventaron campos; se usaron los campos reales de `CajaDiariaResponse`.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion API real:
+
+```json
+{
+  "estadoCaja": "abierta",
+  "fechaOperacion": "2200-01-01",
+  "valorBase": 300000.00
+}
+```
+
+- Validacion en navegador integrado contra backend real:
+  - Login con `vendedor` muestra `/caja` con caja abierta.
+  - Login con `administrador` muestra `/caja` con caja abierta.
+  - El panel muestra fecha de operacion, estado, valor base, fecha de apertura, usuario de apertura y observaciones.
+  - Logout vuelve a `/login`.
+  - Consola del navegador sin errores ni advertencias.
+
+- Validacion manual del usuario:
+  - El usuario confirmo que se puede continuar despues de verificar el panel en navegador.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- Como ya existe caja abierta en la base local, la validacion no creo una caja nueva.
+- El siguiente modulo frontend sera catalogos necesarios para formularios.
+
+## Fase 4: Catalogos para formularios
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Objetivo:
+
+- Consultar catalogos base activos desde la API real para preparar formularios operativos.
+- Mostrar precios vigentes, promociones vigentes, inventario activo y listas base.
+- Mantener el modulo como solo lectura; las reglas definitivas quedan en backend.
+
+Documentacion actualizada:
+
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/modules/catalogos-base-frontend.md`.
+
+Cambios realizados:
+
+- Se agrego `frontend/src/modules/catalogos/types.ts` con contratos reales de catalogos.
+- Se agrego `frontend/src/modules/catalogos/services/catalogosService.ts`.
+- Se implemento `CatalogosPanel` para consultar catalogos con token real.
+- Se conecto la ruta `Catalogos` del layout al panel funcional.
+- Se agrego filtro local por nombre de granizado, item o promocion.
+- Se agrego selector de fecha para consultar precios y promociones vigentes.
+- Se actualizaron estados visibles del layout para reflejar `Caja` y `Catalogos` como base lista.
+
+Reglas respetadas:
+
+- La pantalla no crea, edita ni elimina catalogos.
+- La vigencia definitiva de precios y promociones queda en backend.
+- La aplicacion real de promociones queda en el modulo de ventas y pagos.
+- No se inventaron endpoints; se usaron los contratos de `docs/modules/catalogos-base.md`.
+
+Validacion realizada:
+
+- Comando: `npm run build`.
+- Resultado: exitoso.
+- Validacion HTTP local:
+
+```json
+{"status":"ok","service":"kontora-pos-backend"}
+```
+
+- Validacion API real con token:
+
+```text
+GET /api/catalogos/metodos-pago -> 2 registros
+GET /api/catalogos/tipos-granizado -> 2 registros
+GET /api/catalogos/tamanos-vaso -> 6 registros
+GET /api/catalogos/categorias-inventario -> 5 registros
+GET /api/catalogos/unidades-medida -> 4 registros
+GET /api/catalogos/items-inventario -> 16 registros
+GET /api/catalogos/precios-granizado/vigentes?fecha=2026-07-07 -> 12 registros
+GET /api/catalogos/promociones/vigentes?fecha=2026-07-07 -> 12 registros
+GET /api/catalogos/tipos-servicio -> 5 registros
+```
+
+- Validacion en navegador integrado contra backend real:
+  - Login con `test_auth_activo` muestra la shell protegida.
+  - `/catalogos` muestra datos reales de precios, promociones, inventario y listas base.
+  - La ruta `Caja` aparece como `Base lista`.
+  - La ruta `Catalogos` aparece como `Base lista` despues de la confirmacion manual.
+  - Consola del navegador sin errores ni advertencias.
+
+- Validacion manual del usuario:
+  - El usuario confirmo continuar despues de revisar el panel en navegador.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- El siguiente modulo frontend sera registro de venta y pagos.
+
+## Fase 4: Inventario operativo frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `InventarioPanel` con stock general, stock diario opcional, movimientos, paquetes, consumos y ajustes RF-47.
+- Se marco la ruta `Inventario` como `Base lista` para administrador y gerente.
+- Se restringieron las rutas independientes de Inventario, Catalogos y Evidencias para vendedor.
+- Gerente aplica directamente ajustes de stock general; administrador solicita y gerente aprueba o rechaza.
+- La ausencia de caja abierta deja disponibles stock general, movimientos y ajustes, y bloquea solo operaciones diarias.
+- La apertura de caja inicializa el stock diario de vasos con el remanente de la jornada anterior.
+
+Documentacion actualizada:
+
+- `docs/modules/inventario-operativo.md`.
+- `docs/modules/inventario-operativo-frontend.md`.
+- `docs/modules/inventario-operativo-frontend-pendientes.md`.
+- `docs/modules/inventario-operativo-finalizacion-contexto.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn -Dtest=InventarioIntegrationTest,CajaDiariaIntegrationTest test`: 16 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Backend Docker reconstruido; `GET /api/health` respondio correctamente.
+- `GET /api/inventario/ajustes` respondio `200` para gerente y administrador, y `403` para vendedor.
+- Se probaron solicitud, aprobacion, rechazo y aplicacion directa con datos controlados; el stock se restauro al valor inicial.
+- Navegador validado con gerente, administrador y vendedor; el usuario confirmo la verificacion manual final sin errores aparentes.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- Ventas y pagos quedo validado manualmente y cerrado; el siguiente modulo de interfaz es Gastos, adiciones y pago a trabajadores.
+
+## Fase 4: Ventas y pagos frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `VentasPanel` con detalles de venta, catalogos reales, promociones y pagos en efectivo, transferencia y modalidad mixta.
+- Se marco la ruta `Ventas` como `Base lista` para vendedor, administrador y gerente.
+- Se muestra el cambio estimado antes de registrar y el resultado devuelto por `VentaResponse` despues de la venta.
+- Los faltantes y excedentes de transferencia se bloquean antes de enviar un payload invalido.
+- El comprobante de transferencia se envia al backend como `FormData` despues de registrar la venta.
+
+Documentacion actualizada:
+
+- `docs/modules/ventas-pagos-frontend.md`.
+- `docs/modules/ventas-pagos-frontend-pendientes.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Catalogos reales, pago en efectivo, transferencia y pago mixto validados en navegador sin errores de consola.
+- Efectivo `10000` sobre total `8000`: cambio real `2000`.
+- Pago mixto con transferencia `6000` y efectivo recibido `3000`: efectivo aplicado `2000` y cambio `1000`.
+- La evidencia de transferencia fue preparada para backend; sin Supabase local configurado, la respuesta `503` es esperada y no bloquea el cierre de la interfaz.
+- El usuario confirmo la validacion manual final el 2026-07-09.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- La carga real de evidencias queda pendiente de entorno de despliegue con Supabase Storage configurado solo en backend.
+- El siguiente modulo frontend es Gastos, adiciones y pago a trabajadores.
+
+## Fase 4: Gastos, adiciones y pago a trabajadores frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `GastosPanel` con registro y consulta de gastos para los tres roles; administrador y gerente tambien pueden editar o anular gastos con su motivo auditado.
+- Se ubico el formulario de pago diario a trabajadores en Gastos, visible solo para administrador y gerente; el pago confirmado sigue siendo actualizable mientras la caja este abierta.
+- Se agrego `CajaOperacionesPanel` dentro de Caja para adiciones diarias, resumen de operaciones y proyeccion de efectivo fisico.
+- Caja conserva el pago a trabajadores como dato de lectura para el cuadre, sin duplicar su formulario de escritura.
+- Se agrego `GET /api/cajas-diarias/abierta/resumen` para obtener la proyeccion calculada por backend: ventas en efectivo, adiciones, gastos activos, pago a trabajadores, transferencias y base de caja.
+- Los importes aceptan entrada por teclado y pegado con normalizacion de separadores; los paneles y sus botones mantienen altura y alineacion uniforme.
+- Vendedor no ve ni consulta los controles administrativos de adiciones, pago a trabajadores o proyeccion financiera.
+
+Documentacion actualizada:
+
+- `docs/modules/gastos-adiciones-pago-trabajadores.md`.
+- `docs/modules/gastos-adiciones-pago-trabajadores-frontend.md`.
+- `docs/modules/caja-diaria-frontend.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn clean test`: 58 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Backend Docker reconstruido y `GET /api/health` respondio correctamente.
+- `GET /api/cajas-diarias/abierta/resumen` respondio `200` para administrador y gerente, y `403` para vendedor.
+- `/caja` y `/gastos` respondieron `200` desde el servidor React local.
+- El usuario confirmo manualmente el flujo, la ubicacion final del pago a trabajadores y la uniformidad visual de los paneles.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- La proyeccion no define el deposito: Cierre de caja usara el efectivo contado sin base devuelto y validado por backend.
+- El siguiente modulo frontend es Cierre de caja y deposito.
+
+## Fase 4: Cierre de caja y deposito frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `CierreCajaPanel` para administrador y gerente con resumen financiero de la caja abierta, desglose de efectivo, transferencias, gastos, adiciones, pago a trabajadores y base reservada.
+- Se registro el conteo fisico sin base, la diferencia de caja y el valor a deposito mediante el contrato real de cierre backend.
+- Se implemento la consulta persistente de cierre por `fechaOperacion`, con historial y retorno a la operacion actual.
+- La informacion del ultimo cierre se recupera desde backend despues de refrescar; `sessionStorage` solo conserva una fecha de consulta sugerida.
+- Se agrego el valor base inicial de `300000`, editable al abrir caja.
+- Se agregaron cuadros de confirmacion para apertura y cierre, con cancelacion sin efecto y bloqueo visual mientras se procesa la solicitud.
+- Se reforzo la regla de una sola caja abierta en backend y base de datos mediante `uq_cajas_diarias_una_abierta`.
+- Se marco Gastos y Cierre como rutas `Base lista`.
+
+Reglas operativas confirmadas:
+
+- La base de caja no hace parte del efectivo contado ni del deposito.
+- Una jornada con `fechaOperacion` del dia `10` puede cerrarse despues de medianoche el dia `11`; `fechaCierre` registra el momento real sin alterar la jornada.
+- Tras cerrar la jornada `10`, se puede abrir la jornada `11`.
+- Mientras una caja este `abierta`, no se puede abrir otra caja, incluso si se intenta con otra fecha.
+
+Documentacion actualizada:
+
+- `docs/modules/cierre-caja-deposito-frontend.md`.
+- `docs/modules/caja-diaria-frontend.md`.
+- `docs/modules/cierre-caja-deposito.md`.
+- `docs/database/kontora_pos_schema.txt`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn clean test`: 60 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Backend Docker reconstruido; `GET /api/health` respondio `200`.
+- `/caja` y `/cierre` respondieron `200` desde el servidor React local.
+- El usuario confirmo en navegador el cierre, la persistencia tras refrescar, el historial por fecha, el regreso a la operacion actual, el valor base por defecto editable y los cuadros de confirmacion.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- El siguiente modulo frontend es Deposito, consignaciones y servicios.
+
+## Fase 4: Deposito, consignaciones y servicios frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implementaron saldo actual, historial completo o por periodo, consignaciones bancarias y pagos de servicios contra endpoints reales.
+- Se agregaron contratos backend para registrar salidas, obtener saldo e integrar el historial de consultas con los identificadores necesarios para Evidencias.
+- Se serializan entradas de cierre y salidas de deposito mediante bloqueo transaccional para preservar el saldo posterior.
+- La ruta Deposito queda como `Base lista` para administrador y gerente; vendedor queda excluido por frontend y backend.
+- Cada salida solicita evidencia y confirmacion previa. Ante un `503` de Storage local, el registro financiero permanece creado y la interfaz conserva el reintento de evidencia.
+
+Documentacion actualizada:
+
+- `docs/modules/deposito-consignaciones-servicios.md`.
+- `docs/modules/evidencias-storage.md`.
+- `docs/modules/consultas-operativas.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn clean test`: 64 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Backend Docker activo y `GET /api/health` responde `200`.
+- Administrador cerro caja de prueba con entrada automatica de deposito por `$50.000`, sin incluir la base de `$300.000`.
+- Pago de servicio de `$2.500` y consignacion de `$28.000` actualizaron saldo e historial a `$19.500`.
+- Gerente inicio sesion y accedio a `/deposito`; administrador y gerente operan el modulo con datos backend reales.
+- Supabase Storage se mantiene intencionalmente sin configurar en local; si responde `503` al adjuntar una evidencia, no altera saldos ni movimientos financieros.
+- El usuario confirmo la validacion manual final el 2026-07-10.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- El siguiente modulo frontend es Evidencias. Su validacion local debe comprobar estados, reintentos, consulta de metadata y permisos; la carga real a Supabase queda para despliegue.
+
+## Fase 4: Evidencias frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `EvidenciasPanel` para consultar los destinos de soporte de transferencias, gastos, consignaciones y pagos de servicios mediante los contratos reales de Consultas y Evidencias.
+- Se agregaron servicios tipados para filtros de periodo, metadata y carga multipart de los cuatro tipos de evidencia soportados por backend.
+- La pantalla propone desde el primer dia del mes hasta la fecha actual. El final por defecto evita que una unica fecha reduzca la consulta backend al primer dia del periodo.
+- Los metadatos se cargan al seleccionar un registro, sin solicitar una evidencia por cada fila inicial.
+- La ruta Evidencias queda como `Base lista` para administrador y gerente. Vendedor no recibe una interfaz independiente; sus soportes propios permanecen en los flujos de Ventas y Gastos.
+- Se muestra el estado de Storage local y se conserva el archivo seleccionado para reintento durante la sesion cuando backend responde `503`.
+- No se implemento vista previa ni descarga: el backend solo expone metadata y `urlArchivo` es una ruta interna `supabase://...`.
+
+Documentacion actualizada:
+
+- `docs/modules/evidencias-storage.md`.
+- `docs/modules/evidencias-storage-frontend.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- React local se conecto a la instancia backend activa mediante `VITE_API_URL=http://127.0.0.1:8080/api` en un archivo local ignorado por Git.
+- Gerente consulto `/evidencias` para el rango `2026-07-01` a `2026-07-10` y visualizo dos destinos de Deposito: consignacion por `$28.000` y pago de arriendo por `$2.500`.
+- La seleccion de consignacion consulto metadata y mostro que no habia evidencia cargada.
+- El usuario confirmo manualmente en navegador que los registros se muestran correctamente.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- Supabase Storage sigue intencionalmente sin configurar en local. La carga real se valida solo en despliegue, con secretos exclusivamente en backend.
+- El siguiente modulo frontend es Transferencias y validacion administrativa.
+
+## Fase 4: Transferencias y validacion administrativa frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `TransferenciasPanel` con consulta de transferencias pendientes y rechazadas por periodo, contadores y detalle por pago.
+- El detalle consulta bajo demanda la metadata de evidencias de cada `idPagoVenta` y conserva el limite de no mostrar contenido de rutas `supabase://...`.
+- Vendedor solo recibe consulta de transferencias propias; administrador y gerente reciben controles de Validar y Rechazar conforme al backend.
+- Las decisiones incluyen observacion opcional y confirmacion previa mediante `ConfirmationDialog`.
+- Despues de validar, la lista se refresca. La transferencia validada deja de aparecer porque el endpoint de consultas solo expone `pendiente` y `rechazada`; la trazabilidad se conserva en `pagos_venta` y `auditoria_operaciones`.
+- La ruta Transferencias queda como `Base lista` para los roles autorizados por la navegacion.
+
+Documentacion actualizada:
+
+- `docs/modules/transferencias-validacion-frontend.md`.
+- `docs/modules/ventas-pagos-frontend.md`.
+- `docs/modules/auditoria-operaciones.md`.
+- `docs/modules/consultas-operativas.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Con gerente, `/transferencias` cargo el rango de la jornada y no presento errores de consola.
+- El usuario abrio la caja de la jornada `2026-07-11` y registro una venta de 12 oz con transferencia pura por `$12.000`, junto con una venta mixta de `$12.000` que incluyo `$8.000` por transferencia y `$4.000` en efectivo.
+- El usuario valido ambas transferencias desde la interfaz.
+- La consola confirmo dos auditorias `validar` sobre `pagos_venta`: cada una paso de `pendiente` a `validada`, con `test_deposito_gerente` como validador y fecha de validacion registrada.
+- Las consultas de evidencia de ambos pagos respondieron `200` y listas vacias, coherentes con Storage local sin configurar.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- La accion Rechazar queda implementada con el mismo contrato y confirmacion; la prueba manual controlada de esta iteracion uso dos validaciones, no genero un rechazo adicional.
+- El siguiente modulo frontend es Consultas operativas.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -788,6 +1473,9 @@ Observaciones:
 - Al terminar un modulo, se debe ejecutar `mvn clean test`.
 - Solo si compila y las pruebas pasan, se hace merge del modulo hacia `main`.
 - No se inicia el siguiente modulo desde una rama anterior; siempre se parte de `main` actualizado.
+- El frontend debe consumir la API real del backend.
+- Las reglas criticas de negocio y permisos viven en backend.
+- La maqueta visual es referencia de experiencia, no contrato de endpoints, campos ni reglas.
 
 ## Flujo Git por modulo
 
@@ -803,15 +1491,17 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Despues del merge manual del modulo `auditoria-operaciones` hacia `main`, iniciar el siguiente modulo desde `main` actualizado:
+Guardar los cambios de Transferencias y su documentacion en `chore/inicializacion-frontend`.
 
-```powershell
-git switch main
-git merge --no-ff feature/auditoria-operaciones
-git switch -c feature/consultas-operativas
-```
+La siguiente implementacion sera Fase 4: Consultas operativas.
 
-La siguiente implementacion sera Fase 3, modulo 10: Consultas operativas.
+Validacion esperada del siguiente modulo:
+
+- `npm run build` en `frontend/`.
+- Verificacion en navegador de consultas de ventas, gastos, inventario, cierres y deposito con los filtros disponibles por contrato.
+- Confirmar que vendedor recibe solo sus datos permitidos y no accede a cierre, deposito ni auditoria.
+- Confirmar que administrador y gerente conservan las diferencias documentadas de visibilidad en consultas y auditoria.
+- Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL
 

@@ -1,6 +1,7 @@
 package com.kontora.pos.inventario.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ class InventarioIntegrationTest {
 
     private static final String PASSWORD = "Clave12345";
     private static final String USUARIO_ADMIN = "test_inventario_admin";
+    private static final String USUARIO_GERENTE = "test_inventario_gerente";
     private static final String USUARIO_VENDEDOR = "test_inventario_vendedor";
     private static final LocalDate FECHA_CAJA = LocalDate.of(2200, 2, 1);
 
@@ -46,12 +48,19 @@ class InventarioIntegrationTest {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private UUID idUsuarioAdmin;
+    private UUID idCajaDiaria;
 
     @BeforeEach
     void setUp() {
         limpiarDatosDePrueba();
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Inventario", "administrador");
+        crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Inventario", "gerente");
         crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Inventario", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test
@@ -141,6 +150,177 @@ class InventarioIntegrationTest {
     }
 
     @Test
+    void solicitaAjusteYGerenteApruebaEntradaStockGeneral() throws Exception {
+        UUID idItemManual = idItemInventario("bolsa_chicles");
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        UUID idAjuste = solicitarAjuste(tokenAdmin, idItemManual, 12, "entrada", "Reabastecimiento test");
+        assertThat(stockGeneral(idItemManual)).isZero();
+
+        mockMvc.perform(post("/api/inventario/ajustes/{idAjusteInventario}/aprobar", idAjuste)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "observacionAprobacion", "Aprobado para reabastecimiento"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estadoAprobacion").value("aprobado"))
+                .andExpect(jsonPath("$.nombreUsuarioAprobador").value(USUARIO_GERENTE));
+
+        Integer movimientos = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM movimientos_inventario
+                WHERE tipo_stock = 'general'
+                AND tipo_movimiento = 'ajuste'
+                AND sentido_movimiento = 'entrada'
+                AND referencia_origen = 'ajustes_inventario'
+                AND id_referencia_origen = ?
+                """, Integer.class, idAjuste);
+        Integer auditorias = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM auditoria_operaciones
+                WHERE tabla_afectada = 'ajustes_inventario'
+                AND id_registro_afectado = ?
+                AND accion::text IN ('crear', 'aprobar')
+                """, Integer.class, idAjuste.toString());
+
+        assertThat(stockGeneral(idItemManual)).isEqualTo(12);
+        assertThat(movimientos).isEqualTo(1);
+        assertThat(auditorias).isEqualTo(2);
+
+        mockMvc.perform(get("/api/inventario/ajustes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .param("estadoAprobacion", "aprobado"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].estadoAprobacion", hasItem("aprobado")))
+                .andExpect(jsonPath("$[*].idAjusteInventario", hasItem(idAjuste.toString())));
+    }
+
+    @Test
+    void gerenteRegistraStockGeneralYSeAplicaDirectamente() throws Exception {
+        UUID idItemManual = idItemInventario("bolsa_chicles");
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        String response = mockMvc.perform(post("/api/inventario/ajustes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "idItemInventario", idItemManual.toString(),
+                                "tipoStock", "general",
+                                "cantidadAjuste", 6,
+                                "sentidoAjuste", "entrada",
+                                "motivoAjuste", "Conteo fisico gerencial"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.estadoAprobacion").value("aprobado"))
+                .andExpect(jsonPath("$.nombreUsuarioSolicitante").value(USUARIO_GERENTE))
+                .andExpect(jsonPath("$.nombreUsuarioAprobador").value(USUARIO_GERENTE))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        UUID idAjuste = UUID.fromString(objectMapper.readValue(response, Map.class).get("idAjusteInventario").toString());
+        Integer movimientos = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM movimientos_inventario
+                WHERE tipo_stock = 'general'
+                AND tipo_movimiento = 'ajuste'
+                AND sentido_movimiento = 'entrada'
+                AND referencia_origen = 'ajustes_inventario'
+                AND id_referencia_origen = ?
+                """, Integer.class, idAjuste);
+        Integer auditorias = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM auditoria_operaciones
+                WHERE tabla_afectada = 'ajustes_inventario'
+                AND id_registro_afectado = ?
+                AND accion::text IN ('crear', 'aprobar')
+                """, Integer.class, idAjuste.toString());
+
+        assertThat(stockGeneral(idItemManual)).isEqualTo(6);
+        assertThat(movimientos).isEqualTo(1);
+        assertThat(auditorias).isEqualTo(2);
+    }
+
+    @Test
+    void gerenteRechazaAjusteSinModificarStockGeneral() throws Exception {
+        UUID idItemManual = idItemInventario("bolsa_chicles");
+        ajustarStockGeneral(idItemManual, 5);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        UUID idAjuste = solicitarAjuste(tokenAdmin, idItemManual, 4, "entrada", "Solicitud no aplicada");
+
+        mockMvc.perform(post("/api/inventario/ajustes/{idAjusteInventario}/rechazar", idAjuste)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "observacionAprobacion", "No corresponde al inventario fisico"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estadoAprobacion").value("rechazado"));
+
+        Integer movimientos = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM movimientos_inventario
+                WHERE referencia_origen = 'ajustes_inventario'
+                AND id_referencia_origen = ?
+                """, Integer.class, idAjuste);
+
+        assertThat(stockGeneral(idItemManual)).isEqualTo(5);
+        assertThat(movimientos).isZero();
+    }
+
+    @Test
+    void administradorNoPuedeAprobarAjusteInventario() throws Exception {
+        UUID idItemManual = idItemInventario("bolsa_chicles");
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        UUID idAjuste = solicitarAjuste(tokenAdmin, idItemManual, 3, "entrada", "Solicitud test");
+
+        mockMvc.perform(post("/api/inventario/ajustes/{idAjusteInventario}/aprobar", idAjuste)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "observacionAprobacion", "Intento no permitido"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo gerente puede aprobar o rechazar ajustes de inventario"));
+    }
+
+    @Test
+    void vendedorNoPuedeConsultarAjustesInventario() throws Exception {
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+
+        mockMvc.perform(get("/api/inventario/ajustes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede consultar ajustes de inventario"));
+    }
+
+    @Test
+    void rechazaAprobacionQueDejariaStockGeneralNegativo() throws Exception {
+        UUID idItemManual = idItemInventario("bolsa_chicles");
+        ajustarStockGeneral(idItemManual, 2);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+        UUID idAjuste = solicitarAjuste(tokenAdmin, idItemManual, 3, "salida", "Ajuste mayor al stock");
+
+        mockMvc.perform(post("/api/inventario/ajustes/{idAjusteInventario}/aprobar", idAjuste)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "observacionAprobacion", "No debe aprobar"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("El ajuste dejaria stock general negativo"));
+
+        String estado = jdbcTemplate.queryForObject("""
+                SELECT estado_aprobacion::text
+                FROM ajustes_inventario
+                WHERE id_ajuste_inventario = ?
+                """, String.class, idAjuste);
+
+        assertThat(stockGeneral(idItemManual)).isEqualTo(2);
+        assertThat(estado).isEqualTo("pendiente");
+    }
+
+    @Test
     void rechazaConsumoManualDeItemAutomaticoPorVenta() throws Exception {
         crearCajaAbierta();
         UUID idVaso = idItemInventario("vaso_8oz");
@@ -223,6 +403,31 @@ class InventarioIntegrationTest {
                         "valorRecibidoEfectivo", total)));
     }
 
+    private UUID solicitarAjuste(
+            String token,
+            UUID idItemInventario,
+            int cantidadAjuste,
+            String sentidoAjuste,
+            String motivoAjuste) throws Exception {
+        String response = mockMvc.perform(post("/api/inventario/ajustes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "idItemInventario", idItemInventario.toString(),
+                                "tipoStock", "general",
+                                "cantidadAjuste", cantidadAjuste,
+                                "sentidoAjuste", sentidoAjuste,
+                                "motivoAjuste", motivoAjuste))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.estadoAprobacion").value("pendiente"))
+                .andExpect(jsonPath("$.tipoStock").value("general"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return UUID.fromString(objectMapper.readValue(response, Map.class).get("idAjusteInventario").toString());
+    }
+
     private UUID idTipoGranizado(String nombreTipo) {
         return jdbcTemplate.queryForObject(
                 "SELECT id_tipo_granizado FROM tipos_granizado WHERE nombre_tipo = ?",
@@ -263,7 +468,8 @@ class InventarioIntegrationTest {
                 SELECT cantidad_ingresada, cantidad_vendida, cantidad_perdida, cantidad_final_teorica
                 FROM existencias_inventario_diario
                 WHERE id_item_inventario = ?
-                """, idItemInventario);
+                AND id_caja_diaria = ?
+                """, idItemInventario, idCajaDiaria);
     }
 
     private void ajustarStockGeneral(UUID idItemInventario, int cantidad) {
@@ -275,7 +481,7 @@ class InventarioIntegrationTest {
     }
 
     private void crearCajaAbierta() {
-        jdbcTemplate.update("""
+        idCajaDiaria = jdbcTemplate.queryForObject("""
                 INSERT INTO cajas_diarias (
                     fecha_operacion,
                     estado_caja,
@@ -284,7 +490,8 @@ class InventarioIntegrationTest {
                     observaciones
                 )
                 VALUES (?, 'abierta'::estado_caja_enum, 300000, ?, 'test_inventario_caja')
-                """, FECHA_CAJA, idUsuarioAdmin);
+                RETURNING id_caja_diaria
+                """, UUID.class, FECHA_CAJA, idUsuarioAdmin);
     }
 
     private String iniciarSesion(String nombreUsuario) throws Exception {
@@ -341,8 +548,47 @@ class InventarioIntegrationTest {
                 )
                 """);
         jdbcTemplate.update("""
+                DELETE FROM ajustes_inventario
+                WHERE id_usuario_solicitante IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_usuario_aprobador IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_inventario_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM ventas
                 WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_inventario_%'
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM adiciones_diarias
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_inventario_%'
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM pagos_trabajadores_diarios
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_caja_diaria IN (
                     SELECT id_caja_diaria
                     FROM cajas_diarias
                     WHERE fecha_operacion >= DATE '2099-01-01'
@@ -399,6 +645,55 @@ class InventarioIntegrationTest {
                 DELETE FROM cajas_diarias
                 WHERE fecha_operacion >= DATE '2099-01-01'
                 OR observaciones LIKE 'test_inventario_%'
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM movimientos_deposito
+                WHERE id_cierre_caja IN (
+                    SELECT cc.id_cierre_caja
+                    FROM cierres_caja cc
+                    JOIN cajas_diarias cd ON cd.id_caja_diaria = cc.id_caja_diaria
+                    WHERE cd.id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                    OR cd.id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM ventas
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM cierres_caja
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM cajas_diarias
+                WHERE id_usuario_apertura IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_usuario_cierre IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
                 """);
         jdbcTemplate.update("""
                 DELETE FROM auditoria_operaciones

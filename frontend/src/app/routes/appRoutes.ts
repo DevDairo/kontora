@@ -1,0 +1,354 @@
+import {
+  BadgeDollarSign,
+  Boxes,
+  ClipboardList,
+  Database,
+  FileCheck2,
+  Landmark,
+  LayoutDashboard,
+  ListChecks,
+  ReceiptText,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
+import type { ComponentType } from "react";
+
+export type UserRole = "vendedor" | "administrador" | "gerente";
+export type RouteStatus = "base" | "pendiente";
+
+export type AppRoute = {
+  id: string;
+  label: string;
+  path: string;
+  status: RouteStatus;
+  description: string;
+  endpoints: string[];
+  roleDescriptions?: Partial<Record<UserRole, string>>;
+  roleEndpoints?: Partial<Record<UserRole, string[]>>;
+  roles: UserRole[];
+  icon: ComponentType<{ size?: number; strokeWidth?: number }>;
+};
+
+export const roleLabels: Record<UserRole, string> = {
+  vendedor: "Vendedor",
+  administrador: "Administrador",
+  gerente: "Gerente",
+};
+
+export const routeStatusLabels: Record<RouteStatus, string> = {
+  base: "Base lista",
+  pendiente: "Pantalla pendiente",
+};
+
+const allRoles: UserRole[] = ["vendedor", "administrador", "gerente"];
+const adminRoles: UserRole[] = ["administrador", "gerente"];
+
+export const appRoutes: AppRoute[] = [
+  {
+    id: "inicio",
+    label: "Inicio",
+    path: "/",
+    status: "base",
+    description: "Panel principal construido con la sesion confirmada por backend.",
+    endpoints: ["GET /api/auth/me", "GET /api/health"],
+    roles: allRoles,
+    icon: LayoutDashboard,
+  },
+  {
+    id: "ventas",
+    label: "Ventas",
+    path: "/ventas",
+    status: "base",
+    description: "Registro de ventas y consulta operativa segun visibilidad del usuario autenticado.",
+    endpoints: ["POST /api/ventas", "GET /api/consultas/ventas"],
+    roles: allRoles,
+    icon: BadgeDollarSign,
+  },
+  {
+    id: "caja",
+    label: "Caja",
+    path: "/caja",
+    status: "base",
+    description: "Apertura, control de efectivo y operaciones de la caja diaria autorizadas por backend.",
+    endpoints: [
+      "GET /api/cajas-diarias/abierta",
+      "POST /api/cajas-diarias",
+      "GET /api/cajas-diarias/abierta/resumen",
+      "GET /api/operaciones-caja/adiciones-diarias/abierta",
+      "POST /api/operaciones-caja/adiciones-diarias",
+      "GET /api/operaciones-caja/pagos-trabajadores-diarios/abierta",
+    ],
+    roleDescriptions: {
+      vendedor: "Consulta de la caja abierta para la operacion diaria.",
+      administrador: "Consulta, apertura y control financiero de caja diaria validado por backend.",
+      gerente: "Consulta, apertura y control financiero de caja diaria validado por backend.",
+    },
+    roleEndpoints: {
+      vendedor: ["GET /api/cajas-diarias/abierta"],
+    },
+    roles: allRoles,
+    icon: WalletCards,
+  },
+  {
+    id: "inventario",
+    label: "Inventario",
+    path: "/inventario",
+    status: "base",
+    description: "Gestion operativa de stock general, stock diario y movimientos de inventario.",
+    endpoints: [
+      "GET /api/inventario/existencias/general",
+      "GET /api/inventario/existencias/diarias/abierta",
+      "POST /api/inventario/paquetes-vasos",
+      "POST /api/inventario/consumos-diarios",
+      "GET /api/inventario/movimientos",
+      "GET /api/inventario/ajustes",
+      "POST /api/inventario/ajustes",
+      "POST /api/inventario/ajustes/{idAjusteInventario}/aprobar",
+      "POST /api/inventario/ajustes/{idAjusteInventario}/rechazar",
+    ],
+    roleDescriptions: {
+      administrador: "Consulta de stock, apertura de paquetes, consumos manuales y solicitud de ajustes.",
+      gerente: "Control de stock general, apertura de paquetes, consumos manuales y decision sobre ajustes pendientes.",
+    },
+    roleEndpoints: {
+      administrador: [
+        "GET /api/inventario/existencias/general",
+        "GET /api/inventario/existencias/diarias/abierta",
+        "POST /api/inventario/paquetes-vasos",
+        "POST /api/inventario/consumos-diarios",
+        "GET /api/inventario/movimientos",
+        "GET /api/inventario/ajustes",
+        "POST /api/inventario/ajustes",
+      ],
+    },
+    roles: adminRoles,
+    icon: Boxes,
+  },
+  {
+    id: "gastos",
+    label: "Gastos",
+    path: "/gastos",
+    status: "base",
+    description: "Registro de gastos y pago diario a trabajadores de la caja abierta.",
+    endpoints: [
+      "GET /api/operaciones-caja/gastos-caja/abierta",
+      "POST /api/operaciones-caja/gastos-caja",
+      "PUT /api/operaciones-caja/gastos-caja/{idGastoCaja}",
+      "POST /api/operaciones-caja/gastos-caja/{idGastoCaja}/anular",
+      "GET /api/operaciones-caja/pagos-trabajadores-diarios/abierta",
+      "POST /api/operaciones-caja/pagos-trabajadores-diarios",
+      "POST /api/operaciones-caja/pagos-trabajadores-diarios/{idPagoTrabajadoresDiario}/confirmar",
+    ],
+    roleDescriptions: {
+      vendedor: "Registra gastos de caja y consulta los gastos de la jornada abierta.",
+      administrador: "Registra, edita y anula gastos; tambien administra el pago diario a trabajadores.",
+      gerente: "Registra, edita y anula gastos; tambien administra el pago diario a trabajadores.",
+    },
+    roleEndpoints: {
+      vendedor: [
+        "GET /api/operaciones-caja/gastos-caja/abierta",
+        "POST /api/operaciones-caja/gastos-caja",
+      ],
+      administrador: [
+        "GET /api/operaciones-caja/gastos-caja/abierta",
+        "POST /api/operaciones-caja/gastos-caja",
+        "PUT /api/operaciones-caja/gastos-caja/{idGastoCaja}",
+        "POST /api/operaciones-caja/gastos-caja/{idGastoCaja}/anular",
+        "GET /api/operaciones-caja/pagos-trabajadores-diarios/abierta",
+        "POST /api/operaciones-caja/pagos-trabajadores-diarios",
+        "POST /api/operaciones-caja/pagos-trabajadores-diarios/{idPagoTrabajadoresDiario}/confirmar",
+      ],
+      gerente: [
+        "GET /api/operaciones-caja/gastos-caja/abierta",
+        "POST /api/operaciones-caja/gastos-caja",
+        "PUT /api/operaciones-caja/gastos-caja/{idGastoCaja}",
+        "POST /api/operaciones-caja/gastos-caja/{idGastoCaja}/anular",
+        "GET /api/operaciones-caja/pagos-trabajadores-diarios/abierta",
+        "POST /api/operaciones-caja/pagos-trabajadores-diarios",
+        "POST /api/operaciones-caja/pagos-trabajadores-diarios/{idPagoTrabajadoresDiario}/confirmar",
+      ],
+    },
+    roles: allRoles,
+    icon: ReceiptText,
+  },
+  {
+    id: "transferencias",
+    label: "Transferencias",
+    path: "/transferencias",
+    status: "base",
+    description: "Seguimiento de transferencias y validacion para administrador o gerente.",
+    endpoints: [
+      "GET /api/consultas/transferencias",
+      "POST /api/pagos-venta/{idPagoVenta}/validar",
+      "POST /api/pagos-venta/{idPagoVenta}/rechazar",
+    ],
+    roleDescriptions: {
+      vendedor: "Seguimiento de transferencias propias desde consultas operativas.",
+      administrador: "Seguimiento y validacion de transferencias pendientes.",
+      gerente: "Seguimiento y validacion de transferencias pendientes.",
+    },
+    roleEndpoints: {
+      vendedor: ["GET /api/consultas/transferencias"],
+    },
+    roles: allRoles,
+    icon: ListChecks,
+  },
+  {
+    id: "evidencias",
+    label: "Evidencias",
+    path: "/evidencias",
+    status: "base",
+    description: "Consulta administrativa de metadatos y reintento de soportes para transferencias, gastos y deposito.",
+    endpoints: [
+      "GET /api/consultas/transferencias",
+      "GET /api/consultas/gastos",
+      "GET /api/consultas/deposito/movimientos",
+      "GET /api/evidencias/...",
+      "POST /api/evidencias/...",
+    ],
+    roleDescriptions: {
+      administrador: "Consulta y adjunta soportes administrativos segun las validaciones reales del backend.",
+      gerente: "Consulta y adjunta soportes administrativos segun las validaciones reales del backend.",
+    },
+    roleEndpoints: {
+      administrador: [
+        "GET /api/consultas/transferencias",
+        "GET /api/consultas/gastos",
+        "GET /api/consultas/deposito/movimientos",
+        "GET /api/evidencias/pagos-venta/{idPagoVenta}",
+        "GET /api/evidencias/gastos-caja/{idGastoCaja}",
+        "GET /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}",
+        "GET /api/evidencias/pagos-servicios/{idPagoServicio}",
+        "POST /api/evidencias/pagos-venta/{idPagoVenta}",
+        "POST /api/evidencias/gastos-caja/{idGastoCaja}",
+        "POST /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}",
+        "POST /api/evidencias/pagos-servicios/{idPagoServicio}",
+        "GET /api/evidencias/{idArchivoEvidencia}",
+      ],
+      gerente: [
+        "GET /api/consultas/transferencias",
+        "GET /api/consultas/gastos",
+        "GET /api/consultas/deposito/movimientos",
+        "GET /api/evidencias/pagos-venta/{idPagoVenta}",
+        "GET /api/evidencias/gastos-caja/{idGastoCaja}",
+        "GET /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}",
+        "GET /api/evidencias/pagos-servicios/{idPagoServicio}",
+        "POST /api/evidencias/pagos-venta/{idPagoVenta}",
+        "POST /api/evidencias/gastos-caja/{idGastoCaja}",
+        "POST /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}",
+        "POST /api/evidencias/pagos-servicios/{idPagoServicio}",
+        "GET /api/evidencias/{idArchivoEvidencia}",
+      ],
+    },
+    roles: adminRoles,
+    icon: ClipboardList,
+  },
+  {
+    id: "catalogos",
+    label: "Catalogos",
+    path: "/catalogos",
+    status: "base",
+    description: "Catalogos activos usados por formularios operativos.",
+    endpoints: [
+      "GET /api/catalogos/metodos-pago",
+      "GET /api/catalogos/tipos-granizado",
+      "GET /api/catalogos/precios-granizado/vigentes",
+      "GET /api/catalogos/promociones/vigentes",
+      "GET /api/catalogos/items-inventario",
+    ],
+    roles: adminRoles,
+    icon: Database,
+  },
+  {
+    id: "cierre",
+    label: "Cierre",
+    path: "/cierre",
+    status: "base",
+    description: "Arqueo de caja, diferencia y deposito automatico calculados por backend.",
+    endpoints: [
+      "GET /api/cajas-diarias/abierta",
+      "GET /api/cajas-diarias/abierta/resumen",
+      "POST /api/cajas-diarias/{idCajaDiaria}/cerrar",
+      "GET /api/cajas-diarias/{idCajaDiaria}/cierre",
+      "GET /api/consultas/cierre?fecha={fechaOperacion}",
+    ],
+    roles: adminRoles,
+    icon: FileCheck2,
+  },
+  {
+    id: "deposito",
+    label: "Deposito",
+    path: "/deposito",
+    status: "base",
+    description: "Saldo real, consignaciones bancarias y pagos de servicios descontados por backend.",
+    endpoints: [
+      "GET /api/deposito/saldo",
+      "GET /api/consultas/deposito/movimientos",
+      "POST /api/deposito/consignaciones-bancarias",
+      "POST /api/deposito/pagos-servicios",
+      "POST /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}",
+      "POST /api/evidencias/pagos-servicios/{idPagoServicio}",
+    ],
+    roles: adminRoles,
+    icon: Landmark,
+  },
+  {
+    id: "consultas",
+    label: "Consultas",
+    path: "/consultas",
+    status: "pendiente",
+    description: "Consultas operativas de solo lectura con filtros documentados.",
+    endpoints: [
+      "GET /api/consultas/ventas",
+      "GET /api/consultas/gastos",
+      "GET /api/consultas/inventario/actual",
+    ],
+    roles: allRoles,
+    icon: ListChecks,
+  },
+  {
+    id: "auditoria",
+    label: "Auditoria",
+    path: "/auditoria",
+    status: "pendiente",
+    description: "Consulta de auditoria operativa; el gerente conserva visibilidad completa.",
+    endpoints: ["GET /api/consultas/auditoria"],
+    roles: adminRoles,
+    icon: ShieldCheck,
+  },
+];
+
+export function normalizeRole(roleName: string): UserRole | null {
+  const normalized = roleName.trim().toLowerCase();
+  return allRoles.find((role) => role === normalized) ?? null;
+}
+
+export function getVisibleRoutes(roleName: string): AppRoute[] {
+  const role = normalizeRole(roleName);
+
+  if (!role) {
+    return appRoutes.filter((route) => route.id === "inicio");
+  }
+
+  return appRoutes.filter((route) => route.roles.includes(role));
+}
+
+export function findRouteByPath(routes: AppRoute[], path: string): AppRoute | undefined {
+  return routes.find((route) => route.path === path);
+}
+
+export function getRouteDescriptionForRole(route: AppRoute, role: UserRole | null): string {
+  if (!role) {
+    return route.description;
+  }
+
+  return route.roleDescriptions?.[role] ?? route.description;
+}
+
+export function getRouteEndpointsForRole(route: AppRoute, role: UserRole | null): string[] {
+  if (!role) {
+    return route.endpoints;
+  }
+
+  return route.roleEndpoints?.[role] ?? route.endpoints;
+}

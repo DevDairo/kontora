@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,4 +40,17 @@ public interface ExistenciaInventarioDiarioRepository extends JpaRepository<Exis
     Optional<ExistenciaInventarioDiario> findByCajaAndItemForUpdate(
             @Param("idCajaDiaria") UUID idCajaDiaria,
             @Param("idItemInventario") UUID idItemInventario);
+
+    @Query(value = """
+            SELECT eid.*
+            FROM existencias_inventario_diario eid
+            JOIN cajas_diarias cd ON cd.id_caja_diaria = eid.id_caja_diaria
+            WHERE eid.id_item_inventario = :idItemInventario
+              AND cd.fecha_operacion < :fechaOperacion
+            ORDER BY cd.fecha_operacion DESC
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<ExistenciaInventarioDiario> findUltimaAnteriorPorItem(
+            @Param("idItemInventario") UUID idItemInventario,
+            @Param("fechaOperacion") LocalDate fechaOperacion);
 }

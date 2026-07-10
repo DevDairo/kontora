@@ -252,7 +252,13 @@ public class ConsultasOperativasRepository {
     public List<ConsultaMovimientoDepositoResponse> consultarMovimientosDeposito(
             LocalDate fechaInicio,
             LocalDate fechaFin) {
-        MapSqlParameterSource params = parametrosPeriodo(fechaInicio, fechaFin);
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        StringBuilder filtros = new StringBuilder();
+        if (fechaInicio != null && fechaFin != null) {
+            params.addValue("fechaInicio", fechaInicio);
+            params.addValue("fechaFin", fechaFin);
+            filtros.append("AND md.fecha_movimiento::date BETWEEN :fechaInicio AND :fechaFin\n");
+        }
         String sql = """
                 SELECT
                     md.id_movimiento_deposito,
@@ -261,15 +267,22 @@ public class ConsultasOperativasRepository {
                     md.saldo_anterior,
                     md.saldo_posterior,
                     md.id_cierre_caja,
+                    cb.id_consignacion_bancaria,
+                    ps.id_pago_servicio,
+                    ts.nombre_servicio,
                     ur.id_usuario AS id_usuario_registro,
                     ur.nombre_usuario AS nombre_usuario_registro,
                     md.fecha_movimiento,
                     md.observacion
                 FROM movimientos_deposito md
                 JOIN usuarios ur ON ur.id_usuario = md.id_usuario_registro
-                WHERE md.fecha_movimiento::date BETWEEN :fechaInicio AND :fechaFin
-                ORDER BY md.fecha_movimiento DESC
-                """;
+                LEFT JOIN consignaciones_bancarias cb ON cb.id_movimiento_deposito = md.id_movimiento_deposito
+                LEFT JOIN pagos_servicios ps ON ps.id_movimiento_deposito = md.id_movimiento_deposito
+                LEFT JOIN tipos_servicio ts ON ts.id_tipo_servicio = ps.id_tipo_servicio
+                WHERE 1 = 1
+                %s
+                ORDER BY md.fecha_movimiento DESC, md.id_movimiento_deposito DESC
+                """.formatted(filtros);
         return jdbcTemplate.query(sql, params, movimientoDepositoMapper());
     }
 
@@ -500,6 +513,9 @@ public class ConsultasOperativasRepository {
                 rs.getBigDecimal("saldo_anterior"),
                 rs.getBigDecimal("saldo_posterior"),
                 uuid(rs, "id_cierre_caja"),
+                uuid(rs, "id_consignacion_bancaria"),
+                uuid(rs, "id_pago_servicio"),
+                rs.getString("nombre_servicio"),
                 uuid(rs, "id_usuario_registro"),
                 rs.getString("nombre_usuario_registro"),
                 offsetDateTime(rs, "fecha_movimiento"),

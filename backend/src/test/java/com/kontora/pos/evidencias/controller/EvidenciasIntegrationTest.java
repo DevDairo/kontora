@@ -3,6 +3,7 @@ package com.kontora.pos.evidencias.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kontora.pos.evidencias.storage.ArchivoAlmacenado;
 import com.kontora.pos.evidencias.storage.EvidenciaStorageClient;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +83,11 @@ class EvidenciasIntegrationTest {
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Evidencias", "administrador");
         idUsuarioVendedor = crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Evidencias", "vendedor");
         idUsuarioOtroVendedor = crearUsuarioConCredencial(USUARIO_OTRO_VENDEDOR, "Otro Vendedor Evidencias", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test

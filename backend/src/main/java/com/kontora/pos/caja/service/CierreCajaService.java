@@ -7,6 +7,7 @@ import com.kontora.pos.caja.domain.CierreCaja;
 import com.kontora.pos.caja.domain.PagoTrabajadoresDiario;
 import com.kontora.pos.caja.dto.CerrarCajaRequest;
 import com.kontora.pos.caja.dto.CierreCajaResponse;
+import com.kontora.pos.caja.dto.ResumenCajaDiariaResponse;
 import com.kontora.pos.caja.repository.AdicionDiariaRepository;
 import com.kontora.pos.caja.repository.CajaDiariaRepository;
 import com.kontora.pos.caja.repository.CierreCajaRepository;
@@ -17,6 +18,7 @@ import com.kontora.pos.common.security.PrincipalUsuario;
 import com.kontora.pos.deposito.domain.MovimientoDeposito;
 import com.kontora.pos.deposito.dto.MovimientoDepositoResponse;
 import com.kontora.pos.deposito.repository.MovimientoDepositoRepository;
+import com.kontora.pos.deposito.service.DepositoSaldoService;
 import com.kontora.pos.usuarios.domain.Usuario;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
 import com.kontora.pos.ventas.repository.PagoVentaRepository;
@@ -53,6 +55,7 @@ public class CierreCajaService {
     private final VentaRepository ventaRepository;
     private final PagoVentaRepository pagoVentaRepository;
     private final MovimientoDepositoRepository movimientoDepositoRepository;
+    private final DepositoSaldoService depositoSaldoService;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
 
@@ -65,6 +68,7 @@ public class CierreCajaService {
             VentaRepository ventaRepository,
             PagoVentaRepository pagoVentaRepository,
             MovimientoDepositoRepository movimientoDepositoRepository,
+            DepositoSaldoService depositoSaldoService,
             UsuarioRepository usuarioRepository,
             AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
@@ -75,6 +79,7 @@ public class CierreCajaService {
         this.ventaRepository = ventaRepository;
         this.pagoVentaRepository = pagoVentaRepository;
         this.movimientoDepositoRepository = movimientoDepositoRepository;
+        this.depositoSaldoService = depositoSaldoService;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
     }
@@ -159,11 +164,82 @@ public class CierreCajaService {
         return toResponse(cierreCaja, movimientoDeposito);
     }
 
+    @Transactional(readOnly = true)
+    public ResumenCajaDiariaResponse obtenerResumenCajaAbierta(PrincipalUsuario principalUsuario) {
+        validarRolResumen(principalUsuario);
+        CajaDiaria cajaDiaria = cajaDiariaRepository.findPrimeraPorEstadoCaja(ESTADO_CAJA_ABIERTA)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe una caja diaria abierta"));
+        AdicionDiaria adicionDiaria = adicionDiariaRepository.findByCajaDiaria_IdCajaDiaria(cajaDiaria.getIdCajaDiaria())
+                .orElse(null);
+        PagoTrabajadoresDiario pagoTrabajadores = pagoTrabajadoresDiarioRepository
+                .findByCajaDiaria_IdCajaDiaria(cajaDiaria.getIdCajaDiaria())
+                .orElse(null);
+        TotalesOperativos totales = calcularTotalesOperativos(
+                cajaDiaria.getIdCajaDiaria(),
+                adicionDiaria == null ? BigDecimal.ZERO : adicionDiaria.getValorTotal(),
+                pagoTrabajadores == null ? BigDecimal.ZERO : pagoTrabajadores.getValorTotalPagado());
+        boolean pagoTrabajadoresConfirmado = pagoTrabajadores != null && pagoTrabajadores.isConfirmadoParaCierre();
+        boolean listoParaCierre = adicionDiaria != null
+                && pagoTrabajadoresConfirmado
+                && totales.efectivoEsperadoSinBase().compareTo(BigDecimal.ZERO) >= 0;
+
+        return new ResumenCajaDiariaResponse(
+                cajaDiaria.getIdCajaDiaria(),
+                cajaDiaria.getFechaOperacion(),
+                normalizarMoneda(cajaDiaria.getValorBase()),
+                totales.totalVentas(),
+                totales.totalVentasEfectivo(),
+                totales.totalVentasTransferencia(),
+                totales.totalTransferenciasPendientes(),
+                totales.totalTransferenciasValidadas(),
+                totales.totalTransferenciasRechazadas(),
+                totales.totalGastos(),
+                totales.totalAdiciones(),
+                adicionDiaria != null,
+                totales.totalPagoTrabajadores(),
+                pagoTrabajadores != null,
+                pagoTrabajadoresConfirmado,
+                totales.efectivoEsperadoSinBase(),
+                listoParaCierre);
+    }
+
     private TotalesCierre calcularTotales(
             UUID idCajaDiaria,
             AdicionDiaria adicionDiaria,
             PagoTrabajadoresDiario pagoTrabajadores,
             CerrarCajaRequest request) {
+        TotalesOperativos totalesOperativos = calcularTotalesOperativos(
+                idCajaDiaria,
+                adicionDiaria.getValorTotal(),
+                pagoTrabajadores.getValorTotalPagado());
+        if (totalesOperativos.efectivoEsperadoSinBase().compareTo(BigDecimal.ZERO) < 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "El efectivo esperado sin base no puede ser negativo");
+        }
+        BigDecimal efectivoContadoSinBase = normalizarMoneda(request.efectivoContadoSinBase());
+        BigDecimal diferenciaCaja = efectivoContadoSinBase
+                .subtract(totalesOperativos.efectivoEsperadoSinBase())
+                .setScale(2, RoundingMode.HALF_UP);
+
+        return new TotalesCierre(
+                totalesOperativos.totalVentas(),
+                totalesOperativos.totalVentasEfectivo(),
+                totalesOperativos.totalVentasTransferencia(),
+                totalesOperativos.totalTransferenciasPendientes(),
+                totalesOperativos.totalTransferenciasValidadas(),
+                totalesOperativos.totalTransferenciasRechazadas(),
+                totalesOperativos.totalGastos(),
+                totalesOperativos.totalAdiciones(),
+                totalesOperativos.totalPagoTrabajadores(),
+                totalesOperativos.efectivoEsperadoSinBase(),
+                efectivoContadoSinBase,
+                diferenciaCaja,
+                efectivoContadoSinBase);
+    }
+
+    private TotalesOperativos calcularTotalesOperativos(
+            UUID idCajaDiaria,
+            BigDecimal valorAdiciones,
+            BigDecimal valorPagoTrabajadores) {
         BigDecimal totalVentas = normalizarMoneda(ventaRepository.sumarVentasRegistradasPorCaja(idCajaDiaria));
         BigDecimal totalVentasEfectivo = normalizarMoneda(
                 pagoVentaRepository.sumarPagosRegistradosPorCajaYMetodo(idCajaDiaria, METODO_EFECTIVO));
@@ -176,22 +252,15 @@ public class CierreCajaService {
         BigDecimal totalTransferenciasRechazadas = normalizarMoneda(
                 pagoVentaRepository.sumarTransferenciasRegistradasPorCajaYEstado(idCajaDiaria, TRANSFERENCIA_RECHAZADA));
         BigDecimal totalGastos = normalizarMoneda(gastoCajaRepository.sumarGastosVigentesPorCaja(idCajaDiaria));
-        BigDecimal totalAdiciones = normalizarMoneda(adicionDiaria.getValorTotal());
-        BigDecimal totalPagoTrabajadores = normalizarMoneda(pagoTrabajadores.getValorTotalPagado());
+        BigDecimal totalAdiciones = normalizarMoneda(valorAdiciones);
+        BigDecimal totalPagoTrabajadores = normalizarMoneda(valorPagoTrabajadores);
         BigDecimal efectivoEsperadoSinBase = totalVentasEfectivo
                 .add(totalAdiciones)
                 .subtract(totalGastos)
                 .subtract(totalPagoTrabajadores)
                 .setScale(2, RoundingMode.HALF_UP);
-        if (efectivoEsperadoSinBase.compareTo(BigDecimal.ZERO) < 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "El efectivo esperado sin base no puede ser negativo");
-        }
-        BigDecimal efectivoContadoSinBase = normalizarMoneda(request.efectivoContadoSinBase());
-        BigDecimal diferenciaCaja = efectivoContadoSinBase
-                .subtract(efectivoEsperadoSinBase)
-                .setScale(2, RoundingMode.HALF_UP);
 
-        return new TotalesCierre(
+        return new TotalesOperativos(
                 totalVentas,
                 totalVentasEfectivo,
                 totalVentasTransferencia,
@@ -201,10 +270,7 @@ public class CierreCajaService {
                 totalGastos,
                 totalAdiciones,
                 totalPagoTrabajadores,
-                efectivoEsperadoSinBase,
-                efectivoContadoSinBase,
-                diferenciaCaja,
-                efectivoContadoSinBase);
+                efectivoEsperadoSinBase);
     }
 
     private MovimientoDeposito crearMovimientoDeposito(
@@ -214,7 +280,7 @@ public class CierreCajaService {
         if (cierreCaja.getValorADeposito().compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
-        BigDecimal saldoAnterior = normalizarMoneda(movimientoDepositoRepository.obtenerSaldoActual());
+        BigDecimal saldoAnterior = depositoSaldoService.bloquearYObtenerSaldoActual();
         BigDecimal saldoPosterior = saldoAnterior
                 .add(cierreCaja.getValorADeposito())
                 .setScale(2, RoundingMode.HALF_UP);
@@ -235,6 +301,13 @@ public class CierreCajaService {
         String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
         if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede cerrar caja diaria");
+        }
+    }
+
+    private void validarRolResumen(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
+        if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede consultar el resumen de caja");
         }
     }
 
@@ -346,6 +419,20 @@ public class CierreCajaService {
             BigDecimal efectivoContadoSinBase,
             BigDecimal diferenciaCaja,
             BigDecimal valorADeposito
+    ) {
+    }
+
+    private record TotalesOperativos(
+            BigDecimal totalVentas,
+            BigDecimal totalVentasEfectivo,
+            BigDecimal totalVentasTransferencia,
+            BigDecimal totalTransferenciasPendientes,
+            BigDecimal totalTransferenciasValidadas,
+            BigDecimal totalTransferenciasRechazadas,
+            BigDecimal totalGastos,
+            BigDecimal totalAdiciones,
+            BigDecimal totalPagoTrabajadores,
+            BigDecimal efectivoEsperadoSinBase
     ) {
     }
 }

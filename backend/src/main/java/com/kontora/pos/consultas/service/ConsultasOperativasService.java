@@ -89,7 +89,7 @@ public class ConsultasOperativasService {
             LocalDate fechaFin,
             PrincipalUsuario principalUsuario) {
         validarRolAdministrativo(principalUsuario, "Solo administrador o gerente puede consultar deposito");
-        Periodo periodo = normalizarPeriodoRequerido(fechaInicio, fechaFin);
+        Periodo periodo = normalizarPeriodoOpcional(fechaInicio, fechaFin);
         return consultasRepository.consultarMovimientosDeposito(periodo.fechaInicio(), periodo.fechaFin());
     }
 

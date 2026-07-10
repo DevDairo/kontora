@@ -15,7 +15,7 @@ public interface MovimientoDepositoRepository extends JpaRepository<MovimientoDe
             SELECT COALESCE((
                 SELECT saldo_posterior
                 FROM movimientos_deposito
-                ORDER BY fecha_movimiento DESC
+                ORDER BY fecha_movimiento DESC, id_movimiento_deposito DESC
                 LIMIT 1
             ), 0)
             """, nativeQuery = true)

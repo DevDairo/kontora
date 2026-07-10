@@ -103,10 +103,13 @@ El modulo se implementa sobre las tablas reales del schema:
 
 ## Pendientes
 
-- Evidencias de transferencia se implementaran en el modulo "Evidencias y almacenamiento".
+- Evidencias de transferencia ya estan soportadas por el modulo "Evidencias y almacenamiento" mediante `POST /api/evidencias/pagos-venta/{idPagoVenta}`.
+- Antes de continuar con el siguiente modulo frontend o preparar despliegue, revisar los pendientes operativos de Supabase Storage en `docs/modules/ventas-pagos-frontend-pendientes.md`, seccion "Como activar Supabase Storage para despliegue".
+- La subida real de comprobantes requiere configurar `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` solo en backend/servidor y `SUPABASE_STORAGE_BUCKET`; el frontend no debe subir directo a Supabase ni exponer secretos.
 
 ## Actualizaciones posteriores
 
 - En el modulo "Inventario operativo" se implemento la anulacion con restauracion de stock diario.
 - En el modulo "Auditoria transversal" se implemento auditoria explicita de anulaciones de ventas.
 - En el modulo "Auditoria transversal" se implemento validacion y rechazo de transferencias con auditoria sobre `pagos_venta`.
+- En el modulo "Evidencias y almacenamiento" se implemento la carga de comprobantes para pagos de venta por transferencia; queda pendiente validar la carga real en despliegue con Supabase Storage configurado.
