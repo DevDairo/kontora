@@ -1,12 +1,16 @@
 import { AlertCircle, Banknote, CalendarDays, RefreshCw, WalletCards } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import type { UserRole } from "../../../app/routes/appRoutes";
+import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
 import { ApiClientError } from "../../../shared/services/apiClient";
+import { normalizeMoneyInput } from "../../../shared/utils/moneyInput";
 import { abrirCajaDiaria, obtenerCajaAbierta } from "../services/cajaService";
 import type { CajaDiaria } from "../types";
 import { CajaOperacionesPanel } from "./CajaOperacionesPanel";
 
 type LoadState = "loading" | "success" | "empty" | "error";
+
+const DEFAULT_VALOR_BASE = "300000";
 
 type CajaAbiertaPanelProps = {
   token: string;
@@ -59,9 +63,10 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fechaOperacion, setFechaOperacion] = useState(todayLocalDate);
-  const [valorBase, setValorBase] = useState("0");
+  const [valorBase, setValorBase] = useState(DEFAULT_VALOR_BASE);
   const [observaciones, setObservaciones] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpenConfirmationVisible, setIsOpenConfirmationVisible] = useState(false);
 
   const canOpenCashBox = role === "administrador" || role === "gerente";
 
@@ -107,11 +112,24 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
     return "Error de consulta";
   }, [loadState]);
 
-  const handleOpenCashBox = async (event: FormEvent<HTMLFormElement>) => {
+  const handleOpenCashBox = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const numericBase = Number(valorBase);
     if (!Number.isFinite(numericBase) || numericBase < 0) {
+      setErrorMessage("El valor base debe ser un numero mayor o igual a cero");
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsOpenConfirmationVisible(true);
+  };
+
+  const confirmOpenCashBox = async () => {
+    const numericBase = Number(valorBase);
+
+    if (!Number.isFinite(numericBase) || numericBase < 0) {
+      setIsOpenConfirmationVisible(false);
       setErrorMessage("El valor base debe ser un numero mayor o igual a cero");
       return;
     }
@@ -131,8 +149,10 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
       setCaja(response);
       setLoadState("success");
       setObservaciones("");
+      setIsOpenConfirmationVisible(false);
     } catch (error) {
       setErrorMessage(messageFor(error));
+      setIsOpenConfirmationVisible(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -247,11 +267,10 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
                   Valor base
                   <div className="field-control plain">
                     <input
-                      min="0"
-                      step="0.01"
-                      type="number"
+                      inputMode="decimal"
+                      type="text"
                       value={valorBase}
-                      onChange={(event) => setValorBase(event.target.value)}
+                      onChange={(event) => setValorBase(normalizeMoneyInput(event.target.value))}
                       required
                     />
                   </div>
@@ -284,6 +303,16 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
       </div>
 
       {caja && canOpenCashBox ? <CajaOperacionesPanel token={token} /> : null}
+
+      <ConfirmationDialog
+        confirmLabel="Abrir caja"
+        description={`Abriras la caja de la jornada ${formatDate(fechaOperacion)} con una base de ${formatCurrency(Number(valorBase) || 0)}. No podras abrir otra caja para esa fecha ni otra jornada mientras esta caja permanezca abierta.`}
+        isConfirming={isSubmitting}
+        onCancel={() => setIsOpenConfirmationVisible(false)}
+        onConfirm={() => void confirmOpenCashBox()}
+        open={isOpenConfirmationVisible}
+        title="Confirmar apertura de caja"
+      />
     </>
   );
 }

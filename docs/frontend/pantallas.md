@@ -309,6 +309,56 @@ Administrador / Gerente.
 - `/caja` respondio `200` desde el servidor React local.
 - El usuario confirmo manualmente la distribucion final entre Caja y Gastos.
 
+## Pantalla: Cierre de caja y deposito
+
+### Objetivo
+
+Consolidar el efectivo de la jornada abierta, registrar el conteo fisico sin base y consultar resultados de cierre persistidos por fecha.
+
+### Actor principal
+
+Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/cajas-diarias/abierta`.
+- `GET /api/cajas-diarias/abierta/resumen`.
+- `POST /api/cajas-diarias/{idCajaDiaria}/cerrar`.
+- `GET /api/cajas-diarias/{idCajaDiaria}/cierre`.
+- `GET /api/consultas/cierre?fecha={fechaOperacion}`.
+
+### Campos y controles
+
+- `efectivoContadoSinBase`.
+- `observaciones` opcionales.
+- Confirmacion de que el conteo no incluye la base de caja.
+- Confirmacion previa al cierre.
+- Consulta de cierre por fecha y retorno a la operacion actual.
+
+### Validaciones de interfaz
+
+- Solo se muestra para administrador y gerente.
+- El efectivo contado es numerico, no negativo y no incluye la base de caja.
+- El boton permanece deshabilitado hasta que backend confirme adiciones y pago a trabajadores para el cierre.
+- La confirmacion puede cancelarse sin enviar la solicitud.
+- El historial se consulta a backend y permanece disponible despues de recargar.
+- La jornada puede cerrar despues de medianoche; la fecha de operacion no se reemplaza por la fecha fisica del cierre.
+
+### Respuestas esperadas
+
+- Cierre exitoso: arqueo, diferencia y valor a deposito calculados por backend.
+- Deposito positivo: movimiento creado con saldo anterior y posterior.
+- Deposito en cero: resultado sin movimiento de deposito.
+- Consulta historica: resultado recuperado para la jornada seleccionada.
+- Error: mensaje real de backend sin borrar los datos del formulario.
+
+### Evidencia de prueba
+
+- `mvn clean test`: 60 pruebas sin fallos ni errores.
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Backend Docker y rutas `/caja` y `/cierre`: respuesta `200`.
+- El usuario confirmo manualmente el flujo de cierre, persistencia, historial, valor base inicial editable y cuadros de confirmacion.
+
 ## Pantalla: Catalogos para formularios
 
 ### Objetivo
@@ -368,9 +418,9 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 5. Registro de venta y pagos. Implementado y validado.
 6. Inventario operativo. Implementado y validado.
 7. Gastos, adiciones y pago trabajadores. Implementado y validado.
-8. Cierre de caja. Siguiente modulo.
-9. Deposito, consignaciones y servicios.
+8. Cierre de caja. Implementado y validado.
+9. Deposito, consignaciones y servicios. Siguiente modulo.
 10. Evidencias.
 11. Auditoria y consultas.
 
-Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Cierre de caja y deposito.
+Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Deposito, consignaciones y servicios.

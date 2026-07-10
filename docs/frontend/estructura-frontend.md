@@ -17,6 +17,7 @@ frontend/
 |   |   |-- auditoria/
 |   |   |-- caja/
 |   |   |-- catalogos/
+|   |   |-- cierre/
 |   |   |-- deposito/
 |   |   |-- evidencias/
 |   |   |-- gastos/
@@ -90,6 +91,7 @@ Responsabilidades:
 - `CajaAbiertaPanel` consulta y muestra la caja diaria abierta.
 - `cajaService` consume `GET /api/cajas-diarias/abierta` y `POST /api/cajas-diarias`.
 - `types.ts` conserva el contrato real de `CajaDiariaResponse`.
+- La apertura usa `ConfirmationDialog`; el valor base inicial es `300000`, editable antes de confirmar.
 
 La apertura visible para `administrador` y `gerente` no reemplaza la validacion del backend.
 
@@ -176,6 +178,29 @@ Responsabilidades:
 - `moneyInput.ts` normaliza importes escritos o pegados sin depender de los controles incrementales del navegador.
 
 El frontend muestra estados y validaciones de experiencia; la caja abierta, los permisos, el calculo del efectivo esperado y las condiciones de cierre se mantienen en backend.
+
+## Cierre de caja y consulta historica
+
+El panel de cierre queda implementado dentro de `src/modules/cierre`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/cierre/components/CierreCajaPanel.tsx
+frontend/src/modules/cierre/services/cierreService.ts
+frontend/src/modules/cierre/types.ts
+frontend/src/shared/components/ConfirmationDialog.tsx
+```
+
+Responsabilidades:
+
+- `CierreCajaPanel` consume la caja abierta y el resumen financiero calculado por backend.
+- `cierreService` registra el efectivo contado sin base y consulta cierres por identificador o por fecha de operacion.
+- La pantalla separa efectivo, transferencias y base; muestra la diferencia y el movimiento automatico de deposito cuando backend lo retorna.
+- El historial usa `GET /api/consultas/cierre?fecha=...`, por lo que un cierre sigue disponible despues de recargar la pagina.
+- `ConfirmationDialog` evita que abrir o cerrar caja se ejecute por un clic accidental.
+
+La fecha de operacion identifica la jornada de negocio. Una jornada puede cerrar despues de medianoche, pero no se puede abrir una segunda caja mientras exista una caja abierta.
 
 ## Cliente HTTP
 

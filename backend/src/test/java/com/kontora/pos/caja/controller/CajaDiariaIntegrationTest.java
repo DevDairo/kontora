@@ -32,6 +32,7 @@ class CajaDiariaIntegrationTest {
     private static final LocalDate FECHA_OPERACION = LocalDate.of(2099, 12, 31);
     private static final LocalDate FECHA_DUPLICADA = LocalDate.of(2099, 12, 30);
     private static final LocalDate FECHA_REMANENTE_ANTERIOR = LocalDate.of(2099, 12, 28);
+    private static final LocalDate FECHA_SIGUIENTE = LocalDate.of(2100, 1, 1);
 
     @Autowired
     private MockMvc mockMvc;
@@ -175,6 +176,38 @@ class CajaDiariaIntegrationTest {
                 .andExpect(jsonPath("$.mensaje").value("Ya existe una caja diaria para la fecha indicada"));
     }
 
+    @Test
+    void noPermiteAbrirOtraJornadaMientrasExisteUnaCajaAbierta() throws Exception {
+        String tokenGerente = iniciarSesion(usuarioGerente);
+
+        mockMvc.perform(post("/api/cajas-diarias")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestApertura(FECHA_OPERACION))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/cajas-diarias")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestApertura(FECHA_SIGUIENTE))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("Ya existe una caja diaria abierta. Cierra la jornada actual antes de abrir otra"));
+    }
+
+    @Test
+    void permiteAbrirLaJornadaSiguienteConLaAnteriorCerrada() throws Exception {
+        String tokenGerente = iniciarSesion(usuarioGerente);
+        crearCajaCerrada(FECHA_OPERACION);
+
+        mockMvc.perform(post("/api/cajas-diarias")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestApertura(FECHA_SIGUIENTE))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.fechaOperacion").value(FECHA_SIGUIENTE.toString()))
+                .andExpect(jsonPath("$.estadoCaja").value("abierta"));
+    }
+
     private Map<String, Object> requestApertura(LocalDate fechaOperacion) {
         return Map.of(
                 "fechaOperacion", fechaOperacion.toString(),
@@ -223,6 +256,22 @@ class CajaDiariaIntegrationTest {
                     id_usuario_cierre = id_usuario_apertura
                 WHERE id_caja_diaria = ?
                 """, idCajaAnterior);
+    }
+
+    private void crearCajaCerrada(LocalDate fechaOperacion) {
+        UUID idUsuario = idUsuarioPorNombre(usuarioGerente);
+        jdbcTemplate.update("""
+                INSERT INTO cajas_diarias (
+                    fecha_operacion,
+                    estado_caja,
+                    valor_base,
+                    fecha_cierre,
+                    id_usuario_apertura,
+                    id_usuario_cierre,
+                    observaciones
+                )
+                VALUES (?, 'cerrada'::estado_caja_enum, 300000, NOW(), ?, ?, 'test_caja_jornada_cerrada')
+                """, fechaOperacion, idUsuario, idUsuario);
     }
 
     private UUID idUsuarioPorNombre(String nombreUsuario) {

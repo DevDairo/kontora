@@ -566,6 +566,30 @@ class InventarioIntegrationTest {
                 )
                 """);
         jdbcTemplate.update("""
+                DELETE FROM adiciones_diarias
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_inventario_%'
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM pagos_trabajadores_diarios
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE fecha_operacion >= DATE '2099-01-01'
+                    OR observaciones LIKE 'test_inventario_%'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM consumos_diarios_inventario
                 WHERE id_caja_diaria IN (
                     SELECT id_caja_diaria
@@ -615,6 +639,55 @@ class InventarioIntegrationTest {
                 DELETE FROM cajas_diarias
                 WHERE fecha_operacion >= DATE '2099-01-01'
                 OR observaciones LIKE 'test_inventario_%'
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM movimientos_deposito
+                WHERE id_cierre_caja IN (
+                    SELECT cc.id_cierre_caja
+                    FROM cierres_caja cc
+                    JOIN cajas_diarias cd ON cd.id_caja_diaria = cc.id_caja_diaria
+                    WHERE cd.id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                    OR cd.id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM ventas
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM cierres_caja
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                    )
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM cajas_diarias
+                WHERE id_usuario_apertura IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
+                OR id_usuario_cierre IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_inventario_%'
+                )
                 """);
         jdbcTemplate.update("""
                 DELETE FROM auditoria_operaciones

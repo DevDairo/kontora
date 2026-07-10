@@ -69,6 +69,16 @@ class CierreCajaIntegrationTest {
         crearOperacionesParaCierre(true, true);
         String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
 
+        BigDecimal saldoAnteriorEsperado = jdbcTemplate.queryForObject("""
+                SELECT COALESCE((
+                    SELECT saldo_posterior
+                    FROM movimientos_deposito
+                    ORDER BY fecha_movimiento DESC, id_movimiento_deposito DESC
+                    LIMIT 1
+                ), 0)
+                """, BigDecimal.class);
+        BigDecimal saldoPosteriorEsperado = saldoAnteriorEsperado.add(new BigDecimal("44000.00"));
+
         String response = mockMvc.perform(post("/api/cajas-diarias/{idCajaDiaria}/cerrar", idCajaDiaria)
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -93,8 +103,8 @@ class CierreCajaIntegrationTest {
                 .andExpect(jsonPath("$.observaciones").value("Cierre test"))
                 .andExpect(jsonPath("$.movimientoDeposito.tipoMovimientoDeposito").value("entrada_cierre"))
                 .andExpect(jsonPath("$.movimientoDeposito.valorMovimiento").value(44000.00))
-                .andExpect(jsonPath("$.movimientoDeposito.saldoAnterior").value(0.00))
-                .andExpect(jsonPath("$.movimientoDeposito.saldoPosterior").value(44000.00))
+                .andExpect(jsonPath("$.movimientoDeposito.saldoAnterior").value(saldoAnteriorEsperado.doubleValue()))
+                .andExpect(jsonPath("$.movimientoDeposito.saldoPosterior").value(saldoPosteriorEsperado.doubleValue()))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

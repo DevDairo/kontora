@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-10.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Gastos, adiciones y pago a trabajadores frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Ventas y pagos frontend.
-- Siguiente hito: implementar la interfaz de Cierre de caja y deposito.
+- Fase actual: Fase 4, Cierre de caja y deposito frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Gastos, adiciones y pago a trabajadores frontend.
+- Siguiente hito: implementar la interfaz de Deposito, consignaciones y servicios.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1290,6 +1290,56 @@ Observaciones:
 - La proyeccion no define el deposito: Cierre de caja usara el efectivo contado sin base devuelto y validado por backend.
 - El siguiente modulo frontend es Cierre de caja y deposito.
 
+## Fase 4: Cierre de caja y deposito frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `CierreCajaPanel` para administrador y gerente con resumen financiero de la caja abierta, desglose de efectivo, transferencias, gastos, adiciones, pago a trabajadores y base reservada.
+- Se registro el conteo fisico sin base, la diferencia de caja y el valor a deposito mediante el contrato real de cierre backend.
+- Se implemento la consulta persistente de cierre por `fechaOperacion`, con historial y retorno a la operacion actual.
+- La informacion del ultimo cierre se recupera desde backend despues de refrescar; `sessionStorage` solo conserva una fecha de consulta sugerida.
+- Se agrego el valor base inicial de `300000`, editable al abrir caja.
+- Se agregaron cuadros de confirmacion para apertura y cierre, con cancelacion sin efecto y bloqueo visual mientras se procesa la solicitud.
+- Se reforzo la regla de una sola caja abierta en backend y base de datos mediante `uq_cajas_diarias_una_abierta`.
+- Se marco Gastos y Cierre como rutas `Base lista`.
+
+Reglas operativas confirmadas:
+
+- La base de caja no hace parte del efectivo contado ni del deposito.
+- Una jornada con `fechaOperacion` del dia `10` puede cerrarse despues de medianoche el dia `11`; `fechaCierre` registra el momento real sin alterar la jornada.
+- Tras cerrar la jornada `10`, se puede abrir la jornada `11`.
+- Mientras una caja este `abierta`, no se puede abrir otra caja, incluso si se intenta con otra fecha.
+
+Documentacion actualizada:
+
+- `docs/modules/cierre-caja-deposito-frontend.md`.
+- `docs/modules/caja-diaria-frontend.md`.
+- `docs/modules/cierre-caja-deposito.md`.
+- `docs/database/kontora_pos_schema.txt`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn clean test`: 60 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Backend Docker reconstruido; `GET /api/health` respondio `200`.
+- `/caja` y `/cierre` respondieron `200` desde el servidor React local.
+- El usuario confirmo en navegador el cierre, la persistencia tras refrescar, el historial por fecha, el regreso a la operacion actual, el valor base por defecto editable y los cuadros de confirmacion.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- El siguiente modulo frontend es Deposito, consignaciones y servicios.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1320,17 +1370,17 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios de Gastos, Caja y el resumen financiero en `chore/inicializacion-frontend`.
+Guardar los cambios de Gastos, Caja, Cierre, la restriccion de una caja abierta y su documentacion en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: Cierre de caja y deposito.
+La siguiente implementacion sera Fase 4: Deposito, consignaciones y servicios.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador del cierre de caja para administrador y gerente.
-- Consumo de API real para `POST /api/cajas-diarias/{idCajaDiaria}/cerrar` y `GET /api/cajas-diarias/{idCajaDiaria}/cierre`.
-- Uso del efectivo esperado de backend y registro del efectivo contado sin base.
-- Manejo visible de diferencias de caja y del movimiento automatico de deposito.
+- Verificacion en navegador del deposito para administrador y gerente.
+- Consumo de los endpoints reales de consultas de movimientos de deposito, consignaciones bancarias y pagos de servicios definidos en backend.
+- Consulta visible de los movimientos automaticos generados por cierres, sin recalcular saldos en frontend.
+- Registro o consulta de consignaciones y pagos de servicios segun contratos y permisos reales de backend.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

@@ -87,3 +87,10 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Actualizaciones posteriores
 
 - En el modulo "Auditoria transversal" se implemento auditoria explicita del cierre de caja y del movimiento automatico de deposito.
+
+## Actualizacion frontend Fase 4
+
+- La pantalla validada se documenta en `docs/modules/cierre-caja-deposito-frontend.md`.
+- Administrador y gerente revisan el resumen calculado por backend, registran el efectivo contado sin base y confirman el cierre antes de enviar la solicitud.
+- El cierre persistido se consulta por `fecha_operacion`, por lo que permanece disponible despues de refrescar la pagina.
+- La jornada puede cerrarse despues de medianoche sin cambiar su fecha de operacion; solo se permite abrir otra caja cuando la anterior ya esta cerrada.

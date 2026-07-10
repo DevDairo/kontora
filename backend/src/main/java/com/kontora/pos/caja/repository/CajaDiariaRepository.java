@@ -14,6 +14,15 @@ public interface CajaDiariaRepository extends JpaRepository<CajaDiaria, UUID> {
 
     boolean existsByFechaOperacion(LocalDate fechaOperacion);
 
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM cajas_diarias
+                WHERE estado_caja = CAST(:estadoCaja AS estado_caja_enum)
+            )
+            """, nativeQuery = true)
+    boolean existsByEstadoCaja(@Param("estadoCaja") String estadoCaja);
+
     @EntityGraph(attributePaths = {"usuarioApertura", "usuarioCierre"})
     Optional<CajaDiaria> findByFechaOperacion(LocalDate fechaOperacion);
 

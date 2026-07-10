@@ -53,6 +53,9 @@ Request de apertura:
 - Si no existe caja abierta, `vendedor` ve mensaje de solo lectura.
 - Si no existe caja abierta, `administrador` y `gerente` ven formulario de apertura.
 - `valorBase` debe ser mayor o igual a cero antes de enviar.
+- El valor base inicia en `300000` como valor operativo habitual, pero sigue siendo editable antes de abrir la caja.
+- La apertura muestra una confirmacion explicita; cancelar no envia la solicitud al backend.
+- La fecha seleccionada identifica la jornada de negocio. El backend bloquea una caja duplicada para esa fecha y tambien una segunda caja mientras exista otra en estado `abierta`.
 - El mensaje real de error del backend se muestra al usuario.
 
 ## Reglas que no debe duplicar el frontend
@@ -62,7 +65,7 @@ Request de apertura:
 - Validez final de `fechaOperacion`.
 - Persistencia de auditoria por apertura.
 
-El frontend solo mejora la experiencia visual; el backend conserva la autoridad.
+El frontend solo mejora la experiencia visual; el backend conserva la autoridad. La restriccion de una sola caja abierta tambien existe como indice parcial en la base de datos, para proteger operaciones concurrentes.
 
 ## Respuestas esperadas
 
@@ -115,7 +118,7 @@ El usuario confirmo que se puede continuar despues de verificar el panel en nave
 
 ## Estado posterior
 
-La secuencia inicial de Catalogos, Ventas e Inventario ya fue completada y validada. El siguiente modulo funcional pendiente de Fase 4 es Cierre de caja y deposito.
+La secuencia inicial de Catalogos, Ventas, Inventario, Gastos y Cierre ya fue completada y validada. El siguiente modulo funcional pendiente de Fase 4 es Deposito, consignaciones y servicios.
 
 ## Actualizacion: operaciones financieras de caja
 
@@ -127,3 +130,10 @@ La secuencia inicial de Catalogos, Ventas e Inventario ya fue completada y valid
 - Separacion visible entre efectivo, transferencias y base de caja.
 
 El pago a trabajadores se administra en `/gastos`; Caja conserva el dato solo para el resumen financiero. Vendedor no ve estas operaciones administrativas.
+
+## Actualizacion: apertura segura y jornada nocturna
+
+- Administrador y gerente confirman la apertura antes de ejecutar `POST /api/cajas-diarias`.
+- Una caja de la jornada `10` puede cerrarse despues de medianoche: `fechaOperacion` sigue siendo `10` y `fechaCierre` registra la fecha y hora real del cierre.
+- Solo despues de cerrar esa jornada puede abrirse la jornada `11`. Mientras la jornada `10` permanezca abierta, backend y base de datos bloquean cualquier nueva apertura.
+- El cierre de la jornada no depende de que la fecha fisica coincida con `fechaOperacion`.

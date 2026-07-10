@@ -47,6 +47,9 @@ public class CajaDiariaService {
         if (cajaDiariaRepository.existsByFechaOperacion(request.fechaOperacion())) {
             throw cajaDuplicada();
         }
+        if (cajaDiariaRepository.existsByEstadoCaja(ESTADO_ABIERTA)) {
+            throw cajaAbierta();
+        }
 
         Usuario usuarioApertura = usuarioRepository.findById(principalUsuario.idUsuario())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Usuario autenticado no encontrado"));
@@ -63,6 +66,12 @@ public class CajaDiariaService {
         try {
             cajaGuardada = cajaDiariaRepository.saveAndFlush(cajaDiaria);
         } catch (DataIntegrityViolationException exception) {
+            if (cajaDiariaRepository.existsByFechaOperacion(request.fechaOperacion())) {
+                throw cajaDuplicada();
+            }
+            if (cajaDiariaRepository.existsByEstadoCaja(ESTADO_ABIERTA)) {
+                throw cajaAbierta();
+            }
             throw cajaDuplicada();
         }
         inventarioService.inicializarStockDiarioParaCaja(cajaGuardada);
@@ -106,6 +115,10 @@ public class CajaDiariaService {
 
     private ApiException cajaDuplicada() {
         return new ApiException(HttpStatus.CONFLICT, "Ya existe una caja diaria para la fecha indicada");
+    }
+
+    private ApiException cajaAbierta() {
+        return new ApiException(HttpStatus.CONFLICT, "Ya existe una caja diaria abierta. Cierra la jornada actual antes de abrir otra");
     }
 
     private String normalizarObservaciones(String observaciones) {

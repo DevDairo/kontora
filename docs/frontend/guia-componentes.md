@@ -113,6 +113,31 @@ Responsabilidades:
 - Mostrar datos reales de la caja diaria abierta.
 - Mostrar formulario de apertura solo para `administrador` y `gerente` cuando no existe caja abierta.
 - Ejecutar `POST /api/cajas-diarias` sin asumir que el frontend tiene la decision final de permisos.
+- Usar valor base inicial de `300000`, manteniendolo editable antes de la apertura.
+- Pedir confirmacion antes de abrir y explicar que la jornada no admite otra caja abierta en paralelo.
+
+### `ConfirmationDialog`
+
+Ubicacion: `frontend/src/shared/components/ConfirmationDialog.tsx`.
+
+Responsabilidades:
+
+- Presentar una confirmacion accesible antes de operaciones irreversibles o sensibles.
+- Permitir cancelar sin ejecutar la solicitud de negocio.
+- Deshabilitar las acciones mientras backend procesa la confirmacion.
+- Cerrar con `Escape` cuando no existe una solicitud en curso.
+
+### `CierreCajaPanel`
+
+Ubicacion: `frontend/src/modules/cierre/components/CierreCajaPanel.tsx`.
+
+Responsabilidades:
+
+- Consultar caja abierta y resumen financiero para administrador y gerente.
+- Solicitar efectivo contado sin base, mostrar diferencia estimada y confirmar antes de cerrar.
+- Mostrar el resultado persistido, incluido el movimiento de deposito cuando aplica.
+- Recuperar un cierre por `fechaOperacion` y volver a la operacion actual sin perder el historial.
+- Mantener el cierre de una jornada nocturna asociado a su `fechaOperacion`, aunque `fechaCierre` ocurra el dia siguiente.
 
 ### `CatalogosPanel`
 
