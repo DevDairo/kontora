@@ -11,6 +11,7 @@ import {
 import { LoginPage, useAuth } from "./modules/auth";
 import { CajaAbiertaPanel } from "./modules/caja";
 import { CatalogosPanel } from "./modules/catalogos";
+import { GastosPanel } from "./modules/gastos";
 import { InventarioPanel } from "./modules/inventario";
 import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
@@ -31,7 +32,7 @@ const roleHomeContent: Record<
   vendedor: {
     eyebrow: "Operacion de mostrador",
     title: "Panel de vendedor",
-    lead: "Acceso operativo a ventas, caja abierta, gastos propios y transferencias propias.",
+    lead: "Acceso operativo a ventas, caja abierta, registro de gastos y transferencias propias.",
     highlights: [
       { label: "Sesion", value: "Activa", detail: "Confirmada con /api/auth/me" },
       { label: "Caja", value: "Consulta", detail: "GET /api/cajas-diarias/abierta" },
@@ -220,6 +221,8 @@ function AppContent() {
         <VentasPanel token={auth.token ?? ""} usuario={auth.user} />
       ) : activeRoute.id === "inventario" ? (
         <InventarioPanel token={auth.token ?? ""} role={role} />
+      ) : activeRoute.id === "gastos" ? (
+        <GastosPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "catalogos" ? (
         <CatalogosPanel token={auth.token ?? ""} />
       ) : (

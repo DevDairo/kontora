@@ -91,3 +91,5 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Actualizaciones posteriores
 
 - En el modulo "Auditoria transversal" se implemento auditoria explicita de ediciones y anulaciones de gastos.
+- Se agrego `GET /api/cajas-diarias/abierta/resumen`, restringido a `administrador` y `gerente`, para exponer el calculo de efectivo esperado sin base que reutiliza las reglas del cierre de caja.
+- La interfaz de Fase 4 queda documentada en `docs/modules/gastos-adiciones-pago-trabajadores-frontend.md`; Caja administra adiciones y proyeccion, mientras Gastos concentra gastos y pago a trabajadores.

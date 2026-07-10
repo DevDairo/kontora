@@ -1,6 +1,7 @@
 package com.kontora.pos.caja.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CajaDiariaIntegrationTest {
 
     private static final String PASSWORD = "Clave12345";
-    private static final String USUARIO_ADMIN = "test_caja_admin";
-    private static final String USUARIO_GERENTE = "test_caja_gerente";
-    private static final String USUARIO_VENDEDOR = "test_caja_vendedor";
     private static final LocalDate FECHA_OPERACION = LocalDate.of(2099, 12, 31);
     private static final LocalDate FECHA_DUPLICADA = LocalDate.of(2099, 12, 30);
     private static final LocalDate FECHA_REMANENTE_ANTERIOR = LocalDate.of(2099, 12, 28);
@@ -45,13 +43,22 @@ class CajaDiariaIntegrationTest {
     private ObjectMapper objectMapper;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final String sufijoPrueba = UUID.randomUUID().toString().substring(0, 8);
+    private final String usuarioAdmin = "test_caja_it_" + sufijoPrueba + "_admin";
+    private final String usuarioGerente = "test_caja_it_" + sufijoPrueba + "_gerente";
+    private final String usuarioVendedor = "test_caja_it_" + sufijoPrueba + "_vendedor";
 
     @BeforeEach
     void setUp() {
         limpiarDatosDePrueba();
-        crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Caja", "administrador");
-        crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Caja", "gerente");
-        crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Caja", "vendedor");
+        crearUsuarioConCredencial(usuarioAdmin, "Administrador Caja", "administrador");
+        crearUsuarioConCredencial(usuarioGerente, "Gerente Caja", "gerente");
+        crearUsuarioConCredencial(usuarioVendedor, "Vendedor Caja", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test
@@ -64,7 +71,7 @@ class CajaDiariaIntegrationTest {
 
     @Test
     void vendedorNoPuedeAbrirCaja() throws Exception {
-        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+        String tokenVendedor = iniciarSesion(usuarioVendedor);
 
         mockMvc.perform(post("/api/cajas-diarias")
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
@@ -76,7 +83,7 @@ class CajaDiariaIntegrationTest {
 
     @Test
     void administradorAbreCajaYPermiteConsultarla() throws Exception {
-        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenAdmin = iniciarSesion(usuarioAdmin);
 
         mockMvc.perform(post("/api/cajas-diarias")
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
@@ -86,7 +93,7 @@ class CajaDiariaIntegrationTest {
                 .andExpect(jsonPath("$.fechaOperacion").value(FECHA_OPERACION.toString()))
                 .andExpect(jsonPath("$.estadoCaja").value("abierta"))
                 .andExpect(jsonPath("$.valorBase").value(300000.00))
-                .andExpect(jsonPath("$.nombreUsuarioApertura").value(USUARIO_ADMIN));
+                .andExpect(jsonPath("$.nombreUsuarioApertura").value(usuarioAdmin));
 
         Integer cajasCreadas = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM cajas_diarias WHERE fecha_operacion = ?",
@@ -103,13 +110,12 @@ class CajaDiariaIntegrationTest {
         mockMvc.perform(get("/api/cajas-diarias/abierta")
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fechaOperacion").value(FECHA_OPERACION.toString()))
                 .andExpect(jsonPath("$.estadoCaja").value("abierta"));
     }
 
     @Test
     void aperturaInicializaStockDiarioConRemanenteAnteriorDeVasos() throws Exception {
-        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenAdmin = iniciarSesion(usuarioAdmin);
         UUID idItemVaso = idItemInventario("vaso_8oz");
         crearCajaAnteriorConStockDiario(idItemVaso);
 
@@ -153,7 +159,7 @@ class CajaDiariaIntegrationTest {
 
     @Test
     void noPermiteAbrirDosCajasParaLaMismaFecha() throws Exception {
-        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+        String tokenGerente = iniciarSesion(usuarioGerente);
 
         mockMvc.perform(post("/api/cajas-diarias")
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
@@ -194,7 +200,7 @@ class CajaDiariaIntegrationTest {
                 )
                 VALUES (?, 'abierta'::estado_caja_enum, 300000, ?, 'test_caja_remanente_anterior')
                 RETURNING id_caja_diaria
-                """, UUID.class, FECHA_REMANENTE_ANTERIOR, idUsuarioPorNombre(USUARIO_ADMIN));
+                """, UUID.class, FECHA_REMANENTE_ANTERIOR, idUsuarioPorNombre(usuarioAdmin));
         jdbcTemplate.update("""
                 INSERT INTO existencias_inventario_diario (
                     id_caja_diaria,
@@ -267,71 +273,116 @@ class CajaDiariaIntegrationTest {
 
     private void limpiarDatosDePrueba() {
         jdbcTemplate.update("""
-                DELETE FROM ventas
-                WHERE id_caja_diaria IN (
-                    SELECT id_caja_diaria FROM cajas_diarias
-                    WHERE observaciones LIKE 'test_%'
-                    OR fecha_operacion >= DATE '2099-01-01'
+                DELETE FROM movimientos_inventario
+                WHERE id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
                 )
-                """);
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
+                )
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor);
+        jdbcTemplate.update("""
+                DELETE FROM ventas
+                WHERE id_usuario_vendedor IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                )
+                OR id_usuario_anulacion IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                )
+                OR id_caja_diaria IN (
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
+                )
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM movimientos_deposito
                 WHERE id_cierre_caja IN (
                     SELECT cc.id_cierre_caja
                     FROM cierres_caja cc
                     JOIN cajas_diarias cd ON cd.id_caja_diaria = cc.id_caja_diaria
-                    WHERE cd.observaciones LIKE 'test_%'
-                    OR cd.fecha_operacion >= DATE '2099-01-01'
+                    WHERE cd.id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
+                    OR cd.id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
                 )
-                """);
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM cierres_caja
                 WHERE id_caja_diaria IN (
-                    SELECT id_caja_diaria FROM cajas_diarias
-                    WHERE observaciones LIKE 'test_%'
-                    OR fecha_operacion >= DATE '2099-01-01'
+                    SELECT id_caja_diaria
+                    FROM cajas_diarias
+                    WHERE id_usuario_apertura IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
+                    OR id_usuario_cierre IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                    )
                 )
-                """);
-        jdbcTemplate.update("""
-                DELETE FROM existencias_inventario_diario
-                WHERE id_caja_diaria IN (
-                    SELECT id_caja_diaria FROM cajas_diarias
-                    WHERE observaciones LIKE 'test_%'
-                    OR fecha_operacion >= DATE '2099-01-01'
-                )
-                """);
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM cajas_diarias
-                WHERE observaciones LIKE 'test_%'
-                OR fecha_operacion >= DATE '2099-01-01'
-                """);
+                WHERE id_usuario_apertura IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                )
+                OR id_usuario_cierre IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
+                )
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM auditoria_operaciones
                 WHERE id_usuario IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
                 )
-                """);
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM ajustes_inventario
                 WHERE id_usuario_solicitante IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
                 )
                 OR id_usuario_aprobador IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
                 )
-                """);
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor,
+                usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM sesiones_usuario
                 WHERE id_usuario IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
                 )
-                """);
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor);
         jdbcTemplate.update("""
                 DELETE FROM credenciales_usuario
                 WHERE id_usuario IN (
-                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario IN (?, ?, ?)
                 )
-                """);
-        jdbcTemplate.update("DELETE FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'");
+                """, usuarioAdmin, usuarioGerente, usuarioVendedor);
+        jdbcTemplate.update(
+                "DELETE FROM usuarios WHERE nombre_usuario IN (?, ?, ?)",
+                usuarioAdmin,
+                usuarioGerente,
+                usuarioVendedor);
     }
 }

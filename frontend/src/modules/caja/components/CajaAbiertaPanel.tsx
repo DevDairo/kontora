@@ -4,6 +4,7 @@ import type { UserRole } from "../../../app/routes/appRoutes";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import { abrirCajaDiaria, obtenerCajaAbierta } from "../services/cajaService";
 import type { CajaDiaria } from "../types";
+import { CajaOperacionesPanel } from "./CajaOperacionesPanel";
 
 type LoadState = "loading" | "success" | "empty" | "error";
 
@@ -281,6 +282,8 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
           </article>
         )}
       </div>
+
+      {caja && canOpenCashBox ? <CajaOperacionesPanel token={token} /> : null}
     </>
   );
 }

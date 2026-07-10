@@ -47,6 +47,7 @@ class InventarioIntegrationTest {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private UUID idUsuarioAdmin;
+    private UUID idCajaDiaria;
 
     @BeforeEach
     void setUp() {
@@ -461,7 +462,8 @@ class InventarioIntegrationTest {
                 SELECT cantidad_ingresada, cantidad_vendida, cantidad_perdida, cantidad_final_teorica
                 FROM existencias_inventario_diario
                 WHERE id_item_inventario = ?
-                """, idItemInventario);
+                AND id_caja_diaria = ?
+                """, idItemInventario, idCajaDiaria);
     }
 
     private void ajustarStockGeneral(UUID idItemInventario, int cantidad) {
@@ -473,7 +475,7 @@ class InventarioIntegrationTest {
     }
 
     private void crearCajaAbierta() {
-        jdbcTemplate.update("""
+        idCajaDiaria = jdbcTemplate.queryForObject("""
                 INSERT INTO cajas_diarias (
                     fecha_operacion,
                     estado_caja,
@@ -482,7 +484,8 @@ class InventarioIntegrationTest {
                     observaciones
                 )
                 VALUES (?, 'abierta'::estado_caja_enum, 300000, ?, 'test_inventario_caja')
-                """, FECHA_CAJA, idUsuarioAdmin);
+                RETURNING id_caja_diaria
+                """, UUID.class, FECHA_CAJA, idUsuarioAdmin);
     }
 
     private String iniciarSesion(String nombreUsuario) throws Exception {

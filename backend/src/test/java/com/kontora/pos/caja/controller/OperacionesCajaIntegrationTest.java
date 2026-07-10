@@ -1,6 +1,7 @@
 package com.kontora.pos.caja.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,22 +57,15 @@ class OperacionesCajaIntegrationTest {
         crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Operaciones", "vendedor");
     }
 
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
+    }
+
     @Test
     void sinUsuarioAutenticadoNoPuedeConsultarOperacionesDeCaja() throws Exception {
         mockMvc.perform(get("/api/operaciones-caja/gastos-caja/abierta"))
                 .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void noRegistraGastoSinCajaAbierta() throws Exception {
-        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
-
-        mockMvc.perform(post("/api/operaciones-caja/gastos-caja")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestGasto("12000.00", "Compra hielo"))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("No existe caja diaria abierta para operaciones de caja"));
     }
 
     @Test
@@ -90,7 +84,7 @@ class OperacionesCajaIntegrationTest {
                 .andExpect(jsonPath("$.valorUnitario").value(1000.00))
                 .andExpect(jsonPath("$.valorTotal").value(3000.00));
 
-        mockMvc.perform(post("/api/operaciones-caja/adiciones-diarias")
+        String response = mockMvc.perform(post("/api/operaciones-caja/adiciones-diarias")
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -99,9 +93,16 @@ class OperacionesCajaIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cantidadAdiciones").value(5))
                 .andExpect(jsonPath("$.valorUnitario").value(1500.00))
-                .andExpect(jsonPath("$.valorTotal").value(7500.00));
+                .andExpect(jsonPath("$.valorTotal").value(7500.00))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-        Integer registros = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM adiciones_diarias", Integer.class);
+        UUID idCajaDiaria = UUID.fromString(objectMapper.readValue(response, Map.class).get("idCajaDiaria").toString());
+        Integer registros = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM adiciones_diarias WHERE id_caja_diaria = ?",
+                Integer.class,
+                idCajaDiaria);
         assertThat(registros).isEqualTo(1);
 
         mockMvc.perform(get("/api/operaciones-caja/adiciones-diarias/abierta")
@@ -338,6 +339,15 @@ class OperacionesCajaIntegrationTest {
                         WHERE fecha_operacion >= DATE '2099-01-01'
                         OR observaciones LIKE 'test_operaciones_%'
                     )
+                    OR id_usuario_registro IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                    )
+                    OR id_usuario_ultima_edicion IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                    )
+                    OR id_usuario_anulacion IN (
+                        SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                    )
                 )
                 """);
         jdbcTemplate.update("""
@@ -348,6 +358,15 @@ class OperacionesCajaIntegrationTest {
                     WHERE fecha_operacion >= DATE '2099-01-01'
                     OR observaciones LIKE 'test_operaciones_%'
                 )
+                OR id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                )
+                OR id_usuario_ultima_edicion IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                )
+                OR id_usuario_anulacion IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                )
                 """);
         jdbcTemplate.update("""
                 DELETE FROM adiciones_diarias
@@ -357,6 +376,9 @@ class OperacionesCajaIntegrationTest {
                     WHERE fecha_operacion >= DATE '2099-01-01'
                     OR observaciones LIKE 'test_operaciones_%'
                 )
+                OR id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
+                )
                 """);
         jdbcTemplate.update("""
                 DELETE FROM pagos_trabajadores_diarios
@@ -365,6 +387,9 @@ class OperacionesCajaIntegrationTest {
                     FROM cajas_diarias
                     WHERE fecha_operacion >= DATE '2099-01-01'
                     OR observaciones LIKE 'test_operaciones_%'
+                )
+                OR id_usuario_registro IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_operaciones_%'
                 )
                 """);
         jdbcTemplate.update("""

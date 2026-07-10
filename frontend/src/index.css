@@ -994,6 +994,31 @@ h3 {
   gap: 18px;
 }
 
+.caja-operaciones-section {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.caja-operaciones-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.caja-operaciones-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.3rem;
+}
+
+.caja-operaciones-heading p:not(.eyebrow) {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .caja-status-card {
   display: grid;
   grid-template-columns: 62px minmax(0, 1fr);
@@ -1719,6 +1744,349 @@ h3 {
   color: var(--danger);
 }
 
+.gastos-summary-grid,
+.gastos-actions-grid {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.gastos-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.gastos-summary-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.gastos-summary-card span,
+.gastos-summary-card small,
+.gastos-confirmed-panel small {
+  color: var(--muted);
+}
+
+.gastos-summary-card span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.gastos-summary-card strong {
+  color: var(--text);
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
+.gastos-summary-card small {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.gastos-cash-flow {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.gastos-cash-flow-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.gastos-cash-flow-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.gastos-cash-flow-heading .eyebrow {
+  margin-bottom: 4px;
+}
+
+.gastos-cash-flow-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+  gap: 20px;
+}
+
+.gastos-cash-flow-lines {
+  border-top: 1px solid var(--line);
+}
+
+.gastos-flow-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.gastos-flow-line span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.gastos-flow-line strong {
+  overflow-wrap: anywhere;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.gastos-flow-line.income strong {
+  color: var(--green);
+}
+
+.gastos-flow-line.expense strong {
+  color: var(--danger);
+}
+
+.gastos-flow-line.total {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.gastos-flow-line.total span,
+.gastos-flow-line.total strong {
+  color: var(--text);
+  font-size: 1.02rem;
+}
+
+.gastos-cash-context {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  margin: 0;
+}
+
+.gastos-cash-context div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.gastos-cash-context dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.gastos-cash-context dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.gastos-cash-flow-note,
+.gastos-cash-flow-warning {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.gastos-cash-flow-note {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.gastos-cash-flow-warning {
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.gastos-actions-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: stretch;
+}
+
+.gastos-form-panel {
+  display: grid;
+  gap: 14px;
+  height: 100%;
+}
+
+.gastos-actions-grid > .gastos-form-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.gastos-actions-grid > .gastos-form-panel > .primary-button.full,
+.gastos-actions-grid > .gastos-form-panel > .danger-button.full {
+  margin-top: auto;
+}
+
+.gastos-form-panel .full {
+  width: 100%;
+}
+
+.gastos-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.gastos-calculated-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.gastos-calculated-total span,
+.gastos-confirmed-copy,
+.gastos-action-copy {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.gastos-calculated-total strong {
+  color: var(--text);
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.gastos-confirmed-panel .panel-title > svg {
+  color: var(--green);
+}
+
+.gastos-confirmed-copy,
+.gastos-action-copy {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #efb8bf;
+  border-radius: 8px;
+  background: #fff3f4;
+  color: var(--danger);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 10px 14px;
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gastos-history-panel {
+  margin-top: 18px;
+}
+
+.gastos-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gasto-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.gasto-row-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #fff5e8;
+  color: var(--orange);
+}
+
+.gasto-row-main {
+  min-width: 0;
+}
+
+.gasto-row-main strong,
+.gasto-row-main small,
+.gasto-row-main em {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.gasto-row-main small,
+.gasto-row-main em {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.gasto-row-main em {
+  margin-top: 3px;
+  font-style: normal;
+}
+
+.gasto-row-value {
+  color: #273354;
+  white-space: nowrap;
+}
+
+.gasto-row-actions {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.icon-only-button {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: #273354;
+  cursor: pointer;
+}
+
+.icon-only-button:hover {
+  border-color: #aeb9d2;
+  background: #f7f9ff;
+}
+
+.icon-only-button.danger {
+  border-color: #f1c5ca;
+  color: var(--danger);
+}
+
 @media (max-width: 1100px) {
   .login-page {
     grid-template-columns: 1fr;
@@ -1779,7 +2147,9 @@ h3 {
   .inventory-toolbar,
   .inventario-summary-grid,
   .inventory-actions-grid,
-  .inventory-panel-grid {
+  .inventory-panel-grid,
+  .gastos-actions-grid,
+  .gastos-cash-flow-content {
     grid-template-columns: 1fr;
   }
 
@@ -1832,6 +2202,20 @@ h3 {
     flex-direction: column;
   }
 
+  .caja-operaciones-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .caja-operaciones-heading .ghost-button {
+    width: 100%;
+  }
+
+  .gastos-cash-flow-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .menu,
   .module-grid,
   .caja-detail-grid,
@@ -1839,10 +2223,12 @@ h3 {
   .ventas-controls,
   .ventas-controls.two-columns,
   .payment-mode-grid,
+  .gastos-field-row,
   .inventory-form-row,
   .inventory-row dl,
   .movement-row,
   .adjustment-row,
+  .gasto-row,
   .adjustment-actions {
     grid-template-columns: 1fr;
   }

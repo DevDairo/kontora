@@ -4,11 +4,11 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 ## Estado actual
 
-- Fecha de registro: 2026-07-09.
+- Fecha de registro: 2026-07-10.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Ventas y pagos frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Inventario operativo frontend.
-- Siguiente hito: implementar la interfaz de Gastos, adiciones y pago a trabajadores.
+- Fase actual: Fase 4, Gastos, adiciones y pago a trabajadores frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Ventas y pagos frontend.
+- Siguiente hito: implementar la interfaz de Cierre de caja y deposito.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1248,6 +1248,48 @@ Observaciones:
 - La carga real de evidencias queda pendiente de entorno de despliegue con Supabase Storage configurado solo en backend.
 - El siguiente modulo frontend es Gastos, adiciones y pago a trabajadores.
 
+## Fase 4: Gastos, adiciones y pago a trabajadores frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `GastosPanel` con registro y consulta de gastos para los tres roles; administrador y gerente tambien pueden editar o anular gastos con su motivo auditado.
+- Se ubico el formulario de pago diario a trabajadores en Gastos, visible solo para administrador y gerente; el pago confirmado sigue siendo actualizable mientras la caja este abierta.
+- Se agrego `CajaOperacionesPanel` dentro de Caja para adiciones diarias, resumen de operaciones y proyeccion de efectivo fisico.
+- Caja conserva el pago a trabajadores como dato de lectura para el cuadre, sin duplicar su formulario de escritura.
+- Se agrego `GET /api/cajas-diarias/abierta/resumen` para obtener la proyeccion calculada por backend: ventas en efectivo, adiciones, gastos activos, pago a trabajadores, transferencias y base de caja.
+- Los importes aceptan entrada por teclado y pegado con normalizacion de separadores; los paneles y sus botones mantienen altura y alineacion uniforme.
+- Vendedor no ve ni consulta los controles administrativos de adiciones, pago a trabajadores o proyeccion financiera.
+
+Documentacion actualizada:
+
+- `docs/modules/gastos-adiciones-pago-trabajadores.md`.
+- `docs/modules/gastos-adiciones-pago-trabajadores-frontend.md`.
+- `docs/modules/caja-diaria-frontend.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn clean test`: 58 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Backend Docker reconstruido y `GET /api/health` respondio correctamente.
+- `GET /api/cajas-diarias/abierta/resumen` respondio `200` para administrador y gerente, y `403` para vendedor.
+- `/caja` y `/gastos` respondieron `200` desde el servidor React local.
+- El usuario confirmo manualmente el flujo, la ubicacion final del pago a trabajadores y la uniformidad visual de los paneles.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- La proyeccion no define el deposito: Cierre de caja usara el efectivo contado sin base devuelto y validado por backend.
+- El siguiente modulo frontend es Cierre de caja y deposito.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1278,17 +1320,17 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios actuales de catalogos para formularios en `chore/inicializacion-frontend`.
+Guardar los cambios de Gastos, Caja y el resumen financiero en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: registro de venta y pagos.
+La siguiente implementacion sera Fase 4: Cierre de caja y deposito.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador del registro de venta y pagos.
-- Consumo de API real para `POST /api/ventas`.
-- Uso de catalogos reales para tipos de granizado, tamanos, precios vigentes, promociones y metodos de pago.
-- Registro de pagos en efectivo, transferencia o combinado segun contratos reales.
+- Verificacion en navegador del cierre de caja para administrador y gerente.
+- Consumo de API real para `POST /api/cajas-diarias/{idCajaDiaria}/cerrar` y `GET /api/cajas-diarias/{idCajaDiaria}/cierre`.
+- Uso del efectivo esperado de backend y registro del efectivo contado sin base.
+- Manejo visible de diferencias de caja y del movimiento automatico de deposito.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

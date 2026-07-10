@@ -4,6 +4,7 @@ import com.kontora.pos.caja.dto.AbrirCajaDiariaRequest;
 import com.kontora.pos.caja.dto.CajaDiariaResponse;
 import com.kontora.pos.caja.dto.CerrarCajaRequest;
 import com.kontora.pos.caja.dto.CierreCajaResponse;
+import com.kontora.pos.caja.dto.ResumenCajaDiariaResponse;
 import com.kontora.pos.caja.service.CajaDiariaService;
 import com.kontora.pos.caja.service.CierreCajaService;
 import com.kontora.pos.common.security.PrincipalUsuario;
@@ -45,6 +46,11 @@ public class CajaDiariaController {
     @GetMapping("/abierta")
     public CajaDiariaResponse obtenerCajaAbierta() {
         return cajaDiariaService.obtenerCajaAbierta();
+    }
+
+    @GetMapping("/abierta/resumen")
+    public ResumenCajaDiariaResponse obtenerResumenCajaAbierta(Authentication authentication) {
+        return cierreCajaService.obtenerResumenCajaAbierta((PrincipalUsuario) authentication.getPrincipal());
     }
 
     @GetMapping("/fecha/{fechaOperacion}")

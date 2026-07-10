@@ -247,6 +247,68 @@ Administrador / Gerente.
 - Se verifico con datos controlados una solicitud de administrador, su aprobacion y rechazo por gerente, y una aplicacion directa del gerente.
 - La validacion en navegador cubrio gerente, administrador y vendedor; la verificacion manual final del usuario fue confirmada el 2026-07-09.
 
+## Pantalla: Gastos y pago diario a trabajadores
+
+### Objetivo
+
+Registrar gastos de la jornada y administrar el pago total diario a trabajadores sin duplicar la proyeccion financiera que se consulta desde Caja.
+
+### Actor principal
+
+Vendedor / Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `GET` y `POST /api/operaciones-caja/gastos-caja/abierta` y `/api/operaciones-caja/gastos-caja`.
+- `PUT /api/operaciones-caja/gastos-caja/{idGastoCaja}`.
+- `POST /api/operaciones-caja/gastos-caja/{idGastoCaja}/anular`.
+- `GET` y `POST /api/operaciones-caja/pagos-trabajadores-diarios/abierta` y `/api/operaciones-caja/pagos-trabajadores-diarios`.
+- `POST /api/operaciones-caja/pagos-trabajadores-diarios/{idPagoTrabajadoresDiario}/confirmar`.
+
+### Validaciones de interfaz
+
+- Vendedor registra y consulta gastos, pero no ve pago a trabajadores ni acciones de edicion o anulacion.
+- Administrador y gerente pueden editar o anular gastos, con el motivo obligatorio que exige el backend.
+- Administrador y gerente registran, confirman o actualizan el pago diario a trabajadores mientras la caja este abierta.
+- Un pago en cero requiere confirmacion explicita antes de enviarse.
+- Los importes aceptan teclado o pegado y normalizan separadores decimales o de miles antes de enviar el valor numerico.
+- Los controles se deshabilitan cuando no hay caja abierta; backend conserva la autorizacion y la validacion definitiva.
+
+### Evidencia de prueba
+
+- `npx tsc -b --pretty false` y `npm run build` completados correctamente.
+- `/gastos` respondio `200` desde el servidor React local.
+- El usuario confirmo manualmente el flujo, el pago a trabajadores para administrador y gerente, la ausencia de ese panel para vendedor y la uniformidad visual final.
+
+## Pantalla: Operaciones financieras de caja
+
+### Objetivo
+
+Presentar el estado financiero de la caja abierta y permitir registrar adiciones sin convertir Caja en una segunda interfaz de gastos o pago a trabajadores.
+
+### Actor principal
+
+Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/cajas-diarias/abierta/resumen`.
+- `GET` y `POST /api/operaciones-caja/adiciones-diarias/abierta` y `/api/operaciones-caja/adiciones-diarias`.
+- `GET /api/operaciones-caja/pagos-trabajadores-diarios/abierta` como dato de lectura para la proyeccion.
+
+### Validaciones de interfaz
+
+- La proyeccion usa ventas en efectivo, adiciones, gastos activos y pago a trabajadores calculados por backend.
+- Transferencias y base de caja se muestran por separado porque no corresponden al efectivo fisico disponible para deposito.
+- La proyeccion informa los requisitos pendientes para cierre, sin reemplazar las validaciones del endpoint de cierre.
+- Vendedor no ve esta superficie administrativa.
+
+### Evidencia de prueba
+
+- `GET /api/cajas-diarias/abierta/resumen` respondio `200` para administrador y gerente, y `403` para vendedor.
+- `/caja` respondio `200` desde el servidor React local.
+- El usuario confirmo manualmente la distribucion final entre Caja y Gastos.
+
 ## Pantalla: Catalogos para formularios
 
 ### Objetivo
@@ -305,10 +367,10 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 4. Catalogos necesarios para formularios. Implementado y validado.
 5. Registro de venta y pagos. Implementado y validado.
 6. Inventario operativo. Implementado y validado.
-7. Gastos, adiciones y pago trabajadores.
-8. Cierre de caja.
+7. Gastos, adiciones y pago trabajadores. Implementado y validado.
+8. Cierre de caja. Siguiente modulo.
 9. Deposito, consignaciones y servicios.
 10. Evidencias.
 11. Auditoria y consultas.
 
-La pantalla de login ya cuenta con implementacion tecnica y validacion automatizada/asistida. El cierre del modulo queda pendiente de confirmacion manual del usuario en navegador.
+Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Cierre de caja y deposito.

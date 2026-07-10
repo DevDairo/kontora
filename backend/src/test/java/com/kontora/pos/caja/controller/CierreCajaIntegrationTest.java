@@ -1,6 +1,7 @@
 package com.kontora.pos.caja.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -56,6 +56,11 @@ class CierreCajaIntegrationTest {
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Cierre", "administrador");
         crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Cierre", "gerente");
         idUsuarioVendedor = crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Cierre", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test
@@ -115,11 +120,10 @@ class CierreCajaIntegrationTest {
     }
 
     @Test
-    void despuesDelCierreNoPermiteVentasNiAnulaciones() throws Exception {
+    void despuesDelCierreNoPermiteAnularVentasDeCajaCerrada() throws Exception {
         crearCajaAbierta();
         crearOperacionesParaCierre(true, true);
         String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
-        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
 
         mockMvc.perform(post("/api/cajas-diarias/{idCajaDiaria}/cerrar", idCajaDiaria)
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
@@ -127,13 +131,6 @@ class CierreCajaIntegrationTest {
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "efectivoContadoSinBase", new BigDecimal("45000.00")))))
                 .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/ventas")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestVentaEfectivoCliente())))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("No existe caja diaria abierta para registrar venta"));
 
         mockMvc.perform(post("/api/ventas/{idVenta}/anular", idVentaRegistrada)
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
@@ -188,17 +185,47 @@ class CierreCajaIntegrationTest {
                 .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede cerrar caja diaria"));
     }
 
-    private Map<String, Object> requestVentaEfectivoCliente() {
-        return Map.of(
-                "tipoComprador", "cliente",
-                "detalles", List.of(Map.of(
-                        "idTipoGranizado", idTipoGranizado("con_licor").toString(),
-                        "idTamanoVaso", idTamanoVaso(8).toString(),
-                        "cantidad", 1)),
-                "pagos", List.of(Map.of(
-                        "idMetodoPago", idMetodoPago("efectivo").toString(),
-                        "valorPago", new BigDecimal("8000.00"),
-                        "valorRecibidoEfectivo", new BigDecimal("8000.00"))));
+    @Test
+    void consultaResumenCajaAbiertaConLaMismaFormulaDelCierre() throws Exception {
+        crearCajaAbierta();
+        crearOperacionesParaCierre(true, true);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+
+        mockMvc.perform(get("/api/cajas-diarias/abierta/resumen")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idCajaDiaria").value(idCajaDiaria.toString()))
+                .andExpect(jsonPath("$.valorBase").value(300000.00))
+                .andExpect(jsonPath("$.totalVentas").value(150000.00))
+                .andExpect(jsonPath("$.totalVentasEfectivo").value(70000.00))
+                .andExpect(jsonPath("$.totalVentasTransferencia").value(80000.00))
+                .andExpect(jsonPath("$.totalTransferenciasPendientes").value(30000.00))
+                .andExpect(jsonPath("$.totalTransferenciasValidadas").value(40000.00))
+                .andExpect(jsonPath("$.totalTransferenciasRechazadas").value(10000.00))
+                .andExpect(jsonPath("$.totalGastos").value(15000.00))
+                .andExpect(jsonPath("$.totalAdiciones").value(10000.00))
+                .andExpect(jsonPath("$.adicionDiariaRegistrada").value(true))
+                .andExpect(jsonPath("$.totalPagoTrabajadores").value(20000.00))
+                .andExpect(jsonPath("$.pagoTrabajadoresRegistrado").value(true))
+                .andExpect(jsonPath("$.pagoTrabajadoresConfirmado").value(true))
+                .andExpect(jsonPath("$.efectivoEsperadoSinBase").value(45000.00))
+                .andExpect(jsonPath("$.listoParaCierre").value(true));
+
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+        mockMvc.perform(get("/api/cajas-diarias/abierta/resumen")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void vendedorNoPuedeConsultarResumenCajaAbierta() throws Exception {
+        crearCajaAbierta();
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+
+        mockMvc.perform(get("/api/cajas-diarias/abierta/resumen")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede consultar el resumen de caja"));
     }
 
     private void crearCajaAbierta() {

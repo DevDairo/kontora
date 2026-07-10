@@ -153,6 +153,30 @@ Responsabilidades:
 - La ausencia de caja abierta solo bloquea operaciones de jornada. No bloquea el control de stock general.
 - La ruta se muestra solo a administrador y gerente; vendedor no recibe una interfaz independiente de Inventario.
 
+## Gastos y operaciones de caja
+
+La interfaz de gastos y operaciones financieras se distribuye entre `src/modules/gastos` y `src/modules/caja`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/gastos/components/GastosPanel.tsx
+frontend/src/modules/gastos/services/gastosService.ts
+frontend/src/modules/gastos/types.ts
+frontend/src/modules/caja/components/CajaOperacionesPanel.tsx
+frontend/src/shared/utils/moneyInput.ts
+```
+
+Responsabilidades:
+
+- `GastosPanel` registra y lista gastos para los tres roles; administrador y gerente pueden editar o anularlos.
+- El pago diario a trabajadores se administra desde `GastosPanel` solo para administrador y gerente, conservando la actualizacion de un pago confirmado mientras la caja siga abierta.
+- `CajaOperacionesPanel` permite adiciones a administrador y gerente y presenta la proyeccion de efectivo calculada por backend.
+- Caja muestra el pago a trabajadores como insumo de la proyeccion, pero no duplica los controles de escritura.
+- `moneyInput.ts` normaliza importes escritos o pegados sin depender de los controles incrementales del navegador.
+
+El frontend muestra estados y validaciones de experiencia; la caja abierta, los permisos, el calculo del efectivo esperado y las condiciones de cierre se mantienen en backend.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.

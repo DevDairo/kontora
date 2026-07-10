@@ -113,6 +113,17 @@ Consola -> sin errores ni advertencias
 El usuario confirmo que se puede continuar despues de verificar el panel en navegador.
 ```
 
-## Pendiente siguiente
+## Estado posterior
 
-- Implementar catalogos necesarios para formularios consumiendo la API real de catalogos base.
+La secuencia inicial de Catalogos, Ventas e Inventario ya fue completada y validada. El siguiente modulo funcional pendiente de Fase 4 es Cierre de caja y deposito.
+
+## Actualizacion: operaciones financieras de caja
+
+`CajaOperacionesPanel` extiende la pantalla `/caja` para administrador y gerente con:
+
+- Registro y actualizacion de adiciones diarias mediante `POST /api/operaciones-caja/adiciones-diarias`.
+- Consulta de `GET /api/cajas-diarias/abierta/resumen` para la proyeccion de efectivo fisico sin base.
+- Lectura de gastos activos y pago a trabajadores como insumos del cuadre, sin duplicar sus formularios de escritura.
+- Separacion visible entre efectivo, transferencias y base de caja.
+
+El pago a trabajadores se administra en `/gastos`; Caja conserva el dato solo para el resumen financiero. Vendedor no ve estas operaciones administrativas.
