@@ -167,6 +167,48 @@ Solo cuando no existe caja abierta y el rol visible es `administrador` o `gerent
 - Consola del navegador sin errores ni advertencias.
 - Verificacion manual del usuario completada antes de documentar el cierre.
 
+## Pantalla: Registro de ventas y pagos
+
+### Objetivo
+
+Registrar ventas con catalogos reales, promociones vigentes y pagos en efectivo, transferencia o modalidad mixta.
+
+### Actor principal
+
+Vendedor / Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `POST /api/ventas`
+- `POST /api/evidencias/pagos-venta/{idPagoVenta}`
+- Endpoints de catalogos necesarios para el formulario.
+
+### Campos del formulario
+
+- `tipoComprador`
+- `idUsuarioComprador` cuando el comprador es trabajador
+- Tipo de granizado, tamano y cantidad
+- Metodo de pago y valores recibidos o transferidos
+- Comprobante opcional para transferencia
+
+### Validaciones de interfaz
+
+- El total de pagos no puede ser inferior ni superior al total de la venta.
+- El efectivo recibido no puede ser menor al efectivo que se registra como pago.
+- La transferencia pura informa faltante o excedente y bloquea el envio si el valor no coincide.
+- En pago mixto, el payload aplica solo el valor necesario de efectivo y transferencia; el excedente de efectivo se presenta como cambio.
+- La evidencia se envia despues de registrar una venta con transferencia y nunca se carga directamente a Supabase desde el navegador.
+
+### Evidencia de prueba
+
+- `npx tsc -b --pretty false` y `npm run build` completados correctamente.
+- Navegador validado con catalogos reales, pago en efectivo, transferencia y pago mixto; consola sin errores ni advertencias.
+- Efectivo por `10000` sobre una venta de `8000`: backend devolvio cambio de `2000`.
+- Pago mixto con transferencia de `6000` y efectivo recibido de `3000`: la interfaz registro `6000` por transferencia y `2000` por efectivo, con cambio de `1000`.
+- Los valores de transferencia por debajo o por encima del total se bloquearon antes de enviar el formulario.
+- La subida local de evidencia devolvio `503`, `Supabase Storage no esta configurado`; es el comportamiento esperado hasta configurar el almacenamiento en el backend de despliegue.
+- El usuario confirmo manualmente la interfaz el 2026-07-09.
+
 ## Pantalla: Inventario operativo
 
 ### Objetivo
@@ -261,7 +303,7 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 2. Layout principal por rol. Implementado y validado.
 3. Panel de caja abierta. Implementado y validado.
 4. Catalogos necesarios para formularios. Implementado y validado.
-5. Registro de venta y pagos. Pendiente de confirmacion manual final.
+5. Registro de venta y pagos. Implementado y validado.
 6. Inventario operativo. Implementado y validado.
 7. Gastos, adiciones y pago trabajadores.
 8. Cierre de caja.

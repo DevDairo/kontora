@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-09.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Inventario operativo frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Catalogos para formularios.
-- Siguiente hito: cerrar la validacion manual pendiente de Ventas y pagos antes de abrir el modulo siguiente.
+- Fase actual: Fase 4, Ventas y pagos frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Inventario operativo frontend.
+- Siguiente hito: implementar la interfaz de Gastos, adiciones y pago a trabajadores.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1206,7 +1206,47 @@ Validacion realizada:
 Observaciones:
 
 - No se hizo commit, merge ni cambio de rama.
-- Ventas y pagos conserva pendiente su confirmacion manual final antes de iniciar el siguiente modulo de interfaz.
+- Ventas y pagos quedo validado manualmente y cerrado; el siguiente modulo de interfaz es Gastos, adiciones y pago a trabajadores.
+
+## Fase 4: Ventas y pagos frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `VentasPanel` con detalles de venta, catalogos reales, promociones y pagos en efectivo, transferencia y modalidad mixta.
+- Se marco la ruta `Ventas` como `Base lista` para vendedor, administrador y gerente.
+- Se muestra el cambio estimado antes de registrar y el resultado devuelto por `VentaResponse` despues de la venta.
+- Los faltantes y excedentes de transferencia se bloquean antes de enviar un payload invalido.
+- El comprobante de transferencia se envia al backend como `FormData` despues de registrar la venta.
+
+Documentacion actualizada:
+
+- `docs/modules/ventas-pagos-frontend.md`.
+- `docs/modules/ventas-pagos-frontend-pendientes.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Catalogos reales, pago en efectivo, transferencia y pago mixto validados en navegador sin errores de consola.
+- Efectivo `10000` sobre total `8000`: cambio real `2000`.
+- Pago mixto con transferencia `6000` y efectivo recibido `3000`: efectivo aplicado `2000` y cambio `1000`.
+- La evidencia de transferencia fue preparada para backend; sin Supabase local configurado, la respuesta `503` es esperada y no bloquea el cierre de la interfaz.
+- El usuario confirmo la validacion manual final el 2026-07-09.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- La carga real de evidencias queda pendiente de entorno de despliegue con Supabase Storage configurado solo en backend.
+- El siguiente modulo frontend es Gastos, adiciones y pago a trabajadores.
 
 ## Reglas activas para las siguientes fases
 

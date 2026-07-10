@@ -58,7 +58,7 @@ export const appRoutes: AppRoute[] = [
     id: "ventas",
     label: "Ventas",
     path: "/ventas",
-    status: "pendiente",
+    status: "base",
     description: "Registro de ventas y consulta operativa segun visibilidad del usuario autenticado.",
     endpoints: ["POST /api/ventas", "GET /api/consultas/ventas"],
     roles: allRoles,

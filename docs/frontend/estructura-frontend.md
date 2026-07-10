@@ -113,6 +113,26 @@ Responsabilidades:
 
 La pantalla es de solo lectura. La vigencia definitiva y las reglas de aplicacion se mantienen en backend.
 
+## Registro de ventas y pagos
+
+El panel de ventas queda implementado dentro de `src/modules/ventas`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/ventas/components/VentasPanel.tsx
+frontend/src/modules/ventas/services/ventasService.ts
+frontend/src/modules/ventas/types.ts
+```
+
+Responsabilidades:
+
+- `VentasPanel` consulta catalogos reales, calcula una vista previa y registra ventas mediante `POST /api/ventas`.
+- El panel construye pagos en efectivo, transferencia o mixtos sin enviar un valor mayor al total de la venta.
+- El cambio se muestra antes de registrar y se contrasta con la respuesta real del backend.
+- Una evidencia de transferencia se envia al backend con `FormData`; el frontend no usa credenciales de Supabase ni sube directamente al almacenamiento.
+- La carga real de evidencia requiere Supabase Storage configurado en el entorno del backend y queda preparada para despliegue.
+
 ## Inventario operativo
 
 El panel de inventario queda implementado dentro de `src/modules/inventario`.

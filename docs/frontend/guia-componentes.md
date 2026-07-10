@@ -126,6 +126,18 @@ Responsabilidades:
 - Permitir filtrar localmente por granizado, item o promocion.
 - Permitir cambiar la fecha de vigencia para precios y promociones sin crear ni modificar datos.
 
+### `VentasPanel`
+
+Ubicacion: `frontend/src/modules/ventas/components/VentasPanel.tsx`.
+
+Responsabilidades:
+
+- Consultar tipos, tamanos, precios, promociones y metodos de pago con token activo.
+- Construir detalles de venta y mostrar subtotal, descuento y total estimados.
+- Preparar pagos en efectivo, transferencia o mixtos sin exceder el total de la venta.
+- Mostrar el cambio estimado antes de registrar y el cambio devuelto por `VentaResponse` despues de registrar.
+- Adjuntar comprobantes de transferencia mediante el backend sin exponer secretos de Supabase.
+
 ### `InventarioPanel`
 
 Ubicacion: `frontend/src/modules/inventario/components/InventarioPanel.tsx`.
