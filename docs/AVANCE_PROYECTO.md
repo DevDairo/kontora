@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-10.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Deposito, consignaciones y servicios frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Cierre de caja y deposito frontend.
-- Siguiente hito: implementar la interfaz de Evidencias.
+- Fase actual: Fase 4, Evidencias frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Deposito, consignaciones y servicios frontend.
+- Siguiente hito: implementar la validacion administrativa de transferencias.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1381,6 +1381,45 @@ Observaciones:
 - No se hizo commit, merge ni cambio de rama.
 - El siguiente modulo frontend es Evidencias. Su validacion local debe comprobar estados, reintentos, consulta de metadata y permisos; la carga real a Supabase queda para despliegue.
 
+## Fase 4: Evidencias frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `EvidenciasPanel` para consultar los destinos de soporte de transferencias, gastos, consignaciones y pagos de servicios mediante los contratos reales de Consultas y Evidencias.
+- Se agregaron servicios tipados para filtros de periodo, metadata y carga multipart de los cuatro tipos de evidencia soportados por backend.
+- La pantalla propone desde el primer dia del mes hasta la fecha actual. El final por defecto evita que una unica fecha reduzca la consulta backend al primer dia del periodo.
+- Los metadatos se cargan al seleccionar un registro, sin solicitar una evidencia por cada fila inicial.
+- La ruta Evidencias queda como `Base lista` para administrador y gerente. Vendedor no recibe una interfaz independiente; sus soportes propios permanecen en los flujos de Ventas y Gastos.
+- Se muestra el estado de Storage local y se conserva el archivo seleccionado para reintento durante la sesion cuando backend responde `503`.
+- No se implemento vista previa ni descarga: el backend solo expone metadata y `urlArchivo` es una ruta interna `supabase://...`.
+
+Documentacion actualizada:
+
+- `docs/modules/evidencias-storage.md`.
+- `docs/modules/evidencias-storage-frontend.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- React local se conecto a la instancia backend activa mediante `VITE_API_URL=http://127.0.0.1:8080/api` en un archivo local ignorado por Git.
+- Gerente consulto `/evidencias` para el rango `2026-07-01` a `2026-07-10` y visualizo dos destinos de Deposito: consignacion por `$28.000` y pago de arriendo por `$2.500`.
+- La seleccion de consignacion consulto metadata y mostro que no habia evidencia cargada.
+- El usuario confirmo manualmente en navegador que los registros se muestran correctamente.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- Supabase Storage sigue intencionalmente sin configurar en local. La carga real se valida solo en despliegue, con secretos exclusivamente en backend.
+- El siguiente modulo frontend es Transferencias y validacion administrativa.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1411,16 +1450,16 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios de Caja, Gastos, Cierre, Deposito y su documentacion en `chore/inicializacion-frontend`.
+Guardar los cambios de Evidencias y su documentacion en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: Evidencias.
+La siguiente implementacion sera Fase 4: Transferencias y validacion administrativa.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador de consulta de metadata y estados de evidencia para transferencia, gasto, consignacion y pago de servicio segun permisos reales.
-- Reintento visible cuando Storage no este configurado localmente, sin duplicar la operacion de negocio asociada.
-- Confirmar que vendedor solo gestiona evidencias propias autorizadas y que administrador y gerente pueden consultar las administrativas.
+- Verificacion en navegador de consulta de transferencias pendientes o rechazadas, junto con sus acciones administrativas reales.
+- Validacion y rechazo mediante `POST /api/pagos-venta/{idPagoVenta}/validar` y `POST /api/pagos-venta/{idPagoVenta}/rechazar`, sin duplicar cambios de estado.
+- Confirmar que vendedor conserva solo la consulta propia y que administrador y gerente pueden decidir sobre transferencias segun backend.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

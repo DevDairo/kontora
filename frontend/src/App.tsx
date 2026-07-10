@@ -13,6 +13,7 @@ import { CajaAbiertaPanel } from "./modules/caja";
 import { CatalogosPanel } from "./modules/catalogos";
 import { CierreCajaPanel } from "./modules/cierre";
 import { DepositoPanel } from "./modules/deposito";
+import { EvidenciasPanel } from "./modules/evidencias";
 import { GastosPanel } from "./modules/gastos";
 import { InventarioPanel } from "./modules/inventario";
 import { VentasPanel } from "./modules/ventas";
@@ -229,6 +230,8 @@ function AppContent() {
         <CierreCajaPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "deposito" ? (
         <DepositoPanel token={auth.token ?? ""} />
+      ) : activeRoute.id === "evidencias" ? (
+        <EvidenciasPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "catalogos" ? (
         <CatalogosPanel token={auth.token ?? ""} />
       ) : (

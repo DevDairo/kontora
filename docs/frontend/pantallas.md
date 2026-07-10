@@ -403,6 +403,49 @@ Administrador / Gerente.
 - Gerente inicio sesion y visualizo la ruta y el panel `/deposito` con sus controles habilitados.
 - El usuario confirmo manualmente la validacion del modulo.
 
+## Pantalla: Evidencias administrativas
+
+### Objetivo
+
+Consultar metadata y adjuntar soportes a transferencias, gastos y movimientos administrativos de Deposito mediante los endpoints reales del backend.
+
+### Actor principal
+
+Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/consultas/transferencias`.
+- `GET /api/consultas/gastos`.
+- `GET /api/consultas/deposito/movimientos`.
+- `GET` y `POST /api/evidencias/pagos-venta/{idPagoVenta}`.
+- `GET` y `POST /api/evidencias/gastos-caja/{idGastoCaja}`.
+- `GET` y `POST /api/evidencias/consignaciones-bancarias/{idConsignacionBancaria}`.
+- `GET` y `POST /api/evidencias/pagos-servicios/{idPagoServicio}`.
+
+### Campos y controles
+
+- Filtros `fechaInicio` y `fechaFin`, propuestos desde el primer dia del mes hasta la fecha actual.
+- Pestañas de Transferencias, Gastos y Deposito con sus contadores.
+- Seleccion de registro, lista de metadata y selector multipart de archivo.
+- Acciones Adjuntar y Reintentar cuando un archivo no se puede subir en el entorno local.
+
+### Validaciones de interfaz
+
+- Solo administrador y gerente reciben la ruta independiente; vendedor no ve Evidencias en navegacion.
+- El frontend consulta metadata bajo demanda y presenta el error real del backend sin ocultar el registro seleccionado.
+- Los movimientos `entrada_cierre` no se presentan como destino de evidencia; se usan solo consignaciones y pagos de servicios.
+- La fecha final se propone para evitar que una sola fecha limite la consulta a un solo dia en backend.
+- `supabase://...` se conserva como metadata interna, sin vista previa ni descarga en frontend.
+
+### Evidencia de prueba
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Gerente consulto `/evidencias` con el rango `2026-07-01` a `2026-07-10` y visualizo la consignacion por `$28.000` y el pago de arriendo por `$2.500`.
+- El detalle de consignacion consulto su metadata y mostro que no hay evidencia registrada.
+- El usuario confirmo manualmente la visualizacion en navegador.
+- Supabase no se configura localmente; la carga real queda preparada para despliegue mediante backend.
+
 ## Pantalla: Catalogos para formularios
 
 ### Objetivo
@@ -464,7 +507,7 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 7. Gastos, adiciones y pago trabajadores. Implementado y validado.
 8. Cierre de caja. Implementado y validado.
 9. Deposito, consignaciones y servicios. Implementado y validado.
-10. Evidencias. Siguiente modulo.
-11. Auditoria y consultas.
+10. Evidencias. Implementado y validado.
+11. Transferencias, auditoria y consultas. Pendientes.
 
-Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Evidencias.
+Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Transferencias, seguido de Auditoria y Consultas.

@@ -91,3 +91,27 @@ El modulo se implementa sobre las tablas reales del schema:
 - En el modulo "Auditoria transversal" se implemento validacion y rechazo administrativo de transferencias.
 - El modulo "Deposito, consignaciones y servicios" crea primero el registro financiero y devuelve su identificador; la interfaz adjunta enseguida la evidencia mediante estos endpoints. Si el almacenamiento externo no esta configurado, el registro queda trazable y la interfaz conserva una accion de reintento de evidencia.
 - La interfaz de Deposito fue validada manualmente con administrador y gerente: pago de servicio y consignacion actualizan saldo e historial; si Storage local responde `503`, la evidencia conserva un reintento sin revertir la operacion financiera.
+
+## Frontend Fase 4
+
+Estado: completado y validado manualmente en navegador el 2026-07-10.
+
+- Se implemento la ruta administrativa `/evidencias` con `EvidenciasPanel` para `administrador` y `gerente`; `vendedor` no recibe una interfaz independiente y conserva sus evidencias propias en los flujos que las originan.
+- El panel consulta transferencias, gastos y movimientos de deposito por periodo, y solo presenta consignaciones o pagos de servicios como destinos de evidencia dentro de Deposito.
+- La fecha inicial se propone como el primer dia del mes y la fecha final como el dia actual. Ambas son editables. El rango completo es necesario porque los endpoints de consultas interpretan una sola fecha como un periodo de ese mismo dia.
+- Al seleccionar un registro, el frontend consulta en diferido sus metadatos mediante los `GET /api/evidencias/...` especificos y muestra nombre, formato, tamanos, compresion, usuario, fecha y estado.
+- El formulario multipart usa los cuatro `POST /api/evidencias/...` reales. Si Storage local responde `503`, conserva el archivo seleccionado durante la sesion y deja disponible el reintento, sin alterar el registro financiero asociado.
+- No se muestra vista previa ni descarga: `urlArchivo` es una ruta interna `supabase://...` y el backend actual expone metadata, no un endpoint de contenido.
+- La ruta quedo como `Base lista` en la navegacion. La ocultacion por rol es una capa de experiencia; backend sigue siendo la autoridad de permisos.
+
+Validacion frontend realizada:
+
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso.
+- Con gerente, `/evidencias` consulto el rango `2026-07-01` a `2026-07-10` y mostro la consignacion de `$28.000` y el pago de arriendo de `$2.500` registrados en Deposito.
+- La consulta de metadata para la consignacion respondio y mostro correctamente que no habia archivo cargado.
+- El usuario confirmo manualmente la visualizacion de los registros en navegador.
+
+Pendiente solo de despliegue:
+
+- La carga real y la consulta de contenido contra Supabase requieren `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_STORAGE_BUCKET` configurados exclusivamente en backend. No se expusieron secretos en frontend ni se realizo una carga financiera adicional durante la validacion local.

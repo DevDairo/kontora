@@ -223,6 +223,27 @@ Responsabilidades:
 - Exige seleccionar evidencia antes de registrar una salida. Si Storage no esta configurado, conserva el identificador y el archivo en estado pendiente para reintento.
 - Los filtros de fecha son opcionales y permiten volver al historial completo.
 
+## Evidencias administrativas
+
+El panel de evidencias queda implementado en `src/modules/evidencias`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/evidencias/components/EvidenciasPanel.tsx
+frontend/src/modules/evidencias/services/evidenciasConsultaService.ts
+frontend/src/modules/evidencias/services/evidenciasService.ts
+frontend/src/modules/evidencias/types.ts
+```
+
+Responsabilidades:
+
+- Solo aparece para `administrador` y `gerente`; vendedor conserva sus evidencias dentro de los flujos que las originan.
+- Consulta los registros origen con `consultas` y carga metadata solo al seleccionar una transferencia, gasto, consignacion o pago de servicio.
+- Propone el rango desde el primer dia del mes hasta la fecha actual, porque el backend toma una fecha unica como consulta de un solo dia.
+- Permite adjuntar o reintentar mediante los endpoints backend de Evidencias. El archivo permanece en memoria durante el reintento local.
+- Muestra metadata, no contenido: una ruta `supabase://...` no se trata como enlace publico ni se expone un secreto de Storage.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.
