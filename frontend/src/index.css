@@ -3196,3 +3196,330 @@ h3 {
     width: fit-content;
   }
 }
+
+.transferencias-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.transferencias-header {
+  align-items: flex-start;
+}
+
+.transferencias-role-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--primary);
+  font-weight: 800;
+  padding: 10px 12px;
+}
+
+.transferencias-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.transferencias-summary-card {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.transferencias-summary-card > span,
+.transferencias-summary-card small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.transferencias-summary-card strong {
+  color: var(--text);
+  font-size: 1.45rem;
+}
+
+.transferencias-filter-form {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.35fr) minmax(170px, 0.35fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.transferencias-tabs {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.transferencias-tabs button {
+  min-height: 40px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 16px;
+}
+
+.transferencias-tabs button:last-child {
+  border-right: 0;
+}
+
+.transferencias-tabs button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.transferencias-workspace {
+  display: grid;
+  grid-template-columns: minmax(310px, 0.85fr) minmax(380px, 1.15fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.transferencias-list-panel,
+.transferencias-detail-panel {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 18px;
+}
+
+.transferencias-record-list,
+.transferencias-evidence-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.transferencias-record-row {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  cursor: pointer;
+  padding: 12px;
+  text-align: left;
+}
+
+.transferencias-record-row:hover,
+.transferencias-record-row.selected {
+  border-color: var(--primary);
+  background: #edf4ff;
+}
+
+.transferencias-record-row > svg,
+.transferencias-support-heading > svg,
+.transferencias-evidence-list > li > svg {
+  color: var(--primary);
+}
+
+.transferencias-record-row strong,
+.transferencias-record-row small,
+.transferencias-evidence-list strong,
+.transferencias-evidence-list small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.transferencias-record-row small,
+.transferencias-evidence-list small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.transferencias-record-value {
+  display: grid;
+  gap: 3px;
+  min-width: 112px;
+  text-align: right;
+}
+
+.transferencias-record-value b {
+  color: var(--text);
+}
+
+.transferencias-record-value small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.transferencias-placeholder,
+.transferencias-support-heading,
+.transferencias-decision-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.transferencias-placeholder {
+  min-height: 160px;
+  color: var(--muted);
+}
+
+.transferencias-placeholder h2,
+.transferencias-placeholder span,
+.transferencias-support-heading strong,
+.transferencias-support-heading small {
+  display: block;
+  margin: 0;
+}
+
+.transferencias-selected-heading {
+  align-items: start;
+}
+
+.transferencias-selected-heading p {
+  color: var(--muted);
+  font-weight: 700;
+  margin: 5px 0 0;
+}
+
+.transferencias-status {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.transferencias-status.pendiente {
+  background: #fff1d8;
+  color: #a65b00;
+}
+
+.transferencias-status.rechazada {
+  background: #ffe5e9;
+  color: var(--danger);
+}
+
+.transferencias-decision-summary {
+  align-items: flex-start;
+  border: 1px solid #f3bcc5;
+  border-radius: 8px;
+  background: #fff3f5;
+  color: var(--danger);
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 12px;
+}
+
+.transferencias-support-heading {
+  align-items: flex-start;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.transferencias-support-heading small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.transferencias-evidence-list > li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.transferencias-decision-form {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.transferencias-decision-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.transferencias-alert {
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .transferencias-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .transferencias-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .transferencias-header {
+    gap: 12px;
+  }
+
+  .transferencias-role-status,
+  .transferencias-tabs {
+    width: 100%;
+  }
+
+  .transferencias-tabs button {
+    flex: 1 0 auto;
+  }
+
+  .transferencias-summary-grid,
+  .transferencias-filter-form,
+  .transferencias-record-row,
+  .transferencias-evidence-list > li {
+    grid-template-columns: 1fr;
+  }
+
+  .transferencias-filter-form .primary-button {
+    width: 100%;
+  }
+
+  .transferencias-record-value {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .transferencias-selected-heading {
+    gap: 10px;
+  }
+
+  .transferencias-decision-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .transferencias-evidence-list .status-badge {
+    width: fit-content;
+  }
+}

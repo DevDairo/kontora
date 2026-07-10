@@ -88,3 +88,9 @@ El modulo se implementa sobre la tabla real del schema:
 - Solicitud, aprobacion y rechazo de ajustes de inventario quedan pendientes porque el flujo operativo de `ajustes_inventario` aun no esta implementado.
 - Cambios de precios, promociones y configuraciones quedan pendientes hasta implementar sus flujos administrativos.
 - Consulta de auditoria por filtros y permisos queda para el modulo "Consultas operativas".
+
+## Actualizacion frontend
+
+- La ruta `/transferencias` consume los endpoints de validacion y rechazo con una confirmacion previa y campo opcional `observacionValidacion`.
+- En la validacion manual del 2026-07-10, dos decisiones `validar` generaron auditoria sobre `pagos_venta`: una transferencia pura de `$12.000` y una porcion transferida de `$8.000` de un pago mixto.
+- La respuesta de auditoria conservo el estado anterior `pendiente`, el estado nuevo `validada`, el identificador del gerente validador y la fecha de decision.

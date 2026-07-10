@@ -57,3 +57,8 @@ El panel usa:
 ### Validacion manual
 
 El usuario confirmo la revision manual final el 2026-07-09.
+
+### Validacion posterior de transferencias
+
+- La consulta y decision administrativa de transferencias se implemento despues en `/transferencias`; ver `docs/modules/transferencias-validacion-frontend.md`.
+- El 2026-07-10 se validaron desde la interfaz una transferencia pura de `$12.000` y la porcion transferida de `$8.000` de un pago mixto. Ambas quedaron en estado `validada` con auditoria sobre `pagos_venta`.

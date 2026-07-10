@@ -446,6 +446,44 @@ Administrador / Gerente.
 - El usuario confirmo manualmente la visualizacion en navegador.
 - Supabase no se configura localmente; la carga real queda preparada para despliegue mediante backend.
 
+## Pantalla: Transferencias y validacion administrativa
+
+### Objetivo
+
+Revisar transferencias pendientes o rechazadas, consultar la metadata de sus soportes y permitir a los roles administrativos decidir sobre una transferencia pendiente.
+
+### Actor principal
+
+Vendedor para consulta propia; Administrador / Gerente para consulta y decision.
+
+### Endpoints consumidos
+
+- `GET /api/consultas/transferencias` con filtros de estado y periodo.
+- `GET /api/evidencias/pagos-venta/{idPagoVenta}`.
+- `POST /api/pagos-venta/{idPagoVenta}/validar`.
+- `POST /api/pagos-venta/{idPagoVenta}/rechazar`.
+
+### Campos y controles
+
+- Filtros `fechaInicio` y `fechaFin`, propuestos para el mes en curso.
+- Pestañas Pendientes y Rechazadas, con contadores de monto y soportes.
+- Detalle de transferencia, metadata de evidencia y campo opcional `observacionValidacion`.
+- Acciones Validar y Rechazar con confirmacion previa.
+
+### Validaciones de interfaz
+
+- Vendedor no recibe acciones de decision; el backend preserva la autorizacion real por rol y usuario.
+- Solo una transferencia pendiente recibe controles para decidir; el mensaje backend se muestra si el estado ya cambio.
+- Una transferencia validada desaparece de la lista porque la consulta backend solo expone pendientes y rechazadas.
+- La metadata se consulta bajo demanda. No hay vista previa ni descarga de `supabase://...`.
+
+### Evidencia de prueba
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- El usuario registro y valido una transferencia pura de `$12.000` y una transferencia de `$8.000` dentro de un pago mixto.
+- Consola: las dos ventas de la jornada `2026-07-11` conservan sus valores, no quedan transferencias pendientes o rechazadas y ambas decisiones dejaron auditoria `validar` sobre `pagos_venta`.
+- Las consultas de metadata de los dos pagos respondieron correctamente sin soportes, resultado esperado sin Supabase local.
+
 ## Pantalla: Catalogos para formularios
 
 ### Objetivo
@@ -508,6 +546,7 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 8. Cierre de caja. Implementado y validado.
 9. Deposito, consignaciones y servicios. Implementado y validado.
 10. Evidencias. Implementado y validado.
-11. Transferencias, auditoria y consultas. Pendientes.
+11. Transferencias y validacion administrativa. Implementado y validado.
+12. Auditoria y consultas. Pendientes.
 
-Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Transferencias, seguido de Auditoria y Consultas.
+Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Consultas, seguido de Auditoria.

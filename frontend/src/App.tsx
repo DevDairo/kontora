@@ -16,6 +16,7 @@ import { DepositoPanel } from "./modules/deposito";
 import { EvidenciasPanel } from "./modules/evidencias";
 import { GastosPanel } from "./modules/gastos";
 import { InventarioPanel } from "./modules/inventario";
+import { TransferenciasPanel } from "./modules/transferencias";
 import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
 import { HealthCheckPanel } from "./shared/components/HealthCheckPanel";
@@ -226,6 +227,8 @@ function AppContent() {
         <InventarioPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "gastos" ? (
         <GastosPanel token={auth.token ?? ""} role={role} />
+      ) : activeRoute.id === "transferencias" ? (
+        <TransferenciasPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "cierre" ? (
         <CierreCajaPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "deposito" ? (

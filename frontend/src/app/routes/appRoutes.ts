@@ -175,7 +175,7 @@ export const appRoutes: AppRoute[] = [
     id: "transferencias",
     label: "Transferencias",
     path: "/transferencias",
-    status: "pendiente",
+    status: "base",
     description: "Seguimiento de transferencias y validacion para administrador o gerente.",
     endpoints: [
       "GET /api/consultas/transferencias",

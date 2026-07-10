@@ -89,3 +89,9 @@ No se agregan migraciones nuevas. Todas las consultas son `GET` y se ejecutan de
 ## Pendientes
 
 - Definir en la siguiente fase si se agregaran reportes exportables o endpoints agregados para tableros administrativos.
+
+## Actualizacion frontend
+
+- La ruta `/transferencias` consume `GET /api/consultas/transferencias` por periodo y solicita en paralelo los estados `pendiente` y `rechazada` para presentar sus contadores.
+- El endpoint no devuelve transferencias `validada`; una vez decidida, la pantalla actualiza la lista y la trazabilidad se consulta mediante auditoria.
+- Para cada transferencia seleccionada, el frontend consulta `GET /api/evidencias/pagos-venta/{idPagoVenta}` y presenta metadata autorizada sin exponer la ruta interna de Storage como enlace publico.

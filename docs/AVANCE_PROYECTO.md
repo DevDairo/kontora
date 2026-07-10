@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-10.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Evidencias frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Deposito, consignaciones y servicios frontend.
-- Siguiente hito: implementar la validacion administrativa de transferencias.
+- Fase actual: Fase 4, Transferencias y validacion administrativa frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Evidencias frontend.
+- Siguiente hito: implementar Consultas operativas frontend.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1420,6 +1420,47 @@ Observaciones:
 - Supabase Storage sigue intencionalmente sin configurar en local. La carga real se valida solo en despliegue, con secretos exclusivamente en backend.
 - El siguiente modulo frontend es Transferencias y validacion administrativa.
 
+## Fase 4: Transferencias y validacion administrativa frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `TransferenciasPanel` con consulta de transferencias pendientes y rechazadas por periodo, contadores y detalle por pago.
+- El detalle consulta bajo demanda la metadata de evidencias de cada `idPagoVenta` y conserva el limite de no mostrar contenido de rutas `supabase://...`.
+- Vendedor solo recibe consulta de transferencias propias; administrador y gerente reciben controles de Validar y Rechazar conforme al backend.
+- Las decisiones incluyen observacion opcional y confirmacion previa mediante `ConfirmationDialog`.
+- Despues de validar, la lista se refresca. La transferencia validada deja de aparecer porque el endpoint de consultas solo expone `pendiente` y `rechazada`; la trazabilidad se conserva en `pagos_venta` y `auditoria_operaciones`.
+- La ruta Transferencias queda como `Base lista` para los roles autorizados por la navegacion.
+
+Documentacion actualizada:
+
+- `docs/modules/transferencias-validacion-frontend.md`.
+- `docs/modules/ventas-pagos-frontend.md`.
+- `docs/modules/auditoria-operaciones.md`.
+- `docs/modules/consultas-operativas.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Con gerente, `/transferencias` cargo el rango de la jornada y no presento errores de consola.
+- El usuario abrio la caja de la jornada `2026-07-11` y registro una venta de 12 oz con transferencia pura por `$12.000`, junto con una venta mixta de `$12.000` que incluyo `$8.000` por transferencia y `$4.000` en efectivo.
+- El usuario valido ambas transferencias desde la interfaz.
+- La consola confirmo dos auditorias `validar` sobre `pagos_venta`: cada una paso de `pendiente` a `validada`, con `test_deposito_gerente` como validador y fecha de validacion registrada.
+- Las consultas de evidencia de ambos pagos respondieron `200` y listas vacias, coherentes con Storage local sin configurar.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- La accion Rechazar queda implementada con el mismo contrato y confirmacion; la prueba manual controlada de esta iteracion uso dos validaciones, no genero un rechazo adicional.
+- El siguiente modulo frontend es Consultas operativas.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1450,16 +1491,16 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios de Evidencias y su documentacion en `chore/inicializacion-frontend`.
+Guardar los cambios de Transferencias y su documentacion en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: Transferencias y validacion administrativa.
+La siguiente implementacion sera Fase 4: Consultas operativas.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador de consulta de transferencias pendientes o rechazadas, junto con sus acciones administrativas reales.
-- Validacion y rechazo mediante `POST /api/pagos-venta/{idPagoVenta}/validar` y `POST /api/pagos-venta/{idPagoVenta}/rechazar`, sin duplicar cambios de estado.
-- Confirmar que vendedor conserva solo la consulta propia y que administrador y gerente pueden decidir sobre transferencias segun backend.
+- Verificacion en navegador de consultas de ventas, gastos, inventario, cierres y deposito con los filtros disponibles por contrato.
+- Confirmar que vendedor recibe solo sus datos permitidos y no accede a cierre, deposito ni auditoria.
+- Confirmar que administrador y gerente conservan las diferencias documentadas de visibilidad en consultas y auditoria.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

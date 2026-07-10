@@ -244,6 +244,26 @@ Responsabilidades:
 - Permite adjuntar o reintentar mediante los endpoints backend de Evidencias. El archivo permanece en memoria durante el reintento local.
 - Muestra metadata, no contenido: una ruta `supabase://...` no se trata como enlace publico ni se expone un secreto de Storage.
 
+## Transferencias y validacion
+
+El panel de transferencias queda implementado en `src/modules/transferencias`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/transferencias/components/TransferenciasPanel.tsx
+frontend/src/modules/transferencias/services/transferenciasService.ts
+frontend/src/modules/transferencias/types.ts
+```
+
+Responsabilidades:
+
+- Consulta en paralelo las transferencias `pendiente` y `rechazada` por periodo usando los contratos de Consultas.
+- Vendedor recibe sus propios registros y metadata autorizada; administrador y gerente reciben tambien las acciones de validacion y rechazo.
+- Carga los metadatos del comprobante al seleccionar una transferencia, sin convertir la ruta interna de Storage en enlace publico.
+- Usa `ConfirmationDialog` antes de validar o rechazar e informa el resultado real de backend.
+- Una transferencia validada se elimina de la lista actual porque el endpoint de consultas solo devuelve pendientes y rechazadas; la evidencia de la decision queda en auditoria.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.
