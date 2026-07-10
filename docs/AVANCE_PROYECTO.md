@@ -6,9 +6,9 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-10.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Cierre de caja y deposito frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Gastos, adiciones y pago a trabajadores frontend.
-- Siguiente hito: implementar la interfaz de Deposito, consignaciones y servicios.
+- Fase actual: Fase 4, Deposito, consignaciones y servicios frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Cierre de caja y deposito frontend.
+- Siguiente hito: implementar la interfaz de Evidencias.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1340,6 +1340,47 @@ Observaciones:
 - No se hizo commit, merge ni cambio de rama.
 - El siguiente modulo frontend es Deposito, consignaciones y servicios.
 
+## Fase 4: Deposito, consignaciones y servicios frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implementaron saldo actual, historial completo o por periodo, consignaciones bancarias y pagos de servicios contra endpoints reales.
+- Se agregaron contratos backend para registrar salidas, obtener saldo e integrar el historial de consultas con los identificadores necesarios para Evidencias.
+- Se serializan entradas de cierre y salidas de deposito mediante bloqueo transaccional para preservar el saldo posterior.
+- La ruta Deposito queda como `Base lista` para administrador y gerente; vendedor queda excluido por frontend y backend.
+- Cada salida solicita evidencia y confirmacion previa. Ante un `503` de Storage local, el registro financiero permanece creado y la interfaz conserva el reintento de evidencia.
+
+Documentacion actualizada:
+
+- `docs/modules/deposito-consignaciones-servicios.md`.
+- `docs/modules/evidencias-storage.md`.
+- `docs/modules/consultas-operativas.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn clean test`: 64 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Backend Docker activo y `GET /api/health` responde `200`.
+- Administrador cerro caja de prueba con entrada automatica de deposito por `$50.000`, sin incluir la base de `$300.000`.
+- Pago de servicio de `$2.500` y consignacion de `$28.000` actualizaron saldo e historial a `$19.500`.
+- Gerente inicio sesion y accedio a `/deposito`; administrador y gerente operan el modulo con datos backend reales.
+- Supabase Storage se mantiene intencionalmente sin configurar en local; si responde `503` al adjuntar una evidencia, no altera saldos ni movimientos financieros.
+- El usuario confirmo la validacion manual final el 2026-07-10.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- El siguiente modulo frontend es Evidencias. Su validacion local debe comprobar estados, reintentos, consulta de metadata y permisos; la carga real a Supabase queda para despliegue.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1370,17 +1411,16 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios de Gastos, Caja, Cierre, la restriccion de una caja abierta y su documentacion en `chore/inicializacion-frontend`.
+Guardar los cambios de Caja, Gastos, Cierre, Deposito y su documentacion en `chore/inicializacion-frontend`.
 
-La siguiente implementacion sera Fase 4: Deposito, consignaciones y servicios.
+La siguiente implementacion sera Fase 4: Evidencias.
 
 Validacion esperada del siguiente modulo:
 
 - `npm run build` en `frontend/`.
-- Verificacion en navegador del deposito para administrador y gerente.
-- Consumo de los endpoints reales de consultas de movimientos de deposito, consignaciones bancarias y pagos de servicios definidos en backend.
-- Consulta visible de los movimientos automaticos generados por cierres, sin recalcular saldos en frontend.
-- Registro o consulta de consignaciones y pagos de servicios segun contratos y permisos reales de backend.
+- Verificacion en navegador de consulta de metadata y estados de evidencia para transferencia, gasto, consignacion y pago de servicio segun permisos reales.
+- Reintento visible cuando Storage no este configurado localmente, sin duplicar la operacion de negocio asociada.
+- Confirmar que vendedor solo gestiona evidencias propias autorizadas y que administrador y gerente pueden consultar las administrativas.
 - Consola del navegador sin errores.
 
 ## Comandos manuales para validar Docker/PostgreSQL

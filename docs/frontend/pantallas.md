@@ -359,6 +359,50 @@ Administrador / Gerente.
 - Backend Docker y rutas `/caja` y `/cierre`: respuesta `200`.
 - El usuario confirmo manualmente el flujo de cierre, persistencia, historial, valor base inicial editable y cuadros de confirmacion.
 
+## Pantalla: Deposito, consignaciones y servicios
+
+### Objetivo
+
+Consultar el saldo real acumulado por cierres de caja y registrar las salidas administrativas de consignaciones y pagos de servicios.
+
+### Actor principal
+
+Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/deposito/saldo`.
+- `GET /api/consultas/deposito/movimientos`.
+- `POST /api/deposito/consignaciones-bancarias`.
+- `POST /api/deposito/pagos-servicios`.
+- `GET /api/catalogos/tipos-servicio`.
+- Endpoints de Evidencias para consignaciones y pagos de servicios.
+
+### Campos y controles
+
+- Saldo actual, entradas y salidas calculados desde respuestas backend.
+- Filtros opcionales `fechaInicio` y `fechaFin`.
+- `valorConsignado`, `observacion` y evidencia de consignacion.
+- `idTipoServicio`, `valorPagado`, `descripcion` y evidencia de pago de servicio.
+- Confirmacion antes de cada salida y accion de reintento de evidencia pendiente.
+
+### Validaciones de interfaz
+
+- Solo se muestra para administrador y gerente; vendedor no ve la ruta.
+- Cada importe es positivo y no puede exceder el saldo devuelto por backend.
+- Una consignacion o pago no se envia hasta seleccionar evidencia y confirmar la operacion.
+- El saldo posterior y el historial se actualizan desde backend despues de crear la salida.
+- La falta de Supabase Storage local no revierte el registro financiero: se informa evidencia pendiente y se conserva su reintento.
+
+### Evidencia de prueba
+
+- `mvn clean test`: 64 pruebas sin fallos ni errores.
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Administrador cerro una caja de prueba con `$50.000` sin base, generando `entrada_cierre` por el mismo valor.
+- Pago de servicio de `$2.500` y consignacion de `$28.000` dejaron saldo disponible de `$19.500`, coincidente con historial y backend.
+- Gerente inicio sesion y visualizo la ruta y el panel `/deposito` con sus controles habilitados.
+- El usuario confirmo manualmente la validacion del modulo.
+
 ## Pantalla: Catalogos para formularios
 
 ### Objetivo
@@ -419,8 +463,8 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 6. Inventario operativo. Implementado y validado.
 7. Gastos, adiciones y pago trabajadores. Implementado y validado.
 8. Cierre de caja. Implementado y validado.
-9. Deposito, consignaciones y servicios. Siguiente modulo.
-10. Evidencias.
+9. Deposito, consignaciones y servicios. Implementado y validado.
+10. Evidencias. Siguiente modulo.
 11. Auditoria y consultas.
 
-Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Deposito, consignaciones y servicios.
+Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Evidencias.

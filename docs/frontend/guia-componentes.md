@@ -139,6 +139,18 @@ Responsabilidades:
 - Recuperar un cierre por `fechaOperacion` y volver a la operacion actual sin perder el historial.
 - Mantener el cierre de una jornada nocturna asociado a su `fechaOperacion`, aunque `fechaCierre` ocurra el dia siguiente.
 
+### `DepositoPanel`
+
+Ubicacion: `frontend/src/modules/deposito/components/DepositoPanel.tsx`.
+
+Responsabilidades:
+
+- Consultar saldo actual e historial de movimientos para administrador y gerente.
+- Mostrar por separado entradas por cierre y salidas por consignacion o pago de servicio.
+- Registrar salidas solo despues de una confirmacion y sin permitir valores superiores al saldo devuelto por backend.
+- Solicitar evidencia para cada salida y conservar el reintento cuando Supabase Storage no este configurado localmente.
+- Consultar tipos de servicio activos desde Catalogos y filtrar el historial por periodo o completo.
+
 ### `CatalogosPanel`
 
 Ubicacion: `frontend/src/modules/catalogos/components/CatalogosPanel.tsx`.

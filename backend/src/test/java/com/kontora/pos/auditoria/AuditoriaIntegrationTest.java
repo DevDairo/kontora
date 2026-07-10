@@ -1,6 +1,7 @@
 package com.kontora.pos.auditoria;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,11 @@ class AuditoriaIntegrationTest {
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Auditoria", "administrador");
         idUsuarioGerente = crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Auditoria", "gerente");
         idUsuarioVendedor = crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Auditoria", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test

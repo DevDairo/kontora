@@ -12,6 +12,7 @@ import { LoginPage, useAuth } from "./modules/auth";
 import { CajaAbiertaPanel } from "./modules/caja";
 import { CatalogosPanel } from "./modules/catalogos";
 import { CierreCajaPanel } from "./modules/cierre";
+import { DepositoPanel } from "./modules/deposito";
 import { GastosPanel } from "./modules/gastos";
 import { InventarioPanel } from "./modules/inventario";
 import { VentasPanel } from "./modules/ventas";
@@ -226,6 +227,8 @@ function AppContent() {
         <GastosPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "cierre" ? (
         <CierreCajaPanel token={auth.token ?? ""} />
+      ) : activeRoute.id === "deposito" ? (
+        <DepositoPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "catalogos" ? (
         <CatalogosPanel token={auth.token ?? ""} />
       ) : (

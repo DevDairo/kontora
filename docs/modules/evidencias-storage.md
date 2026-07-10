@@ -76,7 +76,7 @@ El modulo se implementa sobre las tablas reales del schema:
 - Omitidas: 0.
 - `mvn clean test`.
 - Resultado: `BUILD SUCCESS`.
-- Pruebas ejecutadas: 39.
+- Pruebas ejecutadas: 64.
 - Fallos: 0.
 - Errores: 0.
 - Omitidas: 0.
@@ -84,8 +84,10 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Pendientes
 
 - La auditoria explicita de carga y consulta de evidencias queda pendiente para una ampliacion posterior de auditoria.
-- La implementacion operativa completa de consignaciones bancarias y pagos de servicios queda para modulos posteriores.
+- La carga real y consulta de archivos contra Supabase Storage quedan pendientes del despliegue, cuando backend reciba `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_STORAGE_BUCKET`.
 
 ## Actualizaciones posteriores
 
 - En el modulo "Auditoria transversal" se implemento validacion y rechazo administrativo de transferencias.
+- El modulo "Deposito, consignaciones y servicios" crea primero el registro financiero y devuelve su identificador; la interfaz adjunta enseguida la evidencia mediante estos endpoints. Si el almacenamiento externo no esta configurado, el registro queda trazable y la interfaz conserva una accion de reintento de evidencia.
+- La interfaz de Deposito fue validada manualmente con administrador y gerente: pago de servicio y consignacion actualizan saldo e historial; si Storage local responde `503`, la evidencia conserva un reintento sin revertir la operacion financiera.

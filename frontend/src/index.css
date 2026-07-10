@@ -2456,6 +2456,194 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.deposito-summary-grid,
+.deposito-actions-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.deposito-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.deposito-summary-card {
+  display: grid;
+  gap: 6px;
+  min-height: 122px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--primary);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.deposito-summary-card.income {
+  border-top-color: var(--green);
+}
+
+.deposito-summary-card.expense {
+  border-top-color: var(--danger);
+}
+
+.deposito-summary-card span,
+.deposito-summary-card small {
+  color: var(--muted);
+}
+
+.deposito-summary-card span {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.deposito-summary-card strong {
+  color: var(--text);
+  font-size: 1.35rem;
+}
+
+.deposito-summary-card small {
+  font-weight: 700;
+}
+
+.deposito-actions-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.deposito-form-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.deposito-form-panel > .primary-button.full {
+  margin-top: auto;
+}
+
+.deposito-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #bee8d2;
+  border-radius: 8px;
+  background: #eaf8f1;
+  color: var(--green);
+  padding: 11px 12px;
+  font-weight: 800;
+}
+
+.deposito-status span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.deposito-status.warning {
+  border-color: #ffd9a3;
+  background: #fff5e8;
+  color: var(--orange);
+}
+
+.deposito-history-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.deposito-filter-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.deposito-movements-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deposito-movement-row {
+  display: grid;
+  grid-template-columns: 42px minmax(180px, 1fr) minmax(110px, auto) minmax(135px, auto) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.deposito-movement-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eaf8f1;
+  color: var(--green);
+}
+
+.deposito-movement-icon.expense {
+  background: #fff0f1;
+  color: var(--danger);
+}
+
+.deposito-movement-main,
+.deposito-movement-balance {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.deposito-movement-main strong,
+.deposito-movement-balance strong {
+  color: var(--text);
+}
+
+.deposito-movement-main small,
+.deposito-movement-main em,
+.deposito-movement-balance span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.deposito-movement-row > strong {
+  text-align: right;
+}
+
+.deposito-movement-row > strong.income {
+  color: var(--green);
+}
+
+.deposito-movement-row > strong.expense {
+  color: var(--danger);
+}
+
+.deposito-movement-balance {
+  text-align: right;
+}
+
+.deposito-empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 16px;
+  text-align: center;
+}
+
+.deposito-evidence-proof {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-weight: 800;
+}
+
 @media (max-width: 1100px) {
   .login-page {
     grid-template-columns: 1fr;
@@ -2519,6 +2707,7 @@ h3 {
   .inventory-panel-grid,
   .gastos-actions-grid,
   .gastos-cash-flow-content,
+  .deposito-actions-grid,
   .cierre-action-grid,
   .cierre-breakdown-content {
     grid-template-columns: 1fr;
@@ -2599,6 +2788,25 @@ h3 {
   }
 
   .cierre-history-form .primary-button {
+    width: 100%;
+  }
+
+  .deposito-filter-form,
+  .deposito-movement-row {
+    grid-template-columns: 1fr;
+  }
+
+  .deposito-movement-row > strong,
+  .deposito-movement-balance {
+    text-align: left;
+  }
+
+  .deposito-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .deposito-status .ghost-button {
     width: 100%;
   }
 

@@ -1,6 +1,7 @@
 package com.kontora.pos.consultas.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,11 @@ class ConsultasOperativasIntegrationTest {
         idUsuarioGerente = crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Consultas", "gerente");
         idUsuarioVendedor = crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Consultas", "vendedor");
         idUsuarioOtroVendedor = crearUsuarioConCredencial(USUARIO_OTRO_VENDEDOR, "Otro Vendedor Consultas", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test

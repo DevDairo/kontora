@@ -1,6 +1,7 @@
 package com.kontora.pos.inventario.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,11 @@ class InventarioIntegrationTest {
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Inventario", "administrador");
         crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Inventario", "gerente");
         crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Inventario", "vendedor");
+    }
+
+    @AfterEach
+    void tearDown() {
+        limpiarDatosDePrueba();
     }
 
     @Test

@@ -46,7 +46,7 @@ No se agregan migraciones nuevas. Todas las consultas son `GET` y se ejecutan de
 | GET | `/api/consultas/gastos?fechaInicio=YYYY-MM-DD&fechaFin=YYYY-MM-DD` | Si | Consultar gastos por dia o periodo. |
 | GET | `/api/consultas/inventario/actual` | Si | Consultar inventario general y stock diario de la caja abierta. |
 | GET | `/api/consultas/inventario/movimientos` | Si | Consultar movimientos de inventario con filtros opcionales de fecha, caja e item. |
-| GET | `/api/consultas/deposito/movimientos?fechaInicio=YYYY-MM-DD&fechaFin=YYYY-MM-DD` | Si | Consultar historial de deposito por periodo. |
+| GET | `/api/consultas/deposito/movimientos?fechaInicio=YYYY-MM-DD&fechaFin=YYYY-MM-DD` | Si | Consultar historial de deposito completo o filtrado por periodo. |
 | GET | `/api/consultas/transferencias` | Si | Consultar transferencias pendientes o rechazadas, con filtros opcionales. |
 | GET | `/api/consultas/auditoria?fechaInicio=YYYY-MM-DD&fechaFin=YYYY-MM-DD` | Si | Consultar auditoria por periodo, tabla o accion. |
 
@@ -68,7 +68,7 @@ No se agregan migraciones nuevas. Todas las consultas son `GET` y se ejecutan de
 - Omitidas: 0.
 - `mvn clean test`.
 - Resultado: `BUILD SUCCESS`.
-- Pruebas ejecutadas: 48.
+- Pruebas ejecutadas: 64.
 - Fallos: 0.
 - Errores: 0.
 - Omitidas: 0.
@@ -83,6 +83,8 @@ No se agregan migraciones nuevas. Todas las consultas son `GET` y se ejecutan de
 - Las transferencias rechazadas se consultan por estado.
 - El inventario actual muestra stock general y stock diario de la caja abierta.
 - Los movimientos de inventario se consultan por fecha y caja.
+- El historial de deposito puede consultarse sin fechas para recuperar todos los movimientos, o con ambas fechas para limitar el periodo.
+- Cada movimiento de deposito asociado a consignacion o pago de servicio expone su identificador de registro y, cuando aplica, el nombre del servicio para enlazar evidencias y consultas posteriores.
 
 ## Pendientes
 

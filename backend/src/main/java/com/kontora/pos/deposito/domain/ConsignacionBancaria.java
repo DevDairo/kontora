@@ -56,23 +56,47 @@ public class ConsignacionBancaria {
         return movimientoDeposito;
     }
 
+    public void setMovimientoDeposito(MovimientoDeposito movimientoDeposito) {
+        this.movimientoDeposito = movimientoDeposito;
+    }
+
     public BigDecimal getValorConsignado() {
         return valorConsignado;
+    }
+
+    public void setValorConsignado(BigDecimal valorConsignado) {
+        this.valorConsignado = valorConsignado;
     }
 
     public OffsetDateTime getFechaConsignacion() {
         return fechaConsignacion;
     }
 
+    public void setFechaConsignacion(OffsetDateTime fechaConsignacion) {
+        this.fechaConsignacion = fechaConsignacion;
+    }
+
     public Usuario getUsuarioRegistro() {
         return usuarioRegistro;
+    }
+
+    public void setUsuarioRegistro(Usuario usuarioRegistro) {
+        this.usuarioRegistro = usuarioRegistro;
     }
 
     public String getObservacion() {
         return observacion;
     }
 
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
+    }
+
     public String getEstado() {
         return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

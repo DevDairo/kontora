@@ -202,6 +202,27 @@ Responsabilidades:
 
 La fecha de operacion identifica la jornada de negocio. Una jornada puede cerrar despues de medianoche, pero no se puede abrir una segunda caja mientras exista una caja abierta.
 
+## Deposito, consignaciones y servicios
+
+El panel de deposito queda implementado dentro de `src/modules/deposito`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/deposito/components/DepositoPanel.tsx
+frontend/src/modules/deposito/services/depositoService.ts
+frontend/src/modules/deposito/types.ts
+frontend/src/modules/evidencias/services/evidenciasService.ts
+```
+
+Responsabilidades:
+
+- `DepositoPanel` consulta saldo e historial directamente desde backend, sin recalcular el saldo como fuente de verdad en frontend.
+- Solo se muestra a `administrador` y `gerente`; el vendedor no recibe la ruta ni puede usar los endpoints protegidos.
+- Registra consignaciones y pagos de servicio con confirmacion previa, validacion de saldo disponible y actualizacion posterior de los datos.
+- Exige seleccionar evidencia antes de registrar una salida. Si Storage no esta configurado, conserva el identificador y el archivo en estado pendiente para reintento.
+- Los filtros de fecha son opcionales y permiten volver al historial completo.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.

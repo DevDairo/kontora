@@ -18,6 +18,7 @@ import com.kontora.pos.common.security.PrincipalUsuario;
 import com.kontora.pos.deposito.domain.MovimientoDeposito;
 import com.kontora.pos.deposito.dto.MovimientoDepositoResponse;
 import com.kontora.pos.deposito.repository.MovimientoDepositoRepository;
+import com.kontora.pos.deposito.service.DepositoSaldoService;
 import com.kontora.pos.usuarios.domain.Usuario;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
 import com.kontora.pos.ventas.repository.PagoVentaRepository;
@@ -54,6 +55,7 @@ public class CierreCajaService {
     private final VentaRepository ventaRepository;
     private final PagoVentaRepository pagoVentaRepository;
     private final MovimientoDepositoRepository movimientoDepositoRepository;
+    private final DepositoSaldoService depositoSaldoService;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
 
@@ -66,6 +68,7 @@ public class CierreCajaService {
             VentaRepository ventaRepository,
             PagoVentaRepository pagoVentaRepository,
             MovimientoDepositoRepository movimientoDepositoRepository,
+            DepositoSaldoService depositoSaldoService,
             UsuarioRepository usuarioRepository,
             AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
@@ -76,6 +79,7 @@ public class CierreCajaService {
         this.ventaRepository = ventaRepository;
         this.pagoVentaRepository = pagoVentaRepository;
         this.movimientoDepositoRepository = movimientoDepositoRepository;
+        this.depositoSaldoService = depositoSaldoService;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
     }
@@ -276,7 +280,7 @@ public class CierreCajaService {
         if (cierreCaja.getValorADeposito().compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
-        BigDecimal saldoAnterior = normalizarMoneda(movimientoDepositoRepository.obtenerSaldoActual());
+        BigDecimal saldoAnterior = depositoSaldoService.bloquearYObtenerSaldoActual();
         BigDecimal saldoPosterior = saldoAnterior
                 .add(cierreCaja.getValorADeposito())
                 .setScale(2, RoundingMode.HALF_UP);

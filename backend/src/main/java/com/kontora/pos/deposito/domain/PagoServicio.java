@@ -61,27 +61,55 @@ public class PagoServicio {
         return movimientoDeposito;
     }
 
+    public void setMovimientoDeposito(MovimientoDeposito movimientoDeposito) {
+        this.movimientoDeposito = movimientoDeposito;
+    }
+
     public TipoServicio getTipoServicio() {
         return tipoServicio;
+    }
+
+    public void setTipoServicio(TipoServicio tipoServicio) {
+        this.tipoServicio = tipoServicio;
     }
 
     public BigDecimal getValorPagado() {
         return valorPagado;
     }
 
+    public void setValorPagado(BigDecimal valorPagado) {
+        this.valorPagado = valorPagado;
+    }
+
     public String getDescripcion() {
         return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
 
     public OffsetDateTime getFechaPago() {
         return fechaPago;
     }
 
+    public void setFechaPago(OffsetDateTime fechaPago) {
+        this.fechaPago = fechaPago;
+    }
+
     public Usuario getUsuarioRegistro() {
         return usuarioRegistro;
     }
 
+    public void setUsuarioRegistro(Usuario usuarioRegistro) {
+        this.usuarioRegistro = usuarioRegistro;
+    }
+
     public String getEstado() {
         return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }
