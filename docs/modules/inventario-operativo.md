@@ -23,7 +23,7 @@ Controlar el stock general, el stock diario de vasos y los movimientos de invent
 El modulo se implementa sobre las tablas reales del schema:
 
 - `existencias_inventario_general.cantidad_actual` representa el stock general disponible por item.
-- `existencias_inventario_diario` representa el stock operativo diario, usado en este modulo para vasos.
+- `existencias_inventario_diario` representa el stock operativo diario, usado en este modulo para vasos. Al abrir una caja nueva, cada item de vaso con paquetes conserva como `cantidad_inicial` el remanente de la jornada anterior: primero el conteo fisico final y, si no existe, el saldo teorico final.
 - `movimientos_inventario` registra cada cambio de stock con `referencia_origen` e `id_referencia_origen`.
 - `paquetes_vasos_abiertos` registra paquetes abiertos y vasos rotos al abrirlos.
 - `consumos_diarios_inventario` registra consumos manuales de items no automaticos por venta.
@@ -41,8 +41,8 @@ El modulo se implementa sobre las tablas reales del schema:
 | POST | `/api/inventario/paquetes-vasos` | Si | Registrar paquetes de vasos abiertos. |
 | POST | `/api/inventario/consumos-diarios` | Si | Registrar consumo manual diario de inventario. |
 | GET | `/api/inventario/movimientos` | Si | Consultar movimientos de inventario. Permite filtros `idCajaDiaria` e `idItemInventario`. |
-| GET | `/api/inventario/ajustes` | Si | Consultar ajustes de inventario. Permite filtro `estadoAprobacion`. |
-| POST | `/api/inventario/ajustes` | Si | Solicitar ajuste de stock general. |
+| GET | `/api/inventario/ajustes` | Administrador o gerente | Consultar ajustes de inventario. Permite filtro `estadoAprobacion`. |
+| POST | `/api/inventario/ajustes` | Administrador o gerente | Administrador solicita un ajuste; gerente aplica directamente su propio ajuste de stock general. |
 | POST | `/api/inventario/ajustes/{idAjusteInventario}/aprobar` | Si | Aprobar ajuste pendiente y aplicar cambio de stock general. |
 | POST | `/api/inventario/ajustes/{idAjusteInventario}/rechazar` | Si | Rechazar ajuste pendiente sin modificar stock. |
 | POST | `/api/ventas/{idVenta}/anular` | Si | Anular una venta registrada y restaurar vasos al stock diario. |
@@ -50,11 +50,19 @@ El modulo se implementa sobre las tablas reales del schema:
 ## Diferencia entre stock general y stock diario
 
 - El stock general se conserva en `existencias_inventario_general`.
+- El stock general no depende de que exista una caja diaria abierta. El gerente puede registrarlo o corregirlo como control general del inventario.
 - Al abrir paquetes de vasos, se descuenta el total generado del stock general.
 - El total generado entra al stock diario en `existencias_inventario_diario.cantidad_ingresada`.
 - Los vasos rotos al abrir paquetes aumentan `cantidad_perdida`.
+- Al abrir una nueva caja, el stock diario de cada item de vaso con paquetes se inicia con el remanente de la caja anterior. Por tanto, el siguiente dia no comienza con vasos en cero solo por abrir una caja nueva.
 - El saldo diario teorico se calcula con:
   - `cantidad_inicial + cantidad_ingresada - cantidad_vendida - cantidad_perdida + cantidad_ajustada`.
+
+## Regla de caja diaria
+
+- La ausencia de una caja abierta bloquea solo las operaciones de jornada: apertura de paquetes de vasos y consumos diarios.
+- Consultar y controlar stock general, movimientos historicos y ajustes no requiere una caja abierta.
+- El cierre y el conteo fisico posterior corroboran el saldo calculado contra la existencia fisica. Las diferencias se gestionan con el flujo de ajustes y quedan auditadas; el conteo final completo pertenece al modulo de cierre de caja.
 
 ## Reglas para vasos
 
@@ -76,18 +84,18 @@ El modulo se implementa sobre las tablas reales del schema:
 
 ## Reglas para ajustes de stock general
 
-- Los ajustes se registran primero en `ajustes_inventario` con `estado_aprobacion = 'pendiente'`.
 - En el alcance actual, el backend solo acepta `tipo_stock = 'general'` para este flujo.
-- `administrador` y `gerente` pueden solicitar ajustes.
-- Solo `gerente` puede aprobar o rechazar ajustes.
-- La solicitud no modifica `existencias_inventario_general`.
+- `administrador` registra una solicitud en `ajustes_inventario` con `estado_aprobacion = 'pendiente'`; esta solicitud no modifica `existencias_inventario_general`.
+- `gerente` registra directamente el stock general. Su ajuste queda aplicado con `estado_aprobacion = 'aprobado'`, sin requerir una solicitud propia.
+- Solo `gerente` puede aprobar o rechazar solicitudes pendientes de `administrador`.
 - Al aprobar un ajuste:
   - Se actualiza `existencias_inventario_general.cantidad_actual` segun `sentido_ajuste`.
   - Se genera un movimiento en `movimientos_inventario` con `tipo_movimiento = 'ajuste'`.
   - El movimiento usa `referencia_origen = 'ajustes_inventario'` e `id_referencia_origen = id_ajuste_inventario`.
 - Al rechazar un ajuste no se modifica stock ni se genera movimiento de inventario.
 - No se permite aprobar un ajuste que deje stock general negativo.
-- La solicitud, aprobacion y rechazo se registran en `auditoria_operaciones`.
+- La solicitud administrativa, la aplicacion directa del gerente, la aprobacion y el rechazo se registran en `auditoria_operaciones`.
+- `vendedor` no dispone de interfaz independiente de Inventario ni puede consultar ajustes.
 
 ## Reglas de movimientos
 
@@ -119,6 +127,9 @@ El modulo se implementa sobre las tablas reales del schema:
 - Rechazo de aprobacion por rol no gerente.
 - Rechazo de aprobacion que dejaria stock general negativo.
 - Auditoria de solicitud y aprobacion de ajuste.
+- Aplicacion directa de ajuste de stock general por gerente.
+- Rechazo de consulta de ajustes para `vendedor`.
+- Inicializacion de stock diario de vasos con el remanente de la caja anterior.
 - Descuento automatico de vasos por venta.
 - Restauracion de vasos por anulacion de venta.
 - Creacion de movimiento de anulacion de venta.

@@ -4,11 +4,11 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 ## Estado actual
 
-- Fecha de registro: 2026-07-07.
+- Fecha de registro: 2026-07-09.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, catalogos para formularios completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, PR 1 de inicializacion frontend.
-- Siguiente hito: implementar registro de venta y pagos.
+- Fase actual: Fase 4, Inventario operativo frontend completado y validado manualmente en navegador.
+- Fase anterior validada: Fase 4, Catalogos para formularios.
+- Siguiente hito: cerrar la validacion manual pendiente de Ventas y pagos antes de abrir el modulo siguiente.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -390,14 +390,15 @@ Reglas validadas:
 - Cada movimiento registra `referencia_origen` e `id_referencia_origen`.
 - No se permite consumo manual sobre items `automatico_por_venta`.
 - No se permiten movimientos que dejen stock general o diario negativo.
-- Administrador y gerente pueden solicitar ajustes de stock general.
-- Solo gerente puede aprobar o rechazar ajustes de inventario.
-- La solicitud de ajuste no modifica stock.
+- Administrador solicita ajustes de stock general; gerente aplica directamente sus propios ajustes como control de stock general.
+- Solo gerente puede aprobar o rechazar solicitudes pendientes de administrador.
+- La solicitud administrativa de ajuste no modifica stock.
 - La aprobacion de ajuste modifica stock general y registra movimiento `ajuste`.
 - El rechazo de ajuste no modifica stock ni crea movimiento.
 - No se aprueban ajustes que dejen stock general negativo.
 - Una venta descuenta vasos de `existencias_inventario_diario`.
 - Una anulacion restaura vasos de `existencias_inventario_diario`.
+- Al abrir una nueva caja, el stock diario de cada item de vaso conserva el remanente de la jornada anterior; no inicia en cero por el cambio de dia.
 
 Validacion realizada:
 
@@ -598,7 +599,7 @@ Reglas validadas:
 - Una evidencia queda asociada a un solo proceso.
 - Solo se cargan evidencias de `pagos_venta` si el metodo de pago real es `transferencia`.
 - No se permite cargar evidencia a un pago en efectivo.
-- Un vendedor solo puede consultar evidencias de pagos o gastos propios.
+- Un vendedor solo puede consultar evidencias de pagos o gastos propios desde el flujo que las origina; no dispone de una interfaz independiente de Evidencias.
 - `administrador` y `gerente` pueden gestionar evidencias de deposito.
 - Las imagenes se comprimen desde backend.
 - Los PDF se conservan sin compresion.
@@ -762,7 +763,7 @@ Reglas validadas:
 
 - Las consultas no modifican informacion.
 - Un `vendedor` solo consulta ventas, gastos y transferencias propias.
-- Un `vendedor` puede consultar informacion operativa de inventario.
+- Un `vendedor` puede recibir informacion operativa de inventario solo dentro de las consultas permitidas por backend; esto no habilita una interfaz independiente de Inventario.
 - Un `vendedor` no puede consultar cierre, deposito ni auditoria.
 - Un `administrador` consulta cierre, deposito y auditoria operativa.
 - Un `administrador` no recibe auditoria de seguridad sobre `sesiones_usuario`.
@@ -1164,6 +1165,48 @@ Observaciones:
 
 - No se hizo commit, merge ni cambio de rama.
 - El siguiente modulo frontend sera registro de venta y pagos.
+
+## Fase 4: Inventario operativo frontend
+
+Estado: completado y validado manualmente en navegador.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `InventarioPanel` con stock general, stock diario opcional, movimientos, paquetes, consumos y ajustes RF-47.
+- Se marco la ruta `Inventario` como `Base lista` para administrador y gerente.
+- Se restringieron las rutas independientes de Inventario, Catalogos y Evidencias para vendedor.
+- Gerente aplica directamente ajustes de stock general; administrador solicita y gerente aprueba o rechaza.
+- La ausencia de caja abierta deja disponibles stock general, movimientos y ajustes, y bloquea solo operaciones diarias.
+- La apertura de caja inicializa el stock diario de vasos con el remanente de la jornada anterior.
+
+Documentacion actualizada:
+
+- `docs/modules/inventario-operativo.md`.
+- `docs/modules/inventario-operativo-frontend.md`.
+- `docs/modules/inventario-operativo-frontend-pendientes.md`.
+- `docs/modules/inventario-operativo-finalizacion-contexto.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+
+Validacion realizada:
+
+- `mvn -Dtest=InventarioIntegrationTest,CajaDiariaIntegrationTest test`: 16 pruebas, sin fallos ni errores.
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso fuera del sandbox por la restriccion conocida de `esbuild` dentro del sandbox.
+- Backend Docker reconstruido; `GET /api/health` respondio correctamente.
+- `GET /api/inventario/ajustes` respondio `200` para gerente y administrador, y `403` para vendedor.
+- Se probaron solicitud, aprobacion, rechazo y aplicacion directa con datos controlados; el stock se restauro al valor inicial.
+- Navegador validado con gerente, administrador y vendedor; el usuario confirmo la verificacion manual final sin errores aparentes.
+
+Observaciones:
+
+- No se hizo commit, merge ni cambio de rama.
+- Ventas y pagos conserva pendiente su confirmacion manual final antes de iniciar el siguiente modulo de interfaz.
 
 ## Reglas activas para las siguientes fases
 

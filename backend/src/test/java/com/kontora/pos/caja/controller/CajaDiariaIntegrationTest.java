@@ -33,6 +33,7 @@ class CajaDiariaIntegrationTest {
     private static final String USUARIO_VENDEDOR = "test_caja_vendedor";
     private static final LocalDate FECHA_OPERACION = LocalDate.of(2099, 12, 31);
     private static final LocalDate FECHA_DUPLICADA = LocalDate.of(2099, 12, 30);
+    private static final LocalDate FECHA_REMANENTE_ANTERIOR = LocalDate.of(2099, 12, 28);
 
     @Autowired
     private MockMvc mockMvc;
@@ -107,6 +108,50 @@ class CajaDiariaIntegrationTest {
     }
 
     @Test
+    void aperturaInicializaStockDiarioConRemanenteAnteriorDeVasos() throws Exception {
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        UUID idItemVaso = idItemInventario("vaso_8oz");
+        crearCajaAnteriorConStockDiario(idItemVaso);
+
+        mockMvc.perform(post("/api/cajas-diarias")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestApertura(FECHA_OPERACION))))
+                .andExpect(status().isCreated());
+
+        Map<String, Object> existenciaDiaria = jdbcTemplate.queryForMap("""
+                SELECT
+                    eid.cantidad_inicial,
+                    eid.cantidad_ingresada,
+                    eid.cantidad_vendida,
+                    eid.cantidad_perdida,
+                    eid.cantidad_ajustada,
+                    eid.cantidad_final_teorica
+                FROM existencias_inventario_diario eid
+                JOIN cajas_diarias cd ON cd.id_caja_diaria = eid.id_caja_diaria
+                WHERE cd.fecha_operacion = ?
+                AND eid.id_item_inventario = ?
+                """, FECHA_OPERACION, idItemVaso);
+        Integer existenciasVasos = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM existencias_inventario_diario eid
+                JOIN cajas_diarias cd ON cd.id_caja_diaria = eid.id_caja_diaria
+                JOIN items_inventario ii ON ii.id_item_inventario = eid.id_item_inventario
+                WHERE cd.fecha_operacion = ?
+                AND ii.tipo_control = 'automatico_por_venta'
+                AND ii.id_tamano_vaso IS NOT NULL
+                """, Integer.class, FECHA_OPERACION);
+
+        assertThat(existenciaDiaria.get("cantidad_inicial")).isEqualTo(13);
+        assertThat(existenciaDiaria.get("cantidad_ingresada")).isEqualTo(0);
+        assertThat(existenciaDiaria.get("cantidad_vendida")).isEqualTo(0);
+        assertThat(existenciaDiaria.get("cantidad_perdida")).isEqualTo(0);
+        assertThat(existenciaDiaria.get("cantidad_ajustada")).isEqualTo(0);
+        assertThat(existenciaDiaria.get("cantidad_final_teorica")).isEqualTo(13);
+        assertThat(existenciasVasos).isPositive();
+    }
+
+    @Test
     void noPermiteAbrirDosCajasParaLaMismaFecha() throws Exception {
         String tokenGerente = iniciarSesion(USUARIO_GERENTE);
 
@@ -129,6 +174,56 @@ class CajaDiariaIntegrationTest {
                 "fechaOperacion", fechaOperacion.toString(),
                 "valorBase", new BigDecimal("300000.00"),
                 "observaciones", "test_caja_apertura");
+    }
+
+    private UUID idItemInventario(String nombreItem) {
+        return jdbcTemplate.queryForObject(
+                "SELECT id_item_inventario FROM items_inventario WHERE nombre_item = ?",
+                UUID.class,
+                nombreItem);
+    }
+
+    private void crearCajaAnteriorConStockDiario(UUID idItemVaso) {
+        UUID idCajaAnterior = jdbcTemplate.queryForObject("""
+                INSERT INTO cajas_diarias (
+                    fecha_operacion,
+                    estado_caja,
+                    valor_base,
+                    id_usuario_apertura,
+                    observaciones
+                )
+                VALUES (?, 'abierta'::estado_caja_enum, 300000, ?, 'test_caja_remanente_anterior')
+                RETURNING id_caja_diaria
+                """, UUID.class, FECHA_REMANENTE_ANTERIOR, idUsuarioPorNombre(USUARIO_ADMIN));
+        jdbcTemplate.update("""
+                INSERT INTO existencias_inventario_diario (
+                    id_caja_diaria,
+                    id_item_inventario,
+                    cantidad_inicial,
+                    cantidad_ingresada,
+                    cantidad_vendida,
+                    cantidad_perdida,
+                    cantidad_ajustada,
+                    cantidad_final_teorica,
+                    cantidad_final_contada,
+                    diferencia
+                )
+                VALUES (?, ?, 5, 20, 10, 2, 1, 14, 13, -1)
+                """, idCajaAnterior, idItemVaso);
+        jdbcTemplate.update("""
+                UPDATE cajas_diarias
+                SET estado_caja = 'cerrada'::estado_caja_enum,
+                    fecha_cierre = NOW(),
+                    id_usuario_cierre = id_usuario_apertura
+                WHERE id_caja_diaria = ?
+                """, idCajaAnterior);
+    }
+
+    private UUID idUsuarioPorNombre(String nombreUsuario) {
+        return jdbcTemplate.queryForObject(
+                "SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?",
+                UUID.class,
+                nombreUsuario);
     }
 
     private String iniciarSesion(String nombreUsuario) throws Exception {
@@ -198,6 +293,14 @@ class CajaDiariaIntegrationTest {
                 )
                 """);
         jdbcTemplate.update("""
+                DELETE FROM existencias_inventario_diario
+                WHERE id_caja_diaria IN (
+                    SELECT id_caja_diaria FROM cajas_diarias
+                    WHERE observaciones LIKE 'test_%'
+                    OR fecha_operacion >= DATE '2099-01-01'
+                )
+                """);
+        jdbcTemplate.update("""
                 DELETE FROM cajas_diarias
                 WHERE observaciones LIKE 'test_%'
                 OR fecha_operacion >= DATE '2099-01-01'
@@ -205,6 +308,15 @@ class CajaDiariaIntegrationTest {
         jdbcTemplate.update("""
                 DELETE FROM auditoria_operaciones
                 WHERE id_usuario IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                )
+                """);
+        jdbcTemplate.update("""
+                DELETE FROM ajustes_inventario
+                WHERE id_usuario_solicitante IN (
+                    SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
+                )
+                OR id_usuario_aprobador IN (
                     SELECT id_usuario FROM usuarios WHERE nombre_usuario LIKE 'test_caja_%'
                 )
                 """);

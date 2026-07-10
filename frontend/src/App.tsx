@@ -31,7 +31,7 @@ const roleHomeContent: Record<
   vendedor: {
     eyebrow: "Operacion de mostrador",
     title: "Panel de vendedor",
-    lead: "Acceso operativo a ventas, caja abierta, inventario diario, gastos propios y transferencias propias.",
+    lead: "Acceso operativo a ventas, caja abierta, gastos propios y transferencias propias.",
     highlights: [
       { label: "Sesion", value: "Activa", detail: "Confirmada con /api/auth/me" },
       { label: "Caja", value: "Consulta", detail: "GET /api/cajas-diarias/abierta" },

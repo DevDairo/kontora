@@ -7,6 +7,7 @@ import com.kontora.pos.caja.dto.CajaDiariaResponse;
 import com.kontora.pos.caja.repository.CajaDiariaRepository;
 import com.kontora.pos.common.exception.ApiException;
 import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.inventario.service.InventarioService;
 import com.kontora.pos.usuarios.domain.Usuario;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,14 +28,17 @@ public class CajaDiariaService {
     private final CajaDiariaRepository cajaDiariaRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final InventarioService inventarioService;
 
     public CajaDiariaService(
             CajaDiariaRepository cajaDiariaRepository,
             UsuarioRepository usuarioRepository,
-            AuditoriaService auditoriaService) {
+            AuditoriaService auditoriaService,
+            InventarioService inventarioService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.inventarioService = inventarioService;
     }
 
     @Transactional
@@ -61,6 +65,7 @@ public class CajaDiariaService {
         } catch (DataIntegrityViolationException exception) {
             throw cajaDuplicada();
         }
+        inventarioService.inicializarStockDiarioParaCaja(cajaGuardada);
         auditoriaService.registrar(
                 usuarioApertura,
                 "cajas_diarias",

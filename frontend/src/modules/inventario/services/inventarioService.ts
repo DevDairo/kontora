@@ -1,4 +1,4 @@
-import { apiClient } from "../../../shared/services/apiClient";
+import { ApiClientError, apiClient } from "../../../shared/services/apiClient";
 import type {
   AjusteInventario,
   ConsumoDiarioInventarioResponse,
@@ -36,6 +36,21 @@ export function obtenerExistenciasGenerales(token: string) {
 
 export function obtenerExistenciasDiariasAbierta(token: string) {
   return apiClient.get<ExistenciaInventarioDiario[]>("/inventario/existencias/diarias/abierta", { token });
+}
+
+async function obtenerExistenciasDiariasAbiertaOpcional(token: string) {
+  try {
+    return await obtenerExistenciasDiariasAbierta(token);
+  } catch (error) {
+    if (
+      error instanceof ApiClientError &&
+      (error.status === 404 || (error.status === 409 && error.message.includes("caja diaria abierta")))
+    ) {
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 export function obtenerMovimientosInventario(
@@ -106,7 +121,7 @@ export function rechazarAjusteInventario(
 export async function obtenerInventarioSnapshot(token: string): Promise<InventarioSnapshot> {
   const [existenciasGenerales, existenciasDiarias, movimientos, ajustes] = await Promise.all([
     obtenerExistenciasGenerales(token),
-    obtenerExistenciasDiariasAbierta(token),
+    obtenerExistenciasDiariasAbiertaOpcional(token),
     obtenerMovimientosInventario(token),
     obtenerAjustesInventario(token),
   ]);

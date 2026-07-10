@@ -190,6 +190,51 @@ class InventarioIntegrationTest {
     }
 
     @Test
+    void gerenteRegistraStockGeneralYSeAplicaDirectamente() throws Exception {
+        UUID idItemManual = idItemInventario("bolsa_chicles");
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        String response = mockMvc.perform(post("/api/inventario/ajustes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "idItemInventario", idItemManual.toString(),
+                                "tipoStock", "general",
+                                "cantidadAjuste", 6,
+                                "sentidoAjuste", "entrada",
+                                "motivoAjuste", "Conteo fisico gerencial"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.estadoAprobacion").value("aprobado"))
+                .andExpect(jsonPath("$.nombreUsuarioSolicitante").value(USUARIO_GERENTE))
+                .andExpect(jsonPath("$.nombreUsuarioAprobador").value(USUARIO_GERENTE))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        UUID idAjuste = UUID.fromString(objectMapper.readValue(response, Map.class).get("idAjusteInventario").toString());
+        Integer movimientos = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM movimientos_inventario
+                WHERE tipo_stock = 'general'
+                AND tipo_movimiento = 'ajuste'
+                AND sentido_movimiento = 'entrada'
+                AND referencia_origen = 'ajustes_inventario'
+                AND id_referencia_origen = ?
+                """, Integer.class, idAjuste);
+        Integer auditorias = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM auditoria_operaciones
+                WHERE tabla_afectada = 'ajustes_inventario'
+                AND id_registro_afectado = ?
+                AND accion::text IN ('crear', 'aprobar')
+                """, Integer.class, idAjuste.toString());
+
+        assertThat(stockGeneral(idItemManual)).isEqualTo(6);
+        assertThat(movimientos).isEqualTo(1);
+        assertThat(auditorias).isEqualTo(2);
+    }
+
+    @Test
     void gerenteRechazaAjusteSinModificarStockGeneral() throws Exception {
         UUID idItemManual = idItemInventario("bolsa_chicles");
         ajustarStockGeneral(idItemManual, 5);
@@ -230,6 +275,16 @@ class InventarioIntegrationTest {
                                 "observacionAprobacion", "Intento no permitido"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.mensaje").value("Solo gerente puede aprobar o rechazar ajustes de inventario"));
+    }
+
+    @Test
+    void vendedorNoPuedeConsultarAjustesInventario() throws Exception {
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+
+        mockMvc.perform(get("/api/inventario/ajustes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede consultar ajustes de inventario"));
     }
 
     @Test

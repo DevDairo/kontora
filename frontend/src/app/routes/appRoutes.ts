@@ -86,8 +86,8 @@ export const appRoutes: AppRoute[] = [
     id: "inventario",
     label: "Inventario",
     path: "/inventario",
-    status: "pendiente",
-    description: "Existencias actuales, stock diario y movimientos de inventario.",
+    status: "base",
+    description: "Gestion operativa de stock general, stock diario y movimientos de inventario.",
     endpoints: [
       "GET /api/inventario/existencias/general",
       "GET /api/inventario/existencias/diarias/abierta",
@@ -100,17 +100,10 @@ export const appRoutes: AppRoute[] = [
       "POST /api/inventario/ajustes/{idAjusteInventario}/rechazar",
     ],
     roleDescriptions: {
-      vendedor: "Consulta de stock, movimientos y ajustes de inventario.",
       administrador: "Consulta de stock, apertura de paquetes, consumos manuales y solicitud de ajustes.",
-      gerente: "Consulta de stock, apertura de paquetes, consumos manuales y aprobacion de ajustes.",
+      gerente: "Control de stock general, apertura de paquetes, consumos manuales y decision sobre ajustes pendientes.",
     },
     roleEndpoints: {
-      vendedor: [
-        "GET /api/inventario/existencias/general",
-        "GET /api/inventario/existencias/diarias/abierta",
-        "GET /api/inventario/movimientos",
-        "GET /api/inventario/ajustes",
-      ],
       administrador: [
         "GET /api/inventario/existencias/general",
         "GET /api/inventario/existencias/diarias/abierta",
@@ -121,7 +114,7 @@ export const appRoutes: AppRoute[] = [
         "POST /api/inventario/ajustes",
       ],
     },
-    roles: allRoles,
+    roles: adminRoles,
     icon: Boxes,
   },
   {
@@ -184,14 +177,9 @@ export const appRoutes: AppRoute[] = [
     label: "Evidencias",
     path: "/evidencias",
     status: "pendiente",
-    description: "Carga y consulta de soportes para pagos, gastos y procesos administrativos.",
+    description: "Carga y consulta administrativa de soportes para pagos, gastos y procesos de deposito.",
     endpoints: ["POST /api/evidencias/...", "GET /api/evidencias/{idArchivoEvidencia}"],
     roleEndpoints: {
-      vendedor: [
-        "POST /api/evidencias/pagos-venta/{idPagoVenta}",
-        "POST /api/evidencias/gastos-caja/{idGastoCaja}",
-        "GET /api/evidencias/{idArchivoEvidencia}",
-      ],
       administrador: [
         "POST /api/evidencias/pagos-venta/{idPagoVenta}",
         "POST /api/evidencias/gastos-caja/{idGastoCaja}",
@@ -205,7 +193,7 @@ export const appRoutes: AppRoute[] = [
         "GET /api/evidencias/{idArchivoEvidencia}",
       ],
     },
-    roles: allRoles,
+    roles: adminRoles,
     icon: ClipboardList,
   },
   {
@@ -221,7 +209,7 @@ export const appRoutes: AppRoute[] = [
       "GET /api/catalogos/promociones/vigentes",
       "GET /api/catalogos/items-inventario",
     ],
-    roles: allRoles,
+    roles: adminRoles,
     icon: Database,
   },
   {

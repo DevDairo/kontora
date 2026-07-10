@@ -102,10 +102,10 @@ La pantalla no ejecuta todavia endpoints de negocio; solo referencia contratos d
 
 - Sin sesion valida se muestra `/login`.
 - Con sesion valida se muestra el panel correspondiente a `nombreRol`.
-- `vendedor` ve navegacion operativa: ventas, caja, inventario, gastos, transferencias, evidencias y consultas.
-- `administrador` ve navegacion administrativa adicional: catalogos, cierre, deposito y auditoria.
+- `vendedor` ve navegacion operativa: ventas, caja, gastos, transferencias y consultas. No ve interfaces independientes de Inventario, Catalogos ni Evidencias.
+- `administrador` ve Inventario y Catalogos, ademas de las rutas administrativas de cierre, deposito, evidencias y auditoria.
 - `gerente` ve navegacion gerencial con visibilidad administrativa completa.
-- Las pantallas de negocio quedan marcadas como `Pantalla pendiente`.
+- Cada ruta informa si su pantalla esta en estado `Base lista` o `Pantalla pendiente`.
 - El frontend no decide permisos finales; el backend sigue siendo autoridad.
 
 ### Respuestas esperadas
@@ -129,7 +129,7 @@ Consultar la caja diaria abierta desde la API real y mostrar su estado dentro de
 
 ### Actor principal
 
-Vendedor / Administrador / Gerente.
+Administrador / Gerente.
 
 ### Endpoint consumido
 
@@ -166,6 +166,44 @@ Solo cuando no existe caja abierta y el rol visible es `administrador` o `gerent
 - Panel `/caja` validado en navegador integrado con `vendedor` y `administrador`.
 - Consola del navegador sin errores ni advertencias.
 - Verificacion manual del usuario completada antes de documentar el cierre.
+
+## Pantalla: Inventario operativo
+
+### Objetivo
+
+Controlar el stock general, el stock diario de vasos, sus movimientos y los ajustes auditables desde contratos reales del backend.
+
+### Actor principal
+
+Administrador / Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/inventario/existencias/general`
+- `GET /api/inventario/existencias/diarias/abierta`
+- `POST /api/inventario/paquetes-vasos`
+- `POST /api/inventario/consumos-diarios`
+- `GET /api/inventario/movimientos`
+- `GET /api/inventario/ajustes`
+- `POST /api/inventario/ajustes`
+- `POST /api/inventario/ajustes/{idAjusteInventario}/aprobar`
+- `POST /api/inventario/ajustes/{idAjusteInventario}/rechazar`
+
+### Validaciones de interfaz
+
+- Gerente registra y aplica directamente ajustes de stock general, incluso si no hay caja diaria abierta.
+- Administrador solicita ajustes; solo gerente puede aprobarlos o rechazarlos.
+- Sin caja abierta, la pantalla conserva stock general, movimientos y ajustes, pero deshabilita apertura de paquetes y consumos diarios.
+- El stock diario del nuevo dia conserva el remanente del dia anterior por item de vaso; no se inicializa vacio por el cambio de caja.
+- Vendedor no ve la ruta ni puede acceder a `/inventario`; el backend conserva la autoridad final de permisos.
+
+### Evidencia de prueba
+
+- `npx tsc -b --pretty false` y `npm run build` completados correctamente.
+- Pruebas backend focalizadas de Inventario y Caja: 16 pruebas, sin fallos ni errores.
+- `GET /api/inventario/ajustes` respondio `200` para administrador y gerente, y `403` para vendedor.
+- Se verifico con datos controlados una solicitud de administrador, su aprobacion y rechazo por gerente, y una aplicacion directa del gerente.
+- La validacion en navegador cubrio gerente, administrador y vendedor; la verificacion manual final del usuario fue confirmada el 2026-07-09.
 
 ## Pantalla: Catalogos para formularios
 
@@ -223,8 +261,8 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 2. Layout principal por rol. Implementado y validado.
 3. Panel de caja abierta. Implementado y validado.
 4. Catalogos necesarios para formularios. Implementado y validado.
-5. Registro de venta y pagos. Siguiente modulo.
-6. Inventario operativo.
+5. Registro de venta y pagos. Pendiente de confirmacion manual final.
+6. Inventario operativo. Implementado y validado.
 7. Gastos, adiciones y pago trabajadores.
 8. Cierre de caja.
 9. Deposito, consignaciones y servicios.

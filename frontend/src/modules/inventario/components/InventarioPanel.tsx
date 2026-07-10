@@ -249,7 +249,14 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
 
   const canManageInventory = role === "administrador" || role === "gerente";
   const canApproveAdjustments = role === "gerente";
+  const isManager = role === "gerente";
+  const adjustmentFormTitle = isManager ? "Ingreso / correccion de stock general" : "Solicitud de ajuste";
+  const adjustmentFormDetail = isManager ? "Aplicacion directa con trazabilidad" : "Pendiente de decision gerencial";
+  const adjustmentSubmitLabel = isManager ? "Aplicar stock" : "Solicitar ajuste";
+  const adjustmentSubmittingLabel = isManager ? "Aplicando" : "Solicitando";
+  const managementValue = isManager ? "Control" : canManageInventory ? "Solicitudes" : "Solo lectura";
   const openCashBoxId = snapshot.existenciasDiarias[0]?.idCajaDiaria ?? "";
+  const hasOpenCashBox = Boolean(openCashBoxId);
 
   const loadInventory = useCallback(async () => {
     setLoadState("loading");
@@ -363,6 +370,11 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
     const paquetes = Number(cantidadPaquetes);
     const rotas = Number(unidadesRotas || 0);
 
+    if (!hasOpenCashBox) {
+      setSubmitMessage("Abre una caja diaria para registrar paquetes de la jornada.");
+      return;
+    }
+
     if (!idItemPaquete || !Number.isInteger(paquetes) || paquetes < 1) {
       setSubmitMessage("Selecciona un vaso y una cantidad de paquetes valida.");
       return;
@@ -398,6 +410,11 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
     setLastAction(null);
 
     const cantidad = Number(cantidadConsumida);
+
+    if (!hasOpenCashBox) {
+      setSubmitMessage("Abre una caja diaria para registrar consumos de la jornada.");
+      return;
+    }
 
     if (!idItemConsumo || !Number.isInteger(cantidad) || cantidad < 1) {
       setSubmitMessage("Selecciona un item manual y una cantidad valida.");
@@ -569,7 +586,9 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               : lastAction.type === "consumo"
                 ? `Consumo registrado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadConsumida} unidades.`
                 : lastAction.type === "ajuste"
-                  ? `Ajuste solicitado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
+                  ? lastAction.response.estadoAprobacion === "aprobado"
+                    ? `Stock actualizado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
+                    : `Ajuste solicitado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
                   : lastAction.type === "ajuste-aprobado"
                     ? `Ajuste aprobado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
                     : `Ajuste rechazado: ${lastAction.response.nombreItem}.`}
@@ -582,7 +601,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
         <SummaryCard label="Stock diario" value={snapshot.existenciasDiarias.length} detail={`${totalDiario} unidades teoricas`} />
         <SummaryCard label="Movimientos" value={snapshot.movimientos.length} detail={soloCajaAbierta ? "Caja abierta" : "Todos"} />
         <SummaryCard label="Ajustes" value={snapshot.ajustes.length} detail={`${pendingAdjustments} pendientes`} />
-        <SummaryCard label="Gestion" value={canManageInventory ? "Activa" : "Solo lectura"} detail="Backend valida permisos" />
+        <SummaryCard label="Gestion" value={managementValue} detail="Backend valida permisos" />
       </div>
 
       {canManageInventory ? (
@@ -636,7 +655,11 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               </label>
             </div>
 
-            <button className="primary-button full" type="submit" disabled={isSubmittingPackage || packageItems.length === 0}>
+            <button
+              className="primary-button full"
+              type="submit"
+              disabled={isSubmittingPackage || packageItems.length === 0 || !hasOpenCashBox}
+            >
               <PackageOpen size={18} strokeWidth={2.2} />
               {isSubmittingPackage ? "Registrando" : "Registrar paquete"}
             </button>
@@ -689,7 +712,11 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               </div>
             </label>
 
-            <button className="primary-button full" type="submit" disabled={isSubmittingConsumption || manualItems.length === 0}>
+            <button
+              className="primary-button full"
+              type="submit"
+              disabled={isSubmittingConsumption || manualItems.length === 0 || !hasOpenCashBox}
+            >
               <ClipboardList size={18} strokeWidth={2.2} />
               {isSubmittingConsumption ? "Registrando" : "Registrar consumo"}
             </button>
@@ -698,8 +725,8 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
           <form className="panel inventory-action-form" onSubmit={handleAdjustmentSubmit}>
             <div className="panel-title">
               <div>
-                <h2>Ajuste / reabastecimiento</h2>
-                <p>Solicitud sobre stock general</p>
+                <h2>{adjustmentFormTitle}</h2>
+                <p>{adjustmentFormDetail}</p>
               </div>
               <SlidersHorizontal size={22} strokeWidth={2.2} />
             </div>
@@ -763,7 +790,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               disabled={isSubmittingAdjustment || snapshot.existenciasGenerales.length === 0}
             >
               <SlidersHorizontal size={18} strokeWidth={2.2} />
-              {isSubmittingAdjustment ? "Solicitando" : "Solicitar ajuste"}
+              {isSubmittingAdjustment ? adjustmentSubmittingLabel : adjustmentSubmitLabel}
             </button>
           </form>
         </div>
@@ -773,8 +800,8 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
           <div>
             <h2>Gestion reservada</h2>
             <p>
-              El vendedor consulta inventario y movimientos. Registrar paquetes o consumos queda reservado para
-              administrador o gerente, con validacion final del backend.
+              El acceso operativo a inventario queda reservado para administrador o gerente, con validacion final del
+              backend.
             </p>
           </div>
         </article>

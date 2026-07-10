@@ -148,12 +148,29 @@ public class InventarioService {
     }
 
     @Transactional(readOnly = true)
-    public List<AjusteInventarioResponse> consultarAjustes(String estadoAprobacion) {
+    public List<AjusteInventarioResponse> consultarAjustes(
+            String estadoAprobacion,
+            PrincipalUsuario principalUsuario) {
+        validarRolConsultaAjustes(principalUsuario);
         String estadoNormalizado = normalizarEstadoAprobacionFiltro(estadoAprobacion);
         List<AjusteInventario> ajustes = estadoNormalizado == null
                 ? ajusteInventarioRepository.findAllByOrderByFechaSolicitudDesc()
                 : ajusteInventarioRepository.findByEstadoAprobacionOrderByFechaSolicitudDesc(estadoNormalizado);
         return ajustes.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional
+    public void inicializarStockDiarioParaCaja(CajaDiaria cajaDiaria) {
+        for (ItemInventario item : itemInventarioRepository.findActivosParaOperacion()) {
+            if (!esItemVasoConPaquetes(item)
+                    || existenciaDiarioRepository.findByCajaAndItemForUpdate(
+                            cajaDiaria.getIdCajaDiaria(),
+                            item.getIdItemInventario()).isPresent()) {
+                continue;
+            }
+
+            nuevaExistenciaDiaria(cajaDiaria, item, remanenteDiarioAnterior(cajaDiaria, item));
+        }
     }
 
     @Transactional
@@ -186,6 +203,27 @@ public class InventarioService {
                 null,
                 snapshotAjuste(ajusteGuardado),
                 "Solicitud de ajuste de inventario");
+
+        if (esGerente(principalUsuario)) {
+            Map<String, Object> valorAnterior = snapshotAjuste(ajusteGuardado);
+            aplicarAjusteStockGeneral(ajusteGuardado, usuarioSolicitante, ajusteGuardado.getMotivoAjuste());
+            ajusteGuardado.setEstadoAprobacion(ESTADO_AJUSTE_APROBADO);
+            ajusteGuardado.setUsuarioAprobador(usuarioSolicitante);
+            ajusteGuardado.setFechaAprobacion(OffsetDateTime.now());
+            ajusteGuardado.setObservacionAprobacion("Aplicado directamente por gerente");
+
+            AjusteInventario ajusteAplicado = ajusteInventarioRepository.saveAndFlush(ajusteGuardado);
+            auditoriaService.registrar(
+                    usuarioSolicitante,
+                    "ajustes_inventario",
+                    ajusteAplicado.getIdAjusteInventario(),
+                    "aprobar",
+                    valorAnterior,
+                    snapshotAjuste(ajusteAplicado),
+                    "Aplicacion directa de ajuste de inventario por gerente");
+            return toResponse(ajusteAplicado);
+        }
+
         return toResponse(ajusteGuardado);
     }
 
@@ -493,13 +531,17 @@ public class InventarioService {
     }
 
     private void validarItemVasoConPaquetes(ItemInventario item) {
-        if (!TIPO_CONTROL_AUTOMATICO.equals(item.getTipoControl())
-                || !item.isManejaPaquetes()
-                || item.getTamanoVaso() == null
-                || item.getUnidadesPorPaquete() == null
-                || item.getUnidadesPorPaquete() <= 0) {
+        if (!esItemVasoConPaquetes(item)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Solo vasos con paquetes pueden registrarse como paquete abierto");
         }
+    }
+
+    private boolean esItemVasoConPaquetes(ItemInventario item) {
+        return TIPO_CONTROL_AUTOMATICO.equals(item.getTipoControl())
+                && item.isManejaPaquetes()
+                && item.getTamanoVaso() != null
+                && item.getUnidadesPorPaquete() != null
+                && item.getUnidadesPorPaquete() > 0;
     }
 
     private void validarRolGestionInventario(PrincipalUsuario principalUsuario) {
@@ -516,11 +558,22 @@ public class InventarioService {
         }
     }
 
+    private void validarRolConsultaAjustes(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
+        if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede consultar ajustes de inventario");
+        }
+    }
+
     private void validarRolAprobacionAjuste(PrincipalUsuario principalUsuario) {
         String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
         if (!"gerente".equals(rol)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Solo gerente puede aprobar o rechazar ajustes de inventario");
         }
+    }
+
+    private boolean esGerente(PrincipalUsuario principalUsuario) {
+        return "gerente".equals(principalUsuario.nombreRol().toLowerCase(Locale.ROOT));
     }
 
     private String normalizarTipoStockGeneral(String tipoStock) {
@@ -579,16 +632,29 @@ public class InventarioService {
     }
 
     private ExistenciaInventarioDiario nuevaExistenciaDiaria(CajaDiaria cajaDiaria, ItemInventario item) {
+        return nuevaExistenciaDiaria(cajaDiaria, item, 0);
+    }
+
+    private ExistenciaInventarioDiario nuevaExistenciaDiaria(CajaDiaria cajaDiaria, ItemInventario item, int cantidadInicial) {
         ExistenciaInventarioDiario existenciaDiaria = new ExistenciaInventarioDiario();
         existenciaDiaria.setCajaDiaria(cajaDiaria);
         existenciaDiaria.setItemInventario(item);
-        existenciaDiaria.setCantidadInicial(0);
+        existenciaDiaria.setCantidadInicial(cantidadInicial);
         existenciaDiaria.setCantidadIngresada(0);
         existenciaDiaria.setCantidadVendida(0);
         existenciaDiaria.setCantidadPerdida(0);
         existenciaDiaria.setCantidadAjustada(0);
-        existenciaDiaria.setCantidadFinalTeorica(0);
+        existenciaDiaria.setCantidadFinalTeorica(cantidadInicial);
         return existenciaDiarioRepository.saveAndFlush(existenciaDiaria);
+    }
+
+    private int remanenteDiarioAnterior(CajaDiaria cajaDiaria, ItemInventario item) {
+        return existenciaDiarioRepository
+                .findUltimaAnteriorPorItem(item.getIdItemInventario(), cajaDiaria.getFechaOperacion())
+                .map((existenciaAnterior) -> existenciaAnterior.getCantidadFinalContada() != null
+                        ? existenciaAnterior.getCantidadFinalContada()
+                        : valor(existenciaAnterior.getCantidadFinalTeorica()))
+                .orElse(0);
     }
 
     private void validarStockSuficiente(Integer cantidadActual, int cantidadRequerida, String mensaje) {

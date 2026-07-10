@@ -82,8 +82,11 @@ public class InventarioController {
 
     @GetMapping("/ajustes")
     public List<AjusteInventarioResponse> consultarAjustes(
-            @RequestParam(required = false) String estadoAprobacion) {
-        return inventarioService.consultarAjustes(estadoAprobacion);
+            @RequestParam(required = false) String estadoAprobacion,
+            Authentication authentication) {
+        return inventarioService.consultarAjustes(
+                estadoAprobacion,
+                (PrincipalUsuario) authentication.getPrincipal());
     }
 
     @PostMapping("/ajustes")

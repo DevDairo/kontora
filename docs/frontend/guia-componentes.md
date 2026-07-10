@@ -126,6 +126,18 @@ Responsabilidades:
 - Permitir filtrar localmente por granizado, item o promocion.
 - Permitir cambiar la fecha de vigencia para precios y promociones sin crear ni modificar datos.
 
+### `InventarioPanel`
+
+Ubicacion: `frontend/src/modules/inventario/components/InventarioPanel.tsx`.
+
+Responsabilidades:
+
+- Consultar stock general, stock diario opcional, movimientos y ajustes con token activo.
+- Mantener disponible el control de stock general cuando no existe caja abierta.
+- Deshabilitar solo paquetes de vasos y consumos diarios mientras no exista caja abierta.
+- Mostrar aplicacion directa para gerente y solicitud de ajuste para administrador.
+- Mantener las acciones de aprobar y rechazar visibles solo para gerente.
+
 ## Convenciones iniciales
 
 - Componentes React en PascalCase.

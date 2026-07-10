@@ -113,6 +113,26 @@ Responsabilidades:
 
 La pantalla es de solo lectura. La vigencia definitiva y las reglas de aplicacion se mantienen en backend.
 
+## Inventario operativo
+
+El panel de inventario queda implementado dentro de `src/modules/inventario`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/inventario/components/InventarioPanel.tsx
+frontend/src/modules/inventario/services/inventarioService.ts
+frontend/src/modules/inventario/types.ts
+```
+
+Responsabilidades:
+
+- `InventarioPanel` muestra stock general, stock diario, movimientos y ajustes con los contratos reales.
+- `inventarioService` consume los endpoints de existencias, paquetes, consumos, movimientos y ajustes.
+- Gerente aplica directamente ajustes de stock general; administrador solicita ajustes y gerente decide los pendientes.
+- La ausencia de caja abierta solo bloquea operaciones de jornada. No bloquea el control de stock general.
+- La ruta se muestra solo a administrador y gerente; vendedor no recibe una interfaz independiente de Inventario.
+
 ## Cliente HTTP
 
 El cliente base esta en `frontend/src/shared/services/apiClient.ts`.
