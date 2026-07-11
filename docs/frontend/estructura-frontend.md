@@ -149,10 +149,10 @@ frontend/src/modules/inventario/types.ts
 
 Responsabilidades:
 
-- `InventarioPanel` muestra stock general, stock diario, movimientos y ajustes con los contratos reales.
-- `inventarioService` consume los endpoints de existencias, paquetes, consumos, movimientos y ajustes.
+- `InventarioPanel` muestra stock diario, formularios de paquetes y consumos, y ajustes con los contratos reales.
+- `inventarioService` consume existencias generales como dato de soporte para formularios, existencias diarias y ajustes; el historial se consulta desde el modulo de Consultas.
 - Gerente aplica directamente ajustes de stock general; administrador solicita ajustes y gerente decide los pendientes.
-- La ausencia de caja abierta solo bloquea operaciones de jornada. No bloquea el control de stock general.
+- La ausencia de caja abierta solo bloquea operaciones de jornada. No bloquea los ajustes de stock general.
 - La ruta se muestra solo a administrador y gerente; vendedor no recibe una interfaz independiente de Inventario.
 
 ## Gastos y operaciones de caja
@@ -217,11 +217,11 @@ frontend/src/modules/evidencias/services/evidenciasService.ts
 
 Responsabilidades:
 
-- `DepositoPanel` consulta saldo e historial directamente desde backend, sin recalcular el saldo como fuente de verdad en frontend.
+- `DepositoPanel` consulta el saldo directamente desde backend, sin recalcularlo como fuente de verdad en frontend.
 - Solo se muestra a `administrador` y `gerente`; el vendedor no recibe la ruta ni puede usar los endpoints protegidos.
 - Registra consignaciones y pagos de servicio con confirmacion previa, validacion de saldo disponible y actualizacion posterior de los datos.
 - Exige seleccionar evidencia antes de registrar una salida. Si Storage no esta configurado, conserva el identificador y el archivo en estado pendiente para reintento.
-- Los filtros de fecha son opcionales y permiten volver al historial completo.
+- El historial de deposito por periodo se concentra en `/consultas`, sin duplicarse en esta pantalla operativa.
 
 ## Evidencias administrativas
 
@@ -263,6 +263,27 @@ Responsabilidades:
 - Carga los metadatos del comprobante al seleccionar una transferencia, sin convertir la ruta interna de Storage en enlace publico.
 - Usa `ConfirmationDialog` antes de validar o rechazar e informa el resultado real de backend.
 - Una transferencia validada se elimina de la lista actual porque el endpoint de consultas solo devuelve pendientes y rechazadas; la evidencia de la decision queda en auditoria.
+
+## Consultas operativas
+
+El panel de consultas queda implementado en `src/modules/consultas` y se integra en `App.tsx` cuando la ruta activa es `/consultas`.
+
+Archivos principales:
+
+```text
+frontend/src/modules/consultas/components/ConsultasPanel.tsx
+frontend/src/modules/consultas/services/consultasService.ts
+frontend/src/modules/consultas/types.ts
+frontend/src/modules/consultas/index.ts
+```
+
+Responsabilidades:
+
+- Centraliza consultas de ventas, gastos, inventario, cierre y deposito por periodo, sin operaciones de escritura.
+- Vendedor solo recibe Ventas y Gastos; administrador y gerente reciben todas las vistas habilitadas por backend.
+- Inventario concentra existencias actuales y movimientos historicos; Deposito concentra su historial con iconos SVG para entradas y salidas.
+- Un cierre inexistente se muestra como resultado vacio controlado; no se interpreta como fallo de la interfaz.
+- La pantalla esta desarrollada y compilada; su estado visual se mantiene pendiente hasta la confirmacion manual final del usuario.
 
 ## Cliente HTTP
 

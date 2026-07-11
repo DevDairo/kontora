@@ -5,7 +5,6 @@ import type {
   ExistenciaInventarioDiario,
   ExistenciaInventarioGeneral,
   InventarioSnapshot,
-  MovimientoInventario,
   PaqueteVasosAbiertoResponse,
   RegistrarConsumoDiarioInventarioRequest,
   RegistrarPaqueteVasosRequest,
@@ -51,16 +50,6 @@ async function obtenerExistenciasDiariasAbiertaOpcional(token: string) {
 
     throw error;
   }
-}
-
-export function obtenerMovimientosInventario(
-  token: string,
-  filters: { idCajaDiaria?: string; idItemInventario?: string } = {},
-) {
-  return apiClient.get<MovimientoInventario[]>(
-    `/inventario/movimientos${optionalQuery(filters)}`,
-    { token },
-  );
 }
 
 export function obtenerAjustesInventario(token: string, filters: { estadoAprobacion?: string } = {}) {
@@ -119,10 +108,9 @@ export function rechazarAjusteInventario(
 }
 
 export async function obtenerInventarioSnapshot(token: string): Promise<InventarioSnapshot> {
-  const [existenciasGenerales, existenciasDiarias, movimientos, ajustes] = await Promise.all([
+  const [existenciasGenerales, existenciasDiarias, ajustes] = await Promise.all([
     obtenerExistenciasGenerales(token),
     obtenerExistenciasDiariasAbiertaOpcional(token),
-    obtenerMovimientosInventario(token),
     obtenerAjustesInventario(token),
   ]);
 
@@ -130,6 +118,5 @@ export async function obtenerInventarioSnapshot(token: string): Promise<Inventar
     ajustes,
     existenciasDiarias,
     existenciasGenerales,
-    movimientos,
   };
 }

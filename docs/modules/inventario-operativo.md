@@ -138,3 +138,12 @@ El modulo se implementa sobre las tablas reales del schema:
 
 - Alertas por cantidad minima quedan pendientes porque `cantidad_minima_alerta` no existe en el schema canonico actual.
 - Conteo fisico final y diferencias de cierre se completaran en el modulo "Cierre de caja y deposito".
+
+## Reorganizacion frontend posterior
+
+- `/inventario` se concentra en las operaciones de jornada: stock diario de vasos, apertura de paquetes, consumo manual y ajustes de inventario.
+- La pantalla sigue consultando existencias generales en segundo plano para poblar y validar los selectores de paquetes, consumos y ajustes; ya no presenta el listado ni el resumen consolidado de stock general.
+- El historial de `movimientos_inventario` ya no se consume ni se renderiza desde `InventarioPanel`. La consulta por fecha se centraliza en `/consultas`, pestaña Inventario, mediante `GET /api/consultas/inventario/movimientos`.
+- Los tres formularios operativos comparten una grilla que alinea sus botones de envio en escritorio.
+- No se agregaron contadores por tipo de granizado ni se modificaron backend, schema o la formula canonica de stock diario. El stock fisico continua siendo unico por tamano de vaso.
+- Validacion tecnica posterior: `npx tsc -b --pretty false`, `npm run build` y navegador confirmaron ausencia del historial en `/inventario` y su disponibilidad en Consultas.

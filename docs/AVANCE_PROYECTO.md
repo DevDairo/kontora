@@ -4,11 +4,11 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 ## Estado actual
 
-- Fecha de registro: 2026-07-10.
+- Fecha de registro: 2026-07-11.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Transferencias y validacion administrativa frontend completado y validado manualmente en navegador.
-- Fase anterior validada: Fase 4, Evidencias frontend.
-- Siguiente hito: implementar Consultas operativas frontend.
+- Fase actual: Fase 4, Consultas operativas frontend desarrollado e integrado; pendiente confirmacion manual final.
+- Fase anterior validada: Fase 4, Transferencias y validacion administrativa frontend.
+- Siguiente hito: confirmar manualmente Consultas operativas y avanzar a Auditoria frontend.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -1207,6 +1207,7 @@ Observaciones:
 
 - No se hizo commit, merge ni cambio de rama.
 - Ventas y pagos quedo validado manualmente y cerrado; el siguiente modulo de interfaz es Gastos, adiciones y pago a trabajadores.
+- Ajuste posterior de interfaz: `/inventario` conserva stock diario, operaciones y ajustes; el stock general consolidado y los movimientos se centralizan en `/consultas`.
 
 ## Fase 4: Ventas y pagos frontend
 
@@ -1380,6 +1381,7 @@ Observaciones:
 
 - No se hizo commit, merge ni cambio de rama.
 - El siguiente modulo frontend es Evidencias. Su validacion local debe comprobar estados, reintentos, consulta de metadata y permisos; la carga real a Supabase queda para despliegue.
+- Ajuste posterior de interfaz: `/deposito` conserva saldo y formularios de salida; el historial por periodo se centraliza en `/consultas`, con iconos SVG para entradas y salidas.
 
 ## Fase 4: Evidencias frontend
 
@@ -1461,6 +1463,45 @@ Observaciones:
 - La accion Rechazar queda implementada con el mismo contrato y confirmacion; la prueba manual controlada de esta iteracion uso dos validaciones, no genero un rechazo adicional.
 - El siguiente modulo frontend es Consultas operativas.
 
+## Fase 4: Consultas operativas frontend
+
+Estado: desarrollado e integrado contra backend real; pendiente confirmacion manual final antes de marcar la ruta como `Base lista`.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se implemento `ConsultasPanel` con filtros de periodo y vistas de Ventas, Gastos, Inventario, Cierre y Deposito.
+- Vendedor recibe solo Ventas y Gastos; administrador y gerente reciben las cinco vistas administrativas autorizadas por backend.
+- Inventario concentra stock general, stock diario y movimientos por periodo; `/inventario` conserva operaciones diarias, stock diario y ajustes.
+- Deposito concentra movimientos por periodo con `Landmark` para entradas de cierre y `Building2` para salidas; `/deposito` conserva saldo y formularios de consignacion y pago de servicio.
+- Los filtros se aplican de forma explicita con `Actualizar`; un cierre inexistente se muestra como resultado vacio controlado.
+- No se modificaron schema ni backend. Se documento y se mantuvo sin implementar el posible desglose de stock diario por tipo de granizado, porque el stock fisico canonico sigue siendo unico por tamano y la consulta actual de ventas no devuelve sus detalles historicos por tipo y tamano.
+
+Documentacion actualizada:
+
+- `docs/modules/consultas-operativas.md`.
+- `docs/modules/consultas-operativas-frontend.md`.
+- `docs/modules/inventario-operativo.md`.
+- `docs/modules/deposito-consignaciones-servicios.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/AVANCE_PROYECTO.md`.
+
+Validacion tecnica realizada:
+
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso.
+- Navegador con gerente confirmo ventas reales, inventario actual, estado de cierre sin registro, ausencia de movimientos en `/inventario`, ausencia de historial en `/deposito` y movimientos de deposito desde `/consultas`.
+- Se verifico un registro real `entrada_cierre` en Consultas con icono SVG `Landmark`.
+
+Pendiente de cierre:
+
+- Confirmacion manual final de filtros de fecha y de visibilidad con vendedor, administrador y gerente.
+- Actualizar `appRoutes.ts` para marcar `consultas` como `base` solo despues de esa confirmacion.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.
@@ -1491,11 +1532,14 @@ Observaciones:
 
 ## Proxima validacion esperada
 
-Guardar los cambios de Transferencias y su documentacion en `chore/inicializacion-frontend`.
+La ruta `/consultas` permanece en estado `pendiente` dentro de `chore/inicializacion-frontend` hasta que el usuario confirme manualmente:
 
-La siguiente implementacion sera Fase 4: Consultas operativas.
+- Aplicacion del periodo con fechas reales.
+- Visibilidad de solo Ventas y Gastos para vendedor.
+- Visibilidad administrativa de Inventario, Cierre y Deposito para administrador y gerente.
+- Historiales centralizados: movimientos de inventario y de deposito visibles en Consultas, no en sus pantallas de registro.
 
-Validacion esperada del siguiente modulo:
+Despues de esa confirmacion se podra marcar `consultas` como `base` y continuar con Fase 4: Auditoria frontend.
 
 - `npm run build` en `frontend/`.
 - Verificacion en navegador de consultas de ventas, gastos, inventario, cierres y deposito con los filtros disponibles por contrato.
