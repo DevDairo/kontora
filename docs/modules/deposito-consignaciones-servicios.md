@@ -86,3 +86,11 @@ Ambas respuestas incluyen el detalle del movimiento con `saldoAnterior`, `saldoP
 - Gerente inicio sesion, visualizo la ruta `/deposito` y consulto saldo e historial; administrador y gerente pueden operar deposito. Vendedor permanece excluido por ruta y backend.
 - Los gastos de caja y las salidas de deposito se mantienen separados: el pago de servicio reduce deposito, pero no crea un registro en `gastos_caja`.
 - Supabase Storage no se configura localmente por decision de despliegue. Si la carga de evidencia recibe `503`, la operacion financiera ya creada conserva el reintento de evidencia; la carga real se validara al configurar Storage en servidor.
+
+## Reorganizacion frontend posterior
+
+- `/deposito` conserva el saldo actual y los formularios de consignacion bancaria y pago de servicio, con confirmacion y evidencia.
+- El historial de `movimientos_deposito`, incluido su filtro por periodo, se centraliza en `/consultas`, pestaña Deposito, con `GET /api/consultas/deposito/movimientos`.
+- La lista trasladada conserva iconografia SVG: `Landmark` identifica `entrada_cierre`; `Building2` identifica salidas por consignacion o pago de servicio. Tambien presenta importe, saldo posterior, usuario, fecha, servicio u observacion cuando aplica.
+- `DepositoPanel` ya no consulta ese endpoint ni recalcula entradas o salidas desde el historial; el saldo sigue siendo devuelto por `GET /api/deposito/saldo`.
+- Validacion tecnica posterior: `npx tsc -b --pretty false`, `npm run build` y navegador confirmaron un historial real de entrada por cierre visible desde Consultas y ausente de Deposito.

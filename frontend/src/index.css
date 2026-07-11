@@ -1416,18 +1416,6 @@ h3 {
   font-weight: 700;
 }
 
-.inventory-toolbar {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(260px, 0.7fr) auto;
-  gap: 14px;
-  align-items: end;
-  margin-bottom: 18px;
-}
-
-.inventory-search {
-  min-width: 0;
-}
-
 .check-control {
   display: inline-flex;
   align-items: center;
@@ -1490,10 +1478,19 @@ h3 {
 
 .inventory-actions-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
 }
 
 .inventory-action-form {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  min-height: 100%;
+}
+
+.inventory-action-fields {
+  display: grid;
+  align-content: start;
   gap: 14px;
 }
 
@@ -1521,17 +1518,11 @@ h3 {
 }
 
 .inventory-panel-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
-.inventory-movement-panel,
-.inventory-adjustment-panel {
-  grid-column: 1 / -1;
-}
-
 .inventory-list,
-.movement-list,
 .adjustment-list {
   display: grid;
   gap: 10px;
@@ -1540,8 +1531,7 @@ h3 {
   list-style: none;
 }
 
-.inventory-row,
-.movement-row {
+.inventory-row {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1558,24 +1548,17 @@ h3 {
 
 .inventory-row strong,
 .inventory-row small,
-.inventory-row em,
-.movement-row strong,
-.movement-row small,
-.movement-row em {
+.inventory-row em {
   display: block;
   overflow-wrap: anywhere;
 }
 
 .inventory-row small,
-.inventory-row em,
-.movement-row small,
-.movement-row em,
-.movement-row time {
+.inventory-row em {
   color: var(--muted);
 }
 
-.inventory-row b,
-.movement-row b {
+.inventory-row b {
   color: #273354;
   font-size: 1rem;
 }
@@ -1626,7 +1609,6 @@ h3 {
   padding: 14px;
 }
 
-.movement-row,
 .adjustment-row {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto minmax(150px, auto);
@@ -1652,14 +1634,12 @@ h3 {
   color: var(--orange);
 }
 
-.movement-row em,
 .adjustment-row em {
   margin-top: 3px;
   font-size: 0.82rem;
   font-style: normal;
 }
 
-.movement-row time,
 .adjustment-row time {
   text-align: right;
   font-size: 0.82rem;
@@ -2463,7 +2443,7 @@ h3 {
 }
 
 .deposito-summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .deposito-summary-card {
@@ -2543,99 +2523,6 @@ h3 {
   color: var(--orange);
 }
 
-.deposito-history-panel {
-  display: grid;
-  gap: 16px;
-}
-
-.deposito-filter-form {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
-  align-items: end;
-  gap: 12px;
-}
-
-.deposito-movements-list {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.deposito-movement-row {
-  display: grid;
-  grid-template-columns: 42px minmax(180px, 1fr) minmax(110px, auto) minmax(135px, auto) auto;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-soft);
-  padding: 12px;
-}
-
-.deposito-movement-icon {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: #eaf8f1;
-  color: var(--green);
-}
-
-.deposito-movement-icon.expense {
-  background: #fff0f1;
-  color: var(--danger);
-}
-
-.deposito-movement-main,
-.deposito-movement-balance {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.deposito-movement-main strong,
-.deposito-movement-balance strong {
-  color: var(--text);
-}
-
-.deposito-movement-main small,
-.deposito-movement-main em,
-.deposito-movement-balance span {
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-style: normal;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.deposito-movement-row > strong {
-  text-align: right;
-}
-
-.deposito-movement-row > strong.income {
-  color: var(--green);
-}
-
-.deposito-movement-row > strong.expense {
-  color: var(--danger);
-}
-
-.deposito-movement-balance {
-  text-align: right;
-}
-
-.deposito-empty {
-  border: 1px dashed var(--line);
-  border-radius: 8px;
-  color: var(--muted);
-  font-weight: 700;
-  padding: 16px;
-  text-align: center;
-}
-
 .deposito-evidence-proof {
   display: flex;
   align-items: center;
@@ -2701,7 +2588,6 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .inventory-toolbar,
   .inventario-summary-grid,
   .inventory-actions-grid,
   .inventory-panel-grid,
@@ -2791,16 +2677,6 @@ h3 {
     width: 100%;
   }
 
-  .deposito-filter-form,
-  .deposito-movement-row {
-    grid-template-columns: 1fr;
-  }
-
-  .deposito-movement-row > strong,
-  .deposito-movement-balance {
-    text-align: left;
-  }
-
   .deposito-status {
     align-items: stretch;
     flex-direction: column;
@@ -2825,7 +2701,6 @@ h3 {
   .gastos-field-row,
   .inventory-form-row,
   .inventory-row dl,
-  .movement-row,
   .adjustment-row,
   .gasto-row,
   .adjustment-actions {
@@ -2841,7 +2716,6 @@ h3 {
     width: 100%;
   }
 
-  .movement-row time,
   .adjustment-row time {
     text-align: left;
   }
@@ -3521,5 +3395,292 @@ h3 {
 
   .transferencias-evidence-list .status-badge {
     width: fit-content;
+  }
+}
+
+.consultas-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.consultas-header {
+  align-items: flex-start;
+}
+
+.consultas-readonly-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--primary);
+  font-weight: 800;
+  padding: 10px 12px;
+}
+
+.consultas-filter-form {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.35fr) minmax(170px, 0.35fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.consultas-tabs {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  overflow-x: auto;
+}
+
+.consultas-tabs button {
+  min-height: 40px;
+  flex: 0 0 auto;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 16px;
+}
+
+.consultas-tabs button:last-child {
+  border-right: 0;
+}
+
+.consultas-tabs button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.consultas-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.consultas-summary-card {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.consultas-summary-card > span,
+.consultas-summary-card small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.consultas-summary-card strong {
+  color: var(--text);
+  font-size: 1.28rem;
+  overflow-wrap: anywhere;
+}
+
+.consultas-data-panel {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 18px;
+}
+
+.consultas-data-panel > .compact-heading > svg {
+  color: var(--primary);
+}
+
+.consultas-record-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.consultas-record-row {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.consultas-record-row.ventas {
+  grid-template-columns: minmax(0, 1fr) minmax(230px, auto) auto;
+}
+
+.consultas-record-row.gastos,
+.consultas-record-row.movimientos {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.consultas-record-row.deposito {
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+}
+
+.consultas-record-row.inventario {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.consultas-record-row strong,
+.consultas-record-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.consultas-deposito-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eaf8f1;
+  color: var(--green);
+}
+
+.consultas-deposito-icon.expense {
+  background: #fff0f1;
+  color: var(--danger);
+}
+
+.consultas-deposito-value.income {
+  color: var(--green);
+}
+
+.consultas-deposito-value.expense {
+  color: var(--danger);
+}
+
+.consultas-deposito-kind {
+  width: fit-content;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.consultas-deposito-kind.income {
+  background: #eaf8f1;
+  color: var(--green);
+}
+
+.consultas-deposito-kind.expense {
+  background: #fff0f1;
+  color: var(--danger);
+}
+
+.consultas-record-row small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.consultas-status {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 6px 10px;
+  text-transform: capitalize;
+}
+
+.consultas-status.activo {
+  background: #e5f7eb;
+  color: var(--success);
+}
+
+.consultas-status.anulado {
+  background: #ffe5e9;
+  color: var(--danger);
+}
+
+.consultas-split-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.consultas-cierre-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.consultas-cierre-grid > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.consultas-cierre-grid span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.consultas-cierre-grid strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.consultas-alert {
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .consultas-summary-grid,
+  .consultas-cierre-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .consultas-split-data {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .consultas-readonly-status,
+  .consultas-tabs {
+    width: 100%;
+  }
+
+  .consultas-tabs button {
+    flex: 1 0 auto;
+  }
+
+  .consultas-filter-form,
+  .consultas-summary-grid,
+  .consultas-cierre-grid,
+  .consultas-record-row.ventas,
+  .consultas-record-row.gastos,
+  .consultas-record-row.movimientos,
+  .consultas-record-row.deposito,
+  .consultas-record-row.inventario {
+    grid-template-columns: 1fr;
+  }
+
+  .consultas-filter-form .primary-button {
+    width: 100%;
   }
 }

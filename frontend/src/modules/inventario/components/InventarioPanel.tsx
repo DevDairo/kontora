@@ -6,7 +6,6 @@ import {
   ClipboardList,
   PackageOpen,
   RefreshCw,
-  Search,
   SlidersHorizontal,
   XCircle,
 } from "lucide-react";
@@ -16,7 +15,6 @@ import { ApiClientError } from "../../../shared/services/apiClient";
 import {
   aprobarAjusteInventario,
   obtenerInventarioSnapshot,
-  obtenerMovimientosInventario,
   rechazarAjusteInventario,
   registrarConsumoDiario,
   registrarPaqueteVasos,
@@ -28,7 +26,6 @@ import type {
   ExistenciaInventarioDiario,
   ExistenciaInventarioGeneral,
   InventarioSnapshot,
-  MovimientoInventario,
   PaqueteVasosAbiertoResponse,
 } from "../types";
 
@@ -69,16 +66,11 @@ function itemLabel(item: { nombreItem: string; onzas: number | null }) {
   return `${item.nombreItem}${item.onzas ? ` · ${item.onzas} oz` : ""}`;
 }
 
-function matchesQuery(value: string, query: string) {
-  return value.toLowerCase().includes(query.trim().toLowerCase());
-}
-
 function emptySnapshot(): InventarioSnapshot {
   return {
     ajustes: [],
     existenciasDiarias: [],
     existenciasGenerales: [],
-    movimientos: [],
   };
 }
 
@@ -89,19 +81,6 @@ function SummaryCard({ label, value, detail }: { label: string; value: number | 
       <strong>{value}</strong>
       <small>{detail}</small>
     </article>
-  );
-}
-
-function GeneralRow({ item }: { item: ExistenciaInventarioGeneral }) {
-  return (
-    <li className="inventory-row">
-      <span>
-        <strong>{itemLabel(item)}</strong>
-        <small>{item.tipoControl}</small>
-      </span>
-      <b>{item.cantidadActual}</b>
-      <em>{formatDateTime(item.fechaActualizacion)}</em>
-    </li>
   );
 }
 
@@ -134,28 +113,6 @@ function DailyRow({ item }: { item: ExistenciaInventarioDiario }) {
           <dd>{item.cantidadFinalTeorica}</dd>
         </div>
       </dl>
-    </li>
-  );
-}
-
-function MovementRow({ movement }: { movement: MovimientoInventario }) {
-  const isEntrada = movement.sentidoMovimiento === "entrada";
-  const Icon = isEntrada ? ArrowUp : ArrowDown;
-
-  return (
-    <li className="movement-row">
-      <div className={`movement-icon ${isEntrada ? "entrada" : "salida"}`}>
-        <Icon size={18} strokeWidth={2.3} />
-      </div>
-      <span>
-        <strong>{movement.nombreItem}</strong>
-        <small>
-          {movement.tipoMovimiento} · {movement.tipoStock} · {movement.nombreUsuarioRegistro}
-        </small>
-        <em>{movement.observacion ?? movement.referenciaOrigen}</em>
-      </span>
-      <b>{movement.cantidad}</b>
-      <time>{formatDateTime(movement.fechaMovimiento)}</time>
     </li>
   );
 }
@@ -226,9 +183,6 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
   const [snapshot, setSnapshot] = useState<InventarioSnapshot>(emptySnapshot);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [idItemFiltro, setIdItemFiltro] = useState("");
-  const [soloCajaAbierta, setSoloCajaAbierta] = useState(false);
   const [idItemPaquete, setIdItemPaquete] = useState("");
   const [cantidadPaquetes, setCantidadPaquetes] = useState("1");
   const [unidadesRotas, setUnidadesRotas] = useState("0");
@@ -291,76 +245,15 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
     [snapshot.existenciasGenerales],
   );
 
-  const filteredGeneral = useMemo(
-    () =>
-      snapshot.existenciasGenerales.filter((item) =>
-        matchesQuery(`${item.nombreItem} ${item.tipoControl} ${item.onzas ?? ""}`, query),
-      ),
-    [query, snapshot.existenciasGenerales],
-  );
-  const filteredDaily = useMemo(
-    () => snapshot.existenciasDiarias.filter((item) => matchesQuery(`${item.nombreItem} ${item.onzas ?? ""}`, query)),
-    [query, snapshot.existenciasDiarias],
-  );
-  const filteredMovements = useMemo(
-    () =>
-      snapshot.movimientos.filter((movement) =>
-        matchesQuery(
-          `${movement.nombreItem} ${movement.tipoMovimiento} ${movement.tipoStock} ${movement.nombreUsuarioRegistro}`,
-          query,
-        ),
-      ),
-    [query, snapshot.movimientos],
-  );
-  const filteredAdjustments = useMemo(
-    () =>
-      snapshot.ajustes.filter((adjustment) =>
-        matchesQuery(
-          `${adjustment.nombreItem} ${adjustment.sentidoAjuste} ${adjustment.estadoAprobacion} ${adjustment.nombreUsuarioSolicitante}`,
-          query,
-        ),
-      ),
-    [query, snapshot.ajustes],
-  );
   const pendingAdjustments = useMemo(
     () => snapshot.ajustes.filter((adjustment) => adjustment.estadoAprobacion === "pendiente").length,
     [snapshot.ajustes],
   );
 
-  const totalGeneral = useMemo(
-    () => snapshot.existenciasGenerales.reduce((total, item) => total + item.cantidadActual, 0),
-    [snapshot.existenciasGenerales],
-  );
   const totalDiario = useMemo(
     () => snapshot.existenciasDiarias.reduce((total, item) => total + item.cantidadFinalTeorica, 0),
     [snapshot.existenciasDiarias],
   );
-
-  async function reloadMovements(nextItemFilter = idItemFiltro, nextSoloCajaAbierta = soloCajaAbierta) {
-    const movimientos = await obtenerMovimientosInventario(token, {
-      idCajaDiaria: nextSoloCajaAbierta ? openCashBoxId : undefined,
-      idItemInventario: nextItemFilter || undefined,
-    });
-    setSnapshot((current) => ({ ...current, movimientos }));
-  }
-
-  async function handleItemFilterChange(value: string) {
-    setIdItemFiltro(value);
-    try {
-      await reloadMovements(value, soloCajaAbierta);
-    } catch (error) {
-      setSubmitMessage(messageFor(error));
-    }
-  }
-
-  async function handleCashBoxFilterChange(checked: boolean) {
-    setSoloCajaAbierta(checked);
-    try {
-      await reloadMovements(idItemFiltro, checked);
-    } catch (error) {
-      setSubmitMessage(messageFor(error));
-    }
-  }
 
   async function handlePackageSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -515,53 +408,14 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
       <section className="section-heading" aria-labelledby="inventario-title">
         <div>
           <p className="eyebrow">Inventario operativo</p>
-          <h1 id="inventario-title">Stock y movimientos</h1>
-          <p className="lead">
-            Consulta existencias reales y registra movimientos operativos autorizados por el backend.
-          </p>
+          <h1 id="inventario-title">Stock diario y operaciones</h1>
+          <p className="lead">Gestiona las operaciones de la jornada y revisa el stock diario.</p>
         </div>
         <button className="ghost-button" type="button" onClick={loadInventory} disabled={loadState === "loading"}>
           <RefreshCw size={17} strokeWidth={2.2} />
           Reintentar
         </button>
       </section>
-
-      <div className="inventory-toolbar panel">
-        <label className="field-label inventory-search">
-          Buscar
-          <div className="field-control">
-            <Search size={18} strokeWidth={2.2} />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Item, movimiento o usuario"
-            />
-          </div>
-        </label>
-        <label className="field-label">
-          Filtrar movimientos por item
-          <div className="field-control plain">
-            <select value={idItemFiltro} onChange={(event) => void handleItemFilterChange(event.target.value)}>
-              <option value="">Todos</option>
-              {snapshot.existenciasGenerales.map((item) => (
-                <option key={item.idItemInventario} value={item.idItemInventario}>
-                  {itemLabel(item)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </label>
-        <label className="check-control">
-          <input
-            type="checkbox"
-            checked={soloCajaAbierta}
-            onChange={(event) => void handleCashBoxFilterChange(event.target.checked)}
-            disabled={!openCashBoxId}
-          />
-          <span>Solo caja abierta</span>
-        </label>
-      </div>
 
       {errorMessage && loadState === "error" ? (
         <div className="form-alert" role="status">
@@ -597,9 +451,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
       ) : null}
 
       <div className="inventario-summary-grid">
-        <SummaryCard label="Items generales" value={snapshot.existenciasGenerales.length} detail={`${totalGeneral} unidades`} />
         <SummaryCard label="Stock diario" value={snapshot.existenciasDiarias.length} detail={`${totalDiario} unidades teoricas`} />
-        <SummaryCard label="Movimientos" value={snapshot.movimientos.length} detail={soloCajaAbierta ? "Caja abierta" : "Todos"} />
         <SummaryCard label="Ajustes" value={snapshot.ajustes.length} detail={`${pendingAdjustments} pendientes`} />
         <SummaryCard label="Gestion" value={managementValue} detail="Backend valida permisos" />
       </div>
@@ -615,44 +467,45 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               <PackageOpen size={22} strokeWidth={2.2} />
             </div>
 
-            <label className="field-label">
-              Vaso
-              <div className="field-control plain">
-                <select value={idItemPaquete} onChange={(event) => setIdItemPaquete(event.target.value)}>
-                  {packageItems.map((item) => (
-                    <option key={item.idItemInventario} value={item.idItemInventario}>
-                      {itemLabel(item)} · stock general {item.cantidadActual}
-                    </option>
-                  ))}
-                </select>
+            <div className="inventory-action-fields">
+              <label className="field-label">
+                Vaso
+                <div className="field-control plain">
+                  <select value={idItemPaquete} onChange={(event) => setIdItemPaquete(event.target.value)}>
+                    {packageItems.map((item) => (
+                      <option key={item.idItemInventario} value={item.idItemInventario}>
+                        {itemLabel(item)} · stock general {item.cantidadActual}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+              <div className="inventory-form-row">
+                <label className="field-label">
+                  Paquetes
+                  <div className="field-control plain">
+                    <input
+                      min="1"
+                      step="1"
+                      type="number"
+                      value={cantidadPaquetes}
+                      onChange={(event) => setCantidadPaquetes(event.target.value)}
+                    />
+                  </div>
+                </label>
+                <label className="field-label">
+                  Unidades rotas
+                  <div className="field-control plain">
+                    <input
+                      min="0"
+                      step="1"
+                      type="number"
+                      value={unidadesRotas}
+                      onChange={(event) => setUnidadesRotas(event.target.value)}
+                    />
+                  </div>
+                </label>
               </div>
-            </label>
-
-            <div className="inventory-form-row">
-              <label className="field-label">
-                Paquetes
-                <div className="field-control plain">
-                  <input
-                    min="1"
-                    step="1"
-                    type="number"
-                    value={cantidadPaquetes}
-                    onChange={(event) => setCantidadPaquetes(event.target.value)}
-                  />
-                </div>
-              </label>
-              <label className="field-label">
-                Unidades rotas
-                <div className="field-control plain">
-                  <input
-                    min="0"
-                    step="1"
-                    type="number"
-                    value={unidadesRotas}
-                    onChange={(event) => setUnidadesRotas(event.target.value)}
-                  />
-                </div>
-              </label>
             </div>
 
             <button
@@ -674,43 +527,45 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               <ClipboardList size={22} strokeWidth={2.2} />
             </div>
 
-            <label className="field-label">
-              Item
-              <div className="field-control plain">
-                <select value={idItemConsumo} onChange={(event) => setIdItemConsumo(event.target.value)}>
-                  {manualItems.map((item) => (
-                    <option key={item.idItemInventario} value={item.idItemInventario}>
-                      {item.nombreItem} · stock general {item.cantidadActual}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
+            <div className="inventory-action-fields">
+              <label className="field-label">
+                Item
+                <div className="field-control plain">
+                  <select value={idItemConsumo} onChange={(event) => setIdItemConsumo(event.target.value)}>
+                    {manualItems.map((item) => (
+                      <option key={item.idItemInventario} value={item.idItemInventario}>
+                        {item.nombreItem} · stock general {item.cantidadActual}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
 
-            <label className="field-label">
-              Cantidad consumida
-              <div className="field-control plain">
-                <input
-                  min="1"
-                  step="1"
-                  type="number"
-                  value={cantidadConsumida}
-                  onChange={(event) => setCantidadConsumida(event.target.value)}
-                />
-              </div>
-            </label>
+              <label className="field-label">
+                Cantidad consumida
+                <div className="field-control plain">
+                  <input
+                    min="1"
+                    step="1"
+                    type="number"
+                    value={cantidadConsumida}
+                    onChange={(event) => setCantidadConsumida(event.target.value)}
+                  />
+                </div>
+              </label>
 
-            <label className="field-label">
-              Observacion
-              <div className="field-control plain">
-                <input
-                  type="text"
-                  value={observacionConsumo}
-                  onChange={(event) => setObservacionConsumo(event.target.value)}
-                  placeholder="Opcional"
-                />
-              </div>
-            </label>
+              <label className="field-label">
+                Observacion
+                <div className="field-control plain">
+                  <input
+                    type="text"
+                    value={observacionConsumo}
+                    onChange={(event) => setObservacionConsumo(event.target.value)}
+                    placeholder="Opcional"
+                  />
+                </div>
+              </label>
+            </div>
 
             <button
               className="primary-button full"
@@ -731,58 +586,60 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               <SlidersHorizontal size={22} strokeWidth={2.2} />
             </div>
 
-            <label className="field-label">
-              Item
-              <div className="field-control plain">
-                <select value={idItemAjuste} onChange={(event) => setIdItemAjuste(event.target.value)}>
-                  {snapshot.existenciasGenerales.map((item) => (
-                    <option key={item.idItemInventario} value={item.idItemInventario}>
-                      {itemLabel(item)} · stock general {item.cantidadActual}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <div className="inventory-form-row">
+            <div className="inventory-action-fields">
               <label className="field-label">
-                Sentido
+                Item
                 <div className="field-control plain">
-                  <select
-                    value={sentidoAjuste}
-                    onChange={(event) => setSentidoAjuste(event.target.value as "entrada" | "salida")}
-                  >
-                    <option value="entrada">Entrada</option>
-                    <option value="salida">Salida</option>
+                  <select value={idItemAjuste} onChange={(event) => setIdItemAjuste(event.target.value)}>
+                    {snapshot.existenciasGenerales.map((item) => (
+                      <option key={item.idItemInventario} value={item.idItemInventario}>
+                        {itemLabel(item)} · stock general {item.cantidadActual}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </label>
+
+              <div className="inventory-form-row">
+                <label className="field-label">
+                  Sentido
+                  <div className="field-control plain">
+                    <select
+                      value={sentidoAjuste}
+                      onChange={(event) => setSentidoAjuste(event.target.value as "entrada" | "salida")}
+                    >
+                      <option value="entrada">Entrada</option>
+                      <option value="salida">Salida</option>
+                    </select>
+                  </div>
+                </label>
+                <label className="field-label">
+                  Cantidad
+                  <div className="field-control plain">
+                    <input
+                      min="1"
+                      step="1"
+                      type="number"
+                      value={cantidadAjuste}
+                      onChange={(event) => setCantidadAjuste(event.target.value)}
+                    />
+                  </div>
+                </label>
+              </div>
+
               <label className="field-label">
-                Cantidad
+                Motivo
                 <div className="field-control plain">
                   <input
-                    min="1"
-                    step="1"
-                    type="number"
-                    value={cantidadAjuste}
-                    onChange={(event) => setCantidadAjuste(event.target.value)}
+                    type="text"
+                    value={motivoAjuste}
+                    onChange={(event) => setMotivoAjuste(event.target.value)}
+                    placeholder="Reabastecimiento, correccion o conteo"
+                    maxLength={1000}
                   />
                 </div>
               </label>
             </div>
-
-            <label className="field-label">
-              Motivo
-              <div className="field-control plain">
-                <input
-                  type="text"
-                  value={motivoAjuste}
-                  onChange={(event) => setMotivoAjuste(event.target.value)}
-                  placeholder="Reabastecimiento, correccion o conteo"
-                  maxLength={1000}
-                />
-              </div>
-            </label>
 
             <button
               className="primary-button full"
@@ -811,61 +668,31 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
         <article className="panel">
           <div className="panel-title">
             <div>
-              <h2>Stock general</h2>
-              <p>GET /api/inventario/existencias/general</p>
-            </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredGeneral.length}`}</span>
-          </div>
-          <ul className="inventory-list">
-            {filteredGeneral.map((item) => (
-              <GeneralRow key={item.idExistenciaGeneral} item={item} />
-            ))}
-          </ul>
-        </article>
-
-        <article className="panel">
-          <div className="panel-title">
-            <div>
               <h2>Stock diario</h2>
               <p>GET /api/inventario/existencias/diarias/abierta</p>
             </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredDaily.length}`}</span>
+            <span className="badge">{loadState === "loading" ? "Cargando" : `${snapshot.existenciasDiarias.length}`}</span>
           </div>
           <ul className="inventory-list">
-            {filteredDaily.length > 0 ? (
-              filteredDaily.map((item) => <DailyRow key={item.idExistenciaDiaria} item={item} />)
+            {snapshot.existenciasDiarias.length > 0 ? (
+              snapshot.existenciasDiarias.map((item) => <DailyRow key={item.idExistenciaDiaria} item={item} />)
             ) : (
               <li className="inventory-empty">Sin stock diario cargado para la caja abierta.</li>
             )}
           </ul>
         </article>
 
-        <article className="panel inventory-movement-panel">
-          <div className="panel-title">
-            <div>
-              <h2>Movimientos</h2>
-              <p>GET /api/inventario/movimientos</p>
-            </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredMovements.length}`}</span>
-          </div>
-          <ul className="movement-list">
-            {filteredMovements.slice(0, 20).map((movement) => (
-              <MovementRow key={movement.idMovimientoInventario} movement={movement} />
-            ))}
-          </ul>
-        </article>
-
-        <article className="panel inventory-adjustment-panel">
+        <article className="panel">
           <div className="panel-title">
             <div>
               <h2>Ajustes de stock general</h2>
               <p>GET /api/inventario/ajustes</p>
             </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredAdjustments.length}`}</span>
+            <span className="badge">{loadState === "loading" ? "Cargando" : `${snapshot.ajustes.length}`}</span>
           </div>
           <ul className="adjustment-list">
-            {filteredAdjustments.length > 0 ? (
-              filteredAdjustments.slice(0, 20).map((adjustment) => (
+            {snapshot.ajustes.length > 0 ? (
+              snapshot.ajustes.slice(0, 20).map((adjustment) => (
                 <AdjustmentRow
                   key={adjustment.idAjusteInventario}
                   adjustment={adjustment}

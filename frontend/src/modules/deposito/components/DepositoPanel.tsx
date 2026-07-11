@@ -1,5 +1,5 @@
-import { AlertCircle, Building2, CheckCircle2, ClipboardList, FileUp, Landmark, RefreshCw, Save, ShieldCheck } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Building2, CheckCircle2, FileUp, Landmark, RefreshCw, Save, ShieldCheck } from "lucide-react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { obtenerTiposServicio } from "../../catalogos/services/catalogosService";
 import type { CatalogoBasico } from "../../catalogos/types";
 import { cargarEvidenciaConsignacionBancaria, cargarEvidenciaPagoServicio } from "../../evidencias/services/evidenciasService";
@@ -8,12 +8,11 @@ import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialo
 import { ApiClientError } from "../../../shared/services/apiClient";
 import { normalizeMoneyInput } from "../../../shared/utils/moneyInput";
 import {
-  consultarMovimientosDeposito,
   obtenerSaldoDeposito,
   registrarConsignacionBancaria,
   registrarPagoServicio,
 } from "../services/depositoService";
-import type { FiltroMovimientosDeposito, MovimientoDeposito, SaldoDeposito } from "../types";
+import type { SaldoDeposito } from "../types";
 
 type LoadState = "loading" | "success" | "error";
 type SubmitAction = "consignacion" | "servicio" | null;
@@ -38,17 +37,6 @@ function formatCurrency(value: number | null | undefined) {
   }).format(Number(value ?? 0));
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) {
-    return "Sin registro";
-  }
-
-  return new Intl.DateTimeFormat("es-CO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
 function messageFor(error: unknown) {
   if (error instanceof ApiClientError) {
     return error.message;
@@ -57,26 +45,8 @@ function messageFor(error: unknown) {
   return error instanceof Error ? error.message : "No fue posible operar el deposito";
 }
 
-function movementLabel(type: string) {
-  if (type === "entrada_cierre") {
-    return "Entrada por cierre";
-  }
-  if (type === "salida_consignacion") {
-    return "Consignacion bancaria";
-  }
-  if (type === "salida_pago_servicio") {
-    return "Pago de servicio";
-  }
-  return type;
-}
-
-function isSalida(movimiento: MovimientoDeposito) {
-  return movimiento.tipoMovimientoDeposito.startsWith("salida_");
-}
-
 export function DepositoPanel({ token }: DepositoPanelProps) {
   const [saldo, setSaldo] = useState<SaldoDeposito | null>(null);
-  const [movimientos, setMovimientos] = useState<MovimientoDeposito[]>([]);
   const [tiposServicio, setTiposServicio] = useState<CatalogoBasico[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -87,8 +57,6 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [pendingEvidence, setPendingEvidence] = useState<PendingEvidence>(null);
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
   const [valorConsignacion, setValorConsignacion] = useState("");
   const [observacionConsignacion, setObservacionConsignacion] = useState("");
   const [evidenciaConsignacion, setEvidenciaConsignacion] = useState<File | null>(null);
@@ -100,23 +68,20 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
   const evidenciaServicioRef = useRef<HTMLInputElement>(null);
 
   const cargarDatos = useCallback(
-    async (filtro: FiltroMovimientosDeposito = {}) => {
+    async () => {
       setLoadState("loading");
       setErrorMessage(null);
 
       try {
-        const [saldoResponse, movimientosResponse, tiposServicioResponse] = await Promise.all([
+        const [saldoResponse, tiposServicioResponse] = await Promise.all([
           obtenerSaldoDeposito(token),
-          consultarMovimientosDeposito(token, filtro),
           obtenerTiposServicio(token),
         ]);
         setSaldo(saldoResponse);
-        setMovimientos(movimientosResponse);
         setTiposServicio(tiposServicioResponse);
         setLoadState("success");
       } catch (error) {
         setSaldo(null);
-        setMovimientos([]);
         setLoadState("error");
         setErrorMessage(messageFor(error));
       }
@@ -127,42 +92,6 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
   useEffect(() => {
     void cargarDatos();
   }, [cargarDatos]);
-
-  const resumen = useMemo(() => {
-    const entradas = movimientos.filter((movimiento) => !isSalida(movimiento));
-    const salidas = movimientos.filter(isSalida);
-
-    return {
-      entradas: entradas.reduce((total, movimiento) => total + movimiento.valorMovimiento, 0),
-      salidas: salidas.reduce((total, movimiento) => total + movimiento.valorMovimiento, 0),
-    };
-  }, [movimientos]);
-
-  function filtroActual(): FiltroMovimientosDeposito {
-    return {
-      fechaFin: fechaFin || undefined,
-      fechaInicio: fechaInicio || undefined,
-    };
-  }
-
-  function handleConsultarMovimientos(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (fechaInicio && fechaFin && fechaFin < fechaInicio) {
-      setActionMessage("La fecha final no puede ser anterior a la fecha inicial.");
-      return;
-    }
-
-    setActionMessage(null);
-    void cargarDatos(filtroActual());
-  }
-
-  function handleHistorialCompleto() {
-    setFechaInicio("");
-    setFechaFin("");
-    setActionMessage(null);
-    void cargarDatos();
-  }
 
   function handleConsignacionSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -303,7 +232,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
     } finally {
       setPendingAction(null);
       setSubmittingAction(null);
-      void cargarDatos(filtroActual());
+      void cargarDatos();
     }
   }
 
@@ -330,7 +259,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
           <h1 id="deposito-title">Deposito, consignaciones y servicios</h1>
           <p className="lead">Consulta el saldo real del deposito y registra salidas administrativas con evidencia.</p>
         </div>
-        <button className="ghost-button" type="button" onClick={() => void cargarDatos(filtroActual())} disabled={loadState === "loading" || isSubmitting}>
+        <button className="ghost-button" type="button" onClick={() => void cargarDatos()} disabled={loadState === "loading" || isSubmitting}>
           <RefreshCw size={17} strokeWidth={2.2} />
           Actualizar
         </button>
@@ -348,16 +277,6 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
           <span>Saldo actual</span>
           <strong>{formatCurrency(saldo?.saldoActual)}</strong>
           <small>Devuelto por backend</small>
-        </article>
-        <article className="deposito-summary-card income">
-          <span>Entradas mostradas</span>
-          <strong>{formatCurrency(resumen.entradas)}</strong>
-          <small>Incluye cierres de caja</small>
-        </article>
-        <article className="deposito-summary-card expense">
-          <span>Salidas mostradas</span>
-          <strong>{formatCurrency(resumen.salidas)}</strong>
-          <small>Consignaciones y servicios</small>
         </article>
       </section>
 
@@ -515,77 +434,12 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
         </div>
       ) : null}
 
-      <article className="panel deposito-history-panel">
-        <div className="panel-title">
-          <div>
-            <h2>Historial de movimientos</h2>
-            <p>Consulta completa o por periodo. El saldo se toma siempre de backend.</p>
-          </div>
-          <ClipboardList size={22} strokeWidth={2.2} />
+      {lastEvidence ? (
+        <div className="deposito-evidence-proof">
+          <CheckCircle2 size={18} strokeWidth={2.2} />
+          <span>Evidencia registrada: {lastEvidence.nombreArchivo}</span>
         </div>
-
-        <form className="deposito-filter-form" onSubmit={handleConsultarMovimientos}>
-          <label className="field-label">
-            Fecha inicial
-            <div className="field-control plain">
-              <input type="date" value={fechaInicio} onChange={(event) => setFechaInicio(event.target.value)} disabled={isSubmitting} />
-            </div>
-          </label>
-          <label className="field-label">
-            Fecha final
-            <div className="field-control plain">
-              <input type="date" value={fechaFin} onChange={(event) => setFechaFin(event.target.value)} disabled={isSubmitting} />
-            </div>
-          </label>
-          <button className="primary-button" type="submit" disabled={isSubmitting || loadState === "loading"}>
-            <ClipboardList size={18} strokeWidth={2.2} />
-            Consultar
-          </button>
-          <button className="ghost-button" type="button" onClick={handleHistorialCompleto} disabled={isSubmitting || loadState === "loading"}>
-            <RefreshCw size={17} strokeWidth={2.2} />
-            Ver completo
-          </button>
-        </form>
-
-        <ul className="deposito-movements-list">
-          {movimientos.length > 0 ? (
-            movimientos.map((movimiento) => {
-              const salida = isSalida(movimiento);
-
-              return (
-                <li className="deposito-movement-row" key={movimiento.idMovimientoDeposito}>
-                  <div className={`deposito-movement-icon ${salida ? "expense" : "income"}`}>
-                    {salida ? <Building2 size={18} strokeWidth={2.2} /> : <Landmark size={18} strokeWidth={2.2} />}
-                  </div>
-                  <div className="deposito-movement-main">
-                    <strong>{movementLabel(movimiento.tipoMovimientoDeposito)}</strong>
-                    <small>
-                      {movimiento.nombreUsuarioRegistro} - {formatDateTime(movimiento.fechaMovimiento)}
-                    </small>
-                    {movimiento.nombreServicio ? <em>Servicio: {movimiento.nombreServicio}</em> : null}
-                    {movimiento.observacion ? <em>{movimiento.observacion}</em> : null}
-                  </div>
-                  <strong className={salida ? "expense" : "income"}>{salida ? "- " : "+ "}{formatCurrency(movimiento.valorMovimiento)}</strong>
-                  <div className="deposito-movement-balance">
-                    <span>Saldo posterior</span>
-                    <strong>{formatCurrency(movimiento.saldoPosterior)}</strong>
-                  </div>
-                  <span className={`badge ${salida ? "warning" : "success"}`}>{salida ? "Salida" : "Entrada"}</span>
-                </li>
-              );
-            })
-          ) : (
-            <li className="deposito-empty">No hay movimientos para el periodo consultado.</li>
-          )}
-        </ul>
-
-        {lastEvidence ? (
-          <div className="deposito-evidence-proof">
-            <CheckCircle2 size={18} strokeWidth={2.2} />
-            <span>Evidencia registrada: {lastEvidence.nombreArchivo}</span>
-          </div>
-        ) : null}
-      </article>
+      ) : null}
 
       <ConfirmationDialog
         confirmLabel={pendingAction?.kind === "consignacion" ? "Registrar consignacion" : "Registrar pago"}

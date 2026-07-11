@@ -57,8 +57,3 @@ export type MovimientoDepositoBase = Omit<
   MovimientoDeposito,
   "idConsignacionBancaria" | "idPagoServicio" | "nombreServicio"
 >;
-
-export type FiltroMovimientosDeposito = {
-  fechaInicio?: string;
-  fechaFin?: string;
-};

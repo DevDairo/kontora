@@ -26,23 +26,6 @@ export type ExistenciaInventarioDiario = {
   diferencia: number | null;
 };
 
-export type MovimientoInventario = {
-  idMovimientoInventario: string;
-  idItemInventario: string;
-  nombreItem: string;
-  idCajaDiaria: string | null;
-  tipoStock: string;
-  tipoMovimiento: string;
-  cantidad: number;
-  sentidoMovimiento: string;
-  referenciaOrigen: string;
-  idReferenciaOrigen: string;
-  observacion: string | null;
-  idUsuarioRegistro: string;
-  nombreUsuarioRegistro: string;
-  fechaMovimiento: string;
-};
-
 export type AjusteInventario = {
   idAjusteInventario: string;
   idItemInventario: string;
@@ -117,5 +100,4 @@ export type InventarioSnapshot = {
   ajustes: AjusteInventario[];
   existenciasGenerales: ExistenciaInventarioGeneral[];
   existenciasDiarias: ExistenciaInventarioDiario[];
-  movimientos: MovimientoInventario[];
 };

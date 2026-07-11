@@ -95,3 +95,11 @@ No se agregan migraciones nuevas. Todas las consultas son `GET` y se ejecutan de
 - La ruta `/transferencias` consume `GET /api/consultas/transferencias` por periodo y solicita en paralelo los estados `pendiente` y `rechazada` para presentar sus contadores.
 - El endpoint no devuelve transferencias `validada`; una vez decidida, la pantalla actualiza la lista y la trazabilidad se consulta mediante auditoria.
 - Para cada transferencia seleccionada, el frontend consulta `GET /api/evidencias/pagos-venta/{idPagoVenta}` y presenta metadata autorizada sin exponer la ruta interna de Storage como enlace publico.
+
+## Implementacion frontend de Consultas
+
+- La pantalla React se implemento en `docs/modules/consultas-operativas-frontend.md` y consume exclusivamente los endpoints `GET` de este modulo.
+- La consulta por periodo centraliza el historial de movimientos de inventario y de deposito, evitando duplicar esas listas en `/inventario` y `/deposito`.
+- El historial de deposito conserva señales visuales: `Landmark` para `entrada_cierre` y `Building2` para `salida_consignacion` o `salida_pago_servicio`.
+- `vendedor` recibe solo Ventas y Gastos en la interfaz; administrador y gerente reciben ademas Inventario, Cierre y Deposito. Esta visibilidad es de experiencia de usuario y no sustituye los permisos backend.
+- La ruta permanece con estado `pendiente` hasta completar la confirmacion manual final de filtros de fecha y roles.

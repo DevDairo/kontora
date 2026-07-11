@@ -1,8 +1,6 @@
 import { apiClient } from "../../../shared/services/apiClient";
 import type {
   ConsignacionBancaria,
-  FiltroMovimientosDeposito,
-  MovimientoDeposito,
   PagoServicio,
   RegistrarConsignacionBancariaRequest,
   RegistrarPagoServicioRequest,
@@ -13,26 +11,8 @@ function jsonBody<T>(payload: T) {
   return JSON.stringify(payload);
 }
 
-function movimientoQuery(filtro: FiltroMovimientosDeposito) {
-  const params = new URLSearchParams();
-
-  if (filtro.fechaInicio) {
-    params.set("fechaInicio", filtro.fechaInicio);
-  }
-  if (filtro.fechaFin) {
-    params.set("fechaFin", filtro.fechaFin);
-  }
-
-  const query = params.toString();
-  return query ? `?${query}` : "";
-}
-
 export function obtenerSaldoDeposito(token: string) {
   return apiClient.get<SaldoDeposito>("/deposito/saldo", { token });
-}
-
-export function consultarMovimientosDeposito(token: string, filtro: FiltroMovimientosDeposito = {}) {
-  return apiClient.get<MovimientoDeposito[]>(`/consultas/deposito/movimientos${movimientoQuery(filtro)}`, { token });
 }
 
 export function registrarConsignacionBancaria(token: string, request: RegistrarConsignacionBancariaRequest) {

@@ -213,7 +213,7 @@ Vendedor / Administrador / Gerente.
 
 ### Objetivo
 
-Controlar el stock general, el stock diario de vasos, sus movimientos y los ajustes auditables desde contratos reales del backend.
+Gestionar stock diario de vasos, apertura de paquetes, consumos manuales y ajustes auditables desde contratos reales del backend.
 
 ### Actor principal
 
@@ -225,7 +225,6 @@ Administrador / Gerente.
 - `GET /api/inventario/existencias/diarias/abierta`
 - `POST /api/inventario/paquetes-vasos`
 - `POST /api/inventario/consumos-diarios`
-- `GET /api/inventario/movimientos`
 - `GET /api/inventario/ajustes`
 - `POST /api/inventario/ajustes`
 - `POST /api/inventario/ajustes/{idAjusteInventario}/aprobar`
@@ -235,9 +234,10 @@ Administrador / Gerente.
 
 - Gerente registra y aplica directamente ajustes de stock general, incluso si no hay caja diaria abierta.
 - Administrador solicita ajustes; solo gerente puede aprobarlos o rechazarlos.
-- Sin caja abierta, la pantalla conserva stock general, movimientos y ajustes, pero deshabilita apertura de paquetes y consumos diarios.
+- Sin caja abierta, la pantalla conserva ajustes y deshabilita apertura de paquetes y consumos diarios.
 - El stock diario del nuevo dia conserva el remanente del dia anterior por item de vaso; no se inicializa vacio por el cambio de caja.
 - Vendedor no ve la ruta ni puede acceder a `/inventario`; el backend conserva la autoridad final de permisos.
+- El listado consolidado de stock general y los movimientos se consultan desde `/consultas`; Inventario conserva las existencias generales solo para seleccionar y validar operaciones.
 
 ### Evidencia de prueba
 
@@ -372,7 +372,6 @@ Administrador / Gerente.
 ### Endpoints consumidos
 
 - `GET /api/deposito/saldo`.
-- `GET /api/consultas/deposito/movimientos`.
 - `POST /api/deposito/consignaciones-bancarias`.
 - `POST /api/deposito/pagos-servicios`.
 - `GET /api/catalogos/tipos-servicio`.
@@ -380,8 +379,7 @@ Administrador / Gerente.
 
 ### Campos y controles
 
-- Saldo actual, entradas y salidas calculados desde respuestas backend.
-- Filtros opcionales `fechaInicio` y `fechaFin`.
+- Saldo actual devuelto por backend.
 - `valorConsignado`, `observacion` y evidencia de consignacion.
 - `idTipoServicio`, `valorPagado`, `descripcion` y evidencia de pago de servicio.
 - Confirmacion antes de cada salida y accion de reintento de evidencia pendiente.
@@ -391,8 +389,9 @@ Administrador / Gerente.
 - Solo se muestra para administrador y gerente; vendedor no ve la ruta.
 - Cada importe es positivo y no puede exceder el saldo devuelto por backend.
 - Una consignacion o pago no se envia hasta seleccionar evidencia y confirmar la operacion.
-- El saldo posterior y el historial se actualizan desde backend despues de crear la salida.
+- El saldo se actualiza desde backend despues de crear la salida.
 - La falta de Supabase Storage local no revierte el registro financiero: se informa evidencia pendiente y se conserva su reintento.
+- El historial por periodo se consulta desde `/consultas`, pestaña Deposito, para evitar duplicar movimientos en una pantalla de registro.
 
 ### Evidencia de prueba
 
@@ -402,6 +401,46 @@ Administrador / Gerente.
 - Pago de servicio de `$2.500` y consignacion de `$28.000` dejaron saldo disponible de `$19.500`, coincidente con historial y backend.
 - Gerente inicio sesion y visualizo la ruta y el panel `/deposito` con sus controles habilitados.
 - El usuario confirmo manualmente la validacion del modulo.
+
+## Pantalla: Consultas operativas
+
+### Objetivo
+
+Centralizar reportes internos de solo lectura por periodo, sin duplicar historiales en Inventario ni Deposito.
+
+### Actor principal
+
+Vendedor / Administrador / Gerente, segun la vista autorizada.
+
+### Endpoints consumidos
+
+- `GET /api/consultas/ventas`.
+- `GET /api/consultas/gastos`.
+- `GET /api/consultas/inventario/actual`.
+- `GET /api/consultas/inventario/movimientos`.
+- `GET /api/consultas/cierre`.
+- `GET /api/consultas/deposito/movimientos`.
+
+### Campos y controles
+
+- Fecha inicial, fecha final y accion `Actualizar`.
+- Pestañas de Ventas y Gastos para vendedor.
+- Pestañas adicionales de Inventario, Cierre y Deposito para administrador y gerente.
+- Los movimientos de deposito conservan iconos SVG para distinguir entradas por cierre de salidas administrativas.
+
+### Validaciones de interfaz
+
+- Ninguna vista modifica ventas, gastos, inventario, cierres ni deposito.
+- El periodo se aplica de forma explicita con `Actualizar`.
+- Un cierre inexistente se muestra como estado vacio controlado.
+- Inventario concentra existencias consolidadas y movimientos; Deposito concentra historial y saldo posterior de cada movimiento.
+- El desglose de stock diario por tipo de granizado no se implementa: el stock fisico canonico sigue siendo unico por tamano y no se modificaron backend ni schema.
+
+### Evidencia de prueba
+
+- `npx tsc -b --pretty false` y `npm run build`: exitosos.
+- Navegador con gerente verifico ventas, gastos, inventario, cierre sin registro y movimientos de deposito reales.
+- La ruta mantiene estado pendiente hasta la confirmacion manual final de filtros y roles.
 
 ## Pantalla: Evidencias administrativas
 
@@ -541,12 +580,13 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 3. Panel de caja abierta. Implementado y validado.
 4. Catalogos necesarios para formularios. Implementado y validado.
 5. Registro de venta y pagos. Implementado y validado.
-6. Inventario operativo. Implementado y validado.
+6. Inventario operativo. Implementado y validado; consultas consolidadas trasladadas a Consultas.
 7. Gastos, adiciones y pago trabajadores. Implementado y validado.
 8. Cierre de caja. Implementado y validado.
-9. Deposito, consignaciones y servicios. Implementado y validado.
+9. Deposito, consignaciones y servicios. Implementado y validado; historial trasladado a Consultas.
 10. Evidencias. Implementado y validado.
 11. Transferencias y validacion administrativa. Implementado y validado.
-12. Auditoria y consultas. Pendientes.
+12. Consultas operativas. Desarrollado y con validacion tecnica; pendiente confirmacion manual final.
+13. Auditoria. Pendiente.
 
-Los modulos listados como implementados cuentan con validacion manual del usuario. El siguiente cierre funcional pendiente es Consultas, seguido de Auditoria.
+Los modulos listados como implementados cuentan con validacion manual del usuario, salvo Consultas, que requiere confirmacion manual final antes de marcarse como base. El siguiente cierre funcional pendiente es Consultas, seguido de Auditoria.
