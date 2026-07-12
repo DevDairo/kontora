@@ -177,6 +177,14 @@ Vendedor / Administrador / Gerente.
 - Descripción de prueba manual realizada.
 ```
 
+### Registro actual: gestion administrativa de catalogos
+
+La pantalla `/catalogos` conserva la consulta de datos maestros y agrega una vista de gestion para administrador y gerente. Esta vista integra los endpoints reales para crear, editar, activar o inactivar items de inventario y registrar vigencias de precio.
+
+La validacion de interfaz distingue los dos controles de item definidos por los requisitos: `manual_por_consumo` para consumibles y `automatico_por_venta` para vasos. El segundo exige categoria `vasos`, tamano activo y paquetes fijos de 20 unidades. La configuracion de precios se realiza separadamente por tipo de granizado y tamano, y no altera el stock ni el control automatico de vasos.
+
+La autoridad final se mantiene en backend: permisos, existencia inicial en cero, restriccion de inactivacion con stock, proteccion de estructura cuando hay movimientos, vigencia e historial de precios y auditoria de cambios.
+
 ---
 
 ## 4.7. Pull Requests recomendadas del frontend

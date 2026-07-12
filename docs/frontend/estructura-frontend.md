@@ -22,6 +22,7 @@ frontend/
 |   |   |-- evidencias/
 |   |   |-- gastos/
 |   |   |-- inventario/
+|   |   |-- usuarios/
 |   |   `-- ventas/
 |   |-- shared/
 |   |   |-- components/
@@ -44,6 +45,7 @@ frontend/
 - `src/app`: composicion global, providers y rutas declaradas.
 - `src/modules`: superficie reservada para pantallas por modulo funcional.
 - `src/modules/auth`: login, proveedor de sesion, servicio de autenticacion y almacenamiento controlado de token.
+- `src/modules/usuarios`: gestion exclusiva de gerente para crear, editar y cambiar el estado de acceso de usuarios.
 - `src/shared/components`: componentes visuales reutilizables.
 - `src/shared/hooks`: hooks transversales para comprobaciones tecnicas cuando una vista los requiere.
 - `src/shared/services`: cliente HTTP y servicios de API.
@@ -110,17 +112,19 @@ Archivos principales:
 
 ```text
 frontend/src/modules/catalogos/components/CatalogosPanel.tsx
+frontend/src/modules/catalogos/components/CatalogosGestionPanel.tsx
 frontend/src/modules/catalogos/services/catalogosService.ts
 frontend/src/modules/catalogos/types.ts
 ```
 
 Responsabilidades:
 
-- `CatalogosPanel` consulta y muestra datos maestros activos para formularios.
-- `catalogosService` consume endpoints reales de `GET /api/catalogos/...`.
-- `types.ts` conserva los contratos reales de catalogos, precios vigentes, promociones e items de inventario.
+- `CatalogosPanel` consulta y muestra datos maestros activos, y habilita la vista `Gestion` solo a administrador y gerente.
+- `CatalogosGestionPanel` administra consumibles, vasos automaticos, estado de items y vigencias de precios mediante contratos reales.
+- `catalogosService` consume endpoints de consulta y gestion en `GET`, `POST` y `PUT` bajo `/api/catalogos/...`.
+- `types.ts` conserva los contratos reales de catalogos, precios, promociones e items de inventario.
 
-La pantalla es de solo lectura. La vigencia definitiva y las reglas de aplicacion se mantienen en backend.
+La consulta es de solo lectura. La gestion no duplica reglas: backend conserva la autoridad sobre permisos, stock inicial, restricciones de inactivacion, estructura de items, vigencia y auditoria. La alta visual conserva consumo manual y vaso por venta con paquetes de 20 unidades; la configuracion de precios es un flujo separado por tipo y tamano.
 
 ## Registro de ventas y pagos
 

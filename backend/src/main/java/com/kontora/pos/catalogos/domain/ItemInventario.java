@@ -3,11 +3,13 @@ package com.kontora.pos.catalogos.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -17,6 +19,8 @@ import java.util.UUID;
 public class ItemInventario {
 
     @Id
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id_item_inventario", nullable = false)
     private UUID idItemInventario;
 
@@ -60,35 +64,71 @@ public class ItemInventario {
         return categoriaInventario;
     }
 
+    public void setCategoriaInventario(CategoriaInventario categoriaInventario) {
+        this.categoriaInventario = categoriaInventario;
+    }
+
     public UnidadMedida getUnidadMedida() {
         return unidadMedida;
+    }
+
+    public void setUnidadMedida(UnidadMedida unidadMedida) {
+        this.unidadMedida = unidadMedida;
     }
 
     public TamanoVaso getTamanoVaso() {
         return tamanoVaso;
     }
 
+    public void setTamanoVaso(TamanoVaso tamanoVaso) {
+        this.tamanoVaso = tamanoVaso;
+    }
+
     public String getNombreItem() {
         return nombreItem;
+    }
+
+    public void setNombreItem(String nombreItem) {
+        this.nombreItem = nombreItem;
     }
 
     public String getTipoControl() {
         return tipoControl;
     }
 
+    public void setTipoControl(String tipoControl) {
+        this.tipoControl = tipoControl;
+    }
+
     public boolean isManejaPaquetes() {
         return manejaPaquetes;
+    }
+
+    public void setManejaPaquetes(boolean manejaPaquetes) {
+        this.manejaPaquetes = manejaPaquetes;
     }
 
     public Integer getUnidadesPorPaquete() {
         return unidadesPorPaquete;
     }
 
+    public void setUnidadesPorPaquete(Integer unidadesPorPaquete) {
+        this.unidadesPorPaquete = unidadesPorPaquete;
+    }
+
     public String getEstado() {
         return estado;
     }
 
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
     public OffsetDateTime getFechaCreacion() {
         return fechaCreacion;
+    }
+
+    public void setFechaCreacion(OffsetDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
     }
 }

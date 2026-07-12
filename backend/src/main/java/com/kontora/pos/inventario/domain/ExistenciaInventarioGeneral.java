@@ -57,4 +57,8 @@ public class ExistenciaInventarioGeneral {
     public OffsetDateTime getFechaActualizacion() {
         return fechaActualizacion;
     }
+
+    public void setFechaActualizacion(OffsetDateTime fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
+    }
 }

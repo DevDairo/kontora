@@ -27,6 +27,11 @@ El modulo se implementa sobre las tablas reales del schema:
 | POST | `/api/auth/login` | No | Iniciar sesion con `nombreUsuario` y `contrasena`. |
 | GET | `/api/auth/me` | Si | Consultar usuario autenticado. |
 | POST | `/api/auth/logout` | Si | Cerrar la sesion actual. |
+| GET | `/api/usuarios` | Gerente | Consultar usuarios registrados. |
+| GET | `/api/usuarios/roles` | Gerente | Consultar roles activos asignables. |
+| POST | `/api/usuarios` | Gerente | Crear un usuario con su credencial inicial. |
+| PUT | `/api/usuarios/{idUsuario}` | Gerente | Editar nombre, usuario y rol. |
+| PUT | `/api/usuarios/{idUsuario}/estado` | Gerente | Activar, inactivar o bloquear sin eliminar historial. |
 
 ## Reglas de negocio implementadas
 
@@ -38,6 +43,12 @@ El modulo se implementa sobre las tablas reales del schema:
 - Para acceder a endpoints protegidos, el token debe estar firmado, no expirado y tener una sesion `activa`.
 - Al cerrar sesion, `sesiones_usuario.estado_sesion` pasa a `cerrada` y se registra `fecha_cierre`.
 - Luego del logout, el mismo token ya no autoriza endpoints protegidos.
+- Solo el rol `gerente` puede gestionar usuarios; `administrador` y `vendedor` reciben `403`.
+- La creacion acepta los roles activos `vendedor`, `administrador` y `gerente`; el nombre de usuario es alfanumerico de 3 a 50 caracteres.
+- La contrasena inicial se almacena con BCrypt, nunca se devuelve al cliente y marca la credencial con `requiere_cambio_contrasena = true`.
+- No existe eliminacion de usuarios. Los estados `activo`, `inactivo` y `bloqueado` conservan el historial operativo.
+- Un gerente no puede inactivar ni bloquear su propio usuario.
+- Crear, editar y cambiar estado genera auditoria sobre `usuarios`, con snapshots sin contrasena.
 
 ## Estados usados
 
@@ -54,10 +65,22 @@ El modulo se implementa sobre las tablas reales del schema:
 - Logout de sesion actual.
 - Rechazo del token despues del logout.
 - Rechazo de login para usuario bloqueado.
+- `GestionUsuariosIntegrationTest`: gerente crea, edita y bloquea un usuario; su token deja de autorizar y se conservan tres eventos de auditoria.
+- `GestionUsuariosIntegrationTest`: administrador y vendedor reciben `403` al gestionar usuarios; gerente consulta usuarios y roles activos.
+- `BootstrapManagerInitializerTest`: el gerente inicial se crea solo con la tabla `usuarios` vacia y no altera instalaciones existentes.
+- `npm run build` en `frontend/`: exitoso.
+- Validacion manual del usuario: panel `/usuarios` revisado correctamente con rol gerente.
 
-## Pendientes
+## Alcance cerrado
 
-- Administracion completa de usuarios y cambio de contrasena se desarrollara cuando se definan sus flujos operativos.
+- RF-03, RF-04 y RF-05 quedan cubiertos para la gestion gerencial de usuarios conforme a CU-GER-01.
+- La pantalla `/usuarios` queda como `Base lista` y solo se muestra al gerente; el backend conserva la autorizacion final.
+- El cambio o restablecimiento de contrasena no pertenece a esta interfaz porque no existe aun un flujo ni endpoint dedicado. Se tratara como un modulo posterior sin modificar las reglas actuales.
+
+## Provision inicial para despliegue
+
+- El backend puede crear `gerenteLocal` al primer arranque de una base vacia cuando `BOOTSTRAP_MANAGER_ENABLED=true` y las variables `BOOTSTRAP_MANAGER_*` estan definidas en `infra/.env`.
+- La configuracion de la maquina virtual se documenta en `docs/deployment/guia-despliegue-poc.md`; las contrasenas reales no se versionan.
 
 ## Actualizaciones posteriores
 

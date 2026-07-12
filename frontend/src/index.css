@@ -1144,6 +1144,254 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.catalog-view-tabs {
+  display: inline-flex;
+  min-height: 42px;
+  overflow: hidden;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.catalog-view-tabs button {
+  min-width: 118px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.catalog-view-tabs button + button {
+  border-left: 1px solid var(--line);
+}
+
+.catalog-view-tabs button.active {
+  background: #eef5ff;
+  color: var(--primary);
+}
+
+.catalog-management {
+  display: grid;
+  gap: 18px;
+}
+
+.catalog-management-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.catalog-management-heading h2 {
+  margin: 4px 0 6px;
+  font-size: 1.25rem;
+}
+
+.catalog-management-heading p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.catalog-management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.catalog-management-form-panel,
+.catalog-management-list-panel {
+  min-width: 0;
+}
+
+.catalog-management-form,
+.catalog-management-list {
+  display: grid;
+  gap: 14px;
+}
+
+.catalog-management-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.catalog-management-full {
+  grid-column: 1 / -1;
+}
+
+.catalog-control-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.catalog-control-switch button {
+  min-height: 42px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.catalog-control-switch button + button {
+  border-left: 1px solid var(--line);
+}
+
+.catalog-control-switch button.active {
+  background: #eef5ff;
+  color: var(--primary);
+}
+
+.catalog-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.catalog-management-message {
+  margin: 14px 0 0;
+  color: var(--green);
+  font-weight: 800;
+}
+
+.catalog-item-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.catalog-item-state > div {
+  display: grid;
+  gap: 5px;
+}
+
+.catalog-item-state span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.catalog-state-button {
+  color: var(--danger);
+}
+
+.catalog-management-search {
+  margin-bottom: 14px;
+}
+
+.catalog-management-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-management-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 18px;
+  align-items: center;
+  width: 100%;
+  gap: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalog-management-row.selected {
+  border-color: rgba(7, 95, 242, 0.42);
+  background: #eef5ff;
+}
+
+.catalog-management-row span,
+.catalog-management-row strong,
+.catalog-management-row small {
+  min-width: 0;
+}
+
+.catalog-management-row strong,
+.catalog-management-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.catalog-management-row small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.catalog-management-row em {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  text-align: right;
+}
+
+.catalog-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.catalog-status.activo {
+  background: #eaf8f1;
+  color: var(--green);
+}
+
+.catalog-status.inactivo {
+  background: #fff0f1;
+  color: var(--danger);
+}
+
+.catalog-price-history {
+  max-height: 460px;
+  overflow: auto;
+}
+
+.catalog-price-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.catalog-price-history-row strong,
+.catalog-price-history-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.catalog-price-history-row small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.catalog-price-history-row > b {
+  white-space: nowrap;
+}
+
 .ventas-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
@@ -4253,5 +4501,75 @@ h3 {
   .evidence-filter-form.module-filter-bar,
   .consultas-filter-form.module-filter-bar {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .catalog-management-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .catalog-view-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .catalog-view-tabs button {
+    min-width: 0;
+  }
+
+  .catalog-management-heading,
+  .catalog-item-state {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .catalog-management-heading .icon-button {
+    align-self: end;
+  }
+
+  .catalog-management-form {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-management-full {
+    grid-column: auto;
+  }
+
+  .catalog-management-actions .primary-button,
+  .catalog-management-actions .ghost-button,
+  .catalog-item-state .catalog-state-button {
+    width: 100%;
+  }
+
+  .catalog-management-row {
+    grid-template-columns: minmax(0, 1fr) 18px;
+  }
+
+  .catalog-management-row em {
+    grid-column: 1 / 2;
+    text-align: left;
+  }
+
+  .catalog-management-row .catalog-status {
+    grid-column: 1 / 2;
+    justify-self: start;
+  }
+
+  .catalog-management-row svg {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .catalog-price-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .catalog-price-history-row .catalog-status {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 }

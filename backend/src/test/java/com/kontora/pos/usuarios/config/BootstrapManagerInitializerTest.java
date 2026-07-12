@@ -21,7 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class BootstrapManagerInitializerTest {
 
     @Test
-    void provisionaUnGerenteActivoConCredencialHasheadaCuandoNoExisteElUsuarioConfigurado() throws Exception {
+    void provisionaUnGerenteActivoConCredencialHasheadaCuandoNoExistenUsuarios() throws Exception {
         BootstrapManagerProperties properties = propiedadesValidas();
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
         RolRepository rolRepository = mock(RolRepository.class);
@@ -29,7 +29,7 @@ class BootstrapManagerInitializerTest {
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         Rol rolGerente = new Rol();
 
-        when(usuarioRepository.findByNombreUsuario("gerenteLocal")).thenReturn(Optional.empty());
+        when(usuarioRepository.count()).thenReturn(0L);
         when(rolRepository.findByNombreRol("gerente")).thenReturn(Optional.of(rolGerente));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(passwordEncoder.encode("ClaveLocal2026")).thenReturn("bcrypt-hash");
@@ -54,12 +54,12 @@ class BootstrapManagerInitializerTest {
     }
 
     @Test
-    void noHaceCambiosCuandoYaExisteElUsuarioConfigurado() throws Exception {
+    void noHaceCambiosCuandoYaExisteAlMenosUnUsuario() throws Exception {
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
         RolRepository rolRepository = mock(RolRepository.class);
         CredencialUsuarioRepository credencialRepository = mock(CredencialUsuarioRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-        when(usuarioRepository.findByNombreUsuario("gerenteLocal")).thenReturn(Optional.of(new Usuario()));
+        when(usuarioRepository.count()).thenReturn(1L);
 
         crearInicializador(propiedadesValidas(), usuarioRepository, rolRepository, credencialRepository, passwordEncoder).run(null);
 

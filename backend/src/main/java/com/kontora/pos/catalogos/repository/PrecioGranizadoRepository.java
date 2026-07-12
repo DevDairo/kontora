@@ -3,6 +3,8 @@ package com.kontora.pos.catalogos.repository;
 import com.kontora.pos.catalogos.domain.PrecioGranizado;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
@@ -41,4 +43,26 @@ public interface PrecioGranizadoRepository extends JpaRepository<PrecioGranizado
             @Param("idTipoGranizado") UUID idTipoGranizado,
             @Param("idTamanoVaso") UUID idTamanoVaso,
             @Param("fecha") LocalDate fecha);
+
+    @Query("""
+            SELECT pg
+            FROM PrecioGranizado pg
+            JOIN FETCH pg.tipoGranizado
+            JOIN FETCH pg.tamanoVaso
+            ORDER BY pg.tipoGranizado.nombreTipo, pg.tamanoVaso.onzas, pg.fechaInicioVigencia DESC
+            """)
+    List<PrecioGranizado> findAllParaGestion();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT pg
+            FROM PrecioGranizado pg
+            WHERE pg.tipoGranizado.idTipoGranizado = :idTipoGranizado
+              AND pg.tamanoVaso.idTamanoVaso = :idTamanoVaso
+              AND pg.estado = 'activo'
+              AND pg.fechaFinVigencia IS NULL
+            """)
+    Optional<PrecioGranizado> findPrecioAbiertoForUpdate(
+            @Param("idTipoGranizado") UUID idTipoGranizado,
+            @Param("idTamanoVaso") UUID idTamanoVaso);
 }

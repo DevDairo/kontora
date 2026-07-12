@@ -2,12 +2,14 @@ import { Database, RefreshCw, Search, Tags } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import { formatDisplayName } from "../../../shared/utils/displayText";
+import { CatalogosGestionPanel } from "./CatalogosGestionPanel";
 import { obtenerCatalogosFormulario } from "../services/catalogosService";
 import type { CatalogosFormulario, ItemInventario, PrecioGranizado, Promocion } from "../types";
 
 type LoadState = "loading" | "success" | "error";
 
 type CatalogosPanelProps = {
+  canManage: boolean;
   token: string;
 };
 
@@ -102,12 +104,13 @@ function ItemRow({ item }: { item: ItemInventario }) {
   );
 }
 
-export function CatalogosPanel({ token }: CatalogosPanelProps) {
+export function CatalogosPanel({ canManage, token }: CatalogosPanelProps) {
   const [catalogos, setCatalogos] = useState<CatalogosFormulario | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fechaVigencia, setFechaVigencia] = useState(todayLocalDate);
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<"consulta" | "gestion">("consulta");
 
   const loadCatalogos = useCallback(async () => {
     setLoadState("loading");
@@ -154,131 +157,148 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
         </button>
       </section>
 
-      <div className="catalog-toolbar panel">
-        <label className="field-label">
-          Fecha de vigencia
-          <div className="field-control plain">
-            <input type="date" value={fechaVigencia} onChange={(event) => setFechaVigencia(event.target.value)} />
-          </div>
-        </label>
-
-        <label className="field-label catalog-search">
-          Buscar
-          <div className="field-control">
-            <Search size={18} strokeWidth={2.2} />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Granizado, item o promocion"
-            />
-          </div>
-        </label>
-      </div>
-
-      {errorMessage && loadState === "error" ? (
-        <div className="form-alert" role="status">
-          <Database size={18} strokeWidth={2.2} />
-          <span>{errorMessage}</span>
+      {canManage ? (
+        <div className="catalog-view-tabs" role="tablist" aria-label="Vistas de catalogos">
+          <button className={view === "consulta" ? "active" : ""} type="button" role="tab" aria-selected={view === "consulta"} onClick={() => setView("consulta")}>
+            Consulta
+          </button>
+          <button className={view === "gestion" ? "active" : ""} type="button" role="tab" aria-selected={view === "gestion"} onClick={() => setView("gestion")}>
+            Administrar
+          </button>
         </div>
       ) : null}
 
-      <div className="catalog-summary-grid">
-        <article className="catalog-summary-card">
-          <Database size={22} strokeWidth={2.2} />
-          <span>Metodos de pago</span>
-          <strong>{catalogos?.metodosPago.length ?? 0}</strong>
-        </article>
-        <article className="catalog-summary-card">
-          <Tags size={22} strokeWidth={2.2} />
-          <span>Tipos granizado</span>
-          <strong>{catalogos?.tiposGranizado.length ?? 0}</strong>
-        </article>
-        <article className="catalog-summary-card">
-          <Database size={22} strokeWidth={2.2} />
-          <span>Items inventario</span>
-          <strong>{catalogos?.itemsInventario.length ?? 0}</strong>
-        </article>
-        <article className="catalog-summary-card">
-          <Tags size={22} strokeWidth={2.2} />
-          <span>Promociones vigentes</span>
-          <strong>{catalogos?.promocionesVigentes.length ?? 0}</strong>
-        </article>
-      </div>
+      {view === "gestion" && canManage ? (
+        <CatalogosGestionPanel catalogos={catalogos} onCatalogosChanged={() => void loadCatalogos()} token={token} />
+      ) : (
+        <>
+          <div className="catalog-toolbar panel">
+            <label className="field-label">
+              Fecha de vigencia
+              <div className="field-control plain">
+                <input type="date" value={fechaVigencia} onChange={(event) => setFechaVigencia(event.target.value)} />
+              </div>
+            </label>
 
-      <div className="catalog-panel-grid">
-        <article className="panel">
-          <div className="panel-title">
-            <div>
-              <h2>Precios vigentes</h2>
-              <p>Valores disponibles para ventas</p>
-            </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredPrices.length}`}</span>
+            <label className="field-label catalog-search">
+              Buscar
+              <div className="field-control">
+                <Search size={18} strokeWidth={2.2} />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Granizado, item o promocion"
+                />
+              </div>
+            </label>
           </div>
-          <ul className="catalog-list">
-            {filteredPrices.map((precio) => (
-              <PriceRow key={precio.idPrecioGranizado} precio={precio} />
-            ))}
-          </ul>
-        </article>
 
-        <article className="panel">
-          <div className="panel-title">
-            <div>
-              <h2>Promociones</h2>
-              <p>Beneficios aplicables en la jornada</p>
+          {errorMessage && loadState === "error" ? (
+            <div className="form-alert" role="status">
+              <Database size={18} strokeWidth={2.2} />
+              <span>{errorMessage}</span>
             </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredPromos.length}`}</span>
-          </div>
-          <ul className="catalog-list">
-            {filteredPromos.map((promocion) => (
-              <PromoRow key={promocion.idPromocion} promocion={promocion} />
-            ))}
-          </ul>
-        </article>
+          ) : null}
 
-        <article className="panel">
-          <div className="panel-title">
-            <div>
-              <h2>Inventario activo</h2>
-              <p>Insumos y vasos registrados</p>
-            </div>
-            <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredItems.length}`}</span>
+          <div className="catalog-summary-grid">
+            <article className="catalog-summary-card">
+              <Database size={22} strokeWidth={2.2} />
+              <span>Metodos de pago</span>
+              <strong>{catalogos?.metodosPago.length ?? 0}</strong>
+            </article>
+            <article className="catalog-summary-card">
+              <Tags size={22} strokeWidth={2.2} />
+              <span>Tipos granizado</span>
+              <strong>{catalogos?.tiposGranizado.length ?? 0}</strong>
+            </article>
+            <article className="catalog-summary-card">
+              <Database size={22} strokeWidth={2.2} />
+              <span>Items inventario</span>
+              <strong>{catalogos?.itemsInventario.length ?? 0}</strong>
+            </article>
+            <article className="catalog-summary-card">
+              <Tags size={22} strokeWidth={2.2} />
+              <span>Promociones vigentes</span>
+              <strong>{catalogos?.promocionesVigentes.length ?? 0}</strong>
+            </article>
           </div>
-          <ul className="catalog-list">
-            {filteredItems.map((item) => (
-              <ItemRow key={item.idItemInventario} item={item} />
-            ))}
-          </ul>
-        </article>
 
-        <article className="panel">
-          <div className="panel-title">
-            <div>
-              <h2>Listas base</h2>
-              <p>Referencias disponibles</p>
-            </div>
+          <div className="catalog-panel-grid">
+            <article className="panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Precios vigentes</h2>
+                  <p>Valores disponibles para ventas</p>
+                </div>
+                <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredPrices.length}`}</span>
+              </div>
+              <ul className="catalog-list">
+                {filteredPrices.map((precio) => (
+                  <PriceRow key={precio.idPrecioGranizado} precio={precio} />
+                ))}
+              </ul>
+            </article>
+
+            <article className="panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Promociones</h2>
+                  <p>Beneficios aplicables en la jornada</p>
+                </div>
+                <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredPromos.length}`}</span>
+              </div>
+              <ul className="catalog-list">
+                {filteredPromos.map((promocion) => (
+                  <PromoRow key={promocion.idPromocion} promocion={promocion} />
+                ))}
+              </ul>
+            </article>
+
+            <article className="panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Inventario activo</h2>
+                  <p>Insumos y vasos registrados</p>
+                </div>
+                <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredItems.length}`}</span>
+              </div>
+              <ul className="catalog-list">
+                {filteredItems.map((item) => (
+                  <ItemRow key={item.idItemInventario} item={item} />
+                ))}
+              </ul>
+            </article>
+
+            <article className="panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Listas base</h2>
+                  <p>Referencias disponibles</p>
+                </div>
+              </div>
+              <dl className="catalog-base-list">
+                <div>
+                  <dt>Tamanos vaso</dt>
+                  <dd>{catalogos?.tamanosVaso.map((tamano) => `${tamano.onzas} oz`).join(", ") || "Sin datos"}</dd>
+                </div>
+                <div>
+                  <dt>Unidades</dt>
+                  <dd>{catalogos?.unidadesMedida.map((unidad) => unidad.abreviatura).join(", ") || "Sin datos"}</dd>
+                </div>
+                <div>
+                  <dt>Categorias</dt>
+                  <dd>{catalogos?.categoriasInventario.map((categoria) => formatDisplayName(categoria.nombre)).join(", ") || "Sin datos"}</dd>
+                </div>
+                <div>
+                  <dt>Servicios</dt>
+                  <dd>{catalogos?.tiposServicio.map((servicio) => formatDisplayName(servicio.nombre)).join(", ") || "Sin datos"}</dd>
+                </div>
+              </dl>
+            </article>
           </div>
-          <dl className="catalog-base-list">
-            <div>
-              <dt>Tamanos vaso</dt>
-              <dd>{catalogos?.tamanosVaso.map((tamano) => `${tamano.onzas} oz`).join(", ") || "Sin datos"}</dd>
-            </div>
-            <div>
-              <dt>Unidades</dt>
-              <dd>{catalogos?.unidadesMedida.map((unidad) => unidad.abreviatura).join(", ") || "Sin datos"}</dd>
-            </div>
-            <div>
-              <dt>Categorias</dt>
-              <dd>{catalogos?.categoriasInventario.map((categoria) => formatDisplayName(categoria.nombre)).join(", ") || "Sin datos"}</dd>
-            </div>
-            <div>
-              <dt>Servicios</dt>
-              <dd>{catalogos?.tiposServicio.map((servicio) => formatDisplayName(servicio.nombre)).join(", ") || "Sin datos"}</dd>
-            </div>
-          </dl>
-        </article>
-      </div>
+        </>
+      )}
     </>
   );
 }

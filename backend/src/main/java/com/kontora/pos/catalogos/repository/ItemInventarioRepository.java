@@ -25,6 +25,18 @@ public interface ItemInventarioRepository extends JpaRepository<ItemInventario, 
             """, nativeQuery = true)
     List<ItemInventario> findActivosParaOperacion();
 
+    @Query("""
+            SELECT ii
+            FROM ItemInventario ii
+            JOIN FETCH ii.categoriaInventario
+            JOIN FETCH ii.unidadMedida
+            LEFT JOIN FETCH ii.tamanoVaso
+            ORDER BY ii.nombreItem
+            """)
+    List<ItemInventario> findAllParaGestion();
+
+    Optional<ItemInventario> findByNombreItem(String nombreItem);
+
     @Query(value = """
             SELECT ii.*
             FROM items_inventario ii
