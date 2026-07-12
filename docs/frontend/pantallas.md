@@ -102,7 +102,7 @@ La pantalla no expone endpoints de negocio ni indicadores tecnicos en la interfa
 - Con sesion valida se muestra el panel correspondiente a `nombreRol`.
 - `vendedor` ve navegacion operativa: ventas, caja, gastos, transferencias y consultas. No ve interfaces independientes de Inventario, Catalogos ni Evidencias.
 - `administrador` ve Inventario y Catalogos, ademas de las rutas administrativas de cierre, deposito, evidencias y auditoria.
-- `gerente` ve navegacion gerencial con visibilidad administrativa completa.
+- `gerente` ve navegacion gerencial con visibilidad administrativa completa, incluida la gestion de Usuarios.
 - El frontend no decide permisos finales; el backend sigue siendo autoridad.
 - En escritorio el menu lateral permanece visible; en movil se abre desde el icono de barras y se cierra al navegar.
 - Usuario y cierre de sesion permanecen en la esquina superior derecha.
@@ -570,6 +570,38 @@ Vendedor / Administrador / Gerente.
 - Consola del navegador sin errores ni advertencias.
 - Verificacion manual del usuario completada antes de documentar el cierre.
 
+## Pantalla: Gestion de usuarios
+
+### Objetivo
+
+Permitir que el gerente gestione los usuarios internos conforme a RF-03 y RF-04, sin eliminar su historial operativo.
+
+### Actor principal
+
+Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/usuarios`.
+- `GET /api/usuarios/roles`.
+- `POST /api/usuarios`.
+- `PUT /api/usuarios/{idUsuario}`.
+- `PUT /api/usuarios/{idUsuario}/estado`.
+
+### Validaciones de interfaz
+
+- La ruta solo es visible para gerente y el backend mantiene la autorizacion.
+- El formulario permite crear usuarios con roles activos, editar sus datos y cambiar su estado entre activo, inactivo y bloqueado.
+- La interfaz filtra el directorio por texto y estado, y confirma antes de aplicar un cambio de acceso.
+- No hay accion de eliminacion. La propia cuenta gerente no puede bloquearse ni inactivarse.
+- Las contrasenas iniciales se envian solo al crear y no se muestran despues.
+
+### Evidencia de prueba
+
+- `npm run build`: exitoso.
+- `GestionUsuariosIntegrationTest` y `BootstrapManagerInitializerTest`: exitosos.
+- El usuario reviso manualmente el apartado `/usuarios` y confirmo su funcionamiento correcto.
+
 ## Orden previsto de pantallas
 
 Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
@@ -586,6 +618,7 @@ Fuente: `docs/development/fases/fase_4_frontend_validacion.md`.
 10. Evidencias. Implementado y validado.
 11. Transferencias y validacion administrativa. Implementado y validado.
 12. Consultas operativas. Desarrollado y con validacion tecnica; pendiente confirmacion manual final.
-13. Auditoria. Pendiente.
+13. Gestion de usuarios. Implementado y validado; exclusivo del gerente.
+14. Auditoria. Pendiente.
 
-Los modulos listados como implementados cuentan con validacion manual del usuario, salvo Consultas, que requiere confirmacion manual final antes de marcarse como base. El siguiente cierre funcional pendiente es Consultas, seguido de Auditoria.
+Los modulos listados como implementados cuentan con validacion manual del usuario, salvo Consultas, que requiere confirmacion manual final antes de marcarse como base. Gestion de usuarios queda como Base lista. El siguiente cierre funcional pendiente es Consultas, seguido de Auditoria.

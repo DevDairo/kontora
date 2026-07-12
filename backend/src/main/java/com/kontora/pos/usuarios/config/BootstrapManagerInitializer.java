@@ -45,14 +45,15 @@ public class BootstrapManagerInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        validarConfiguracion();
-        String nombreUsuario = properties.getUsername().trim();
-        if (usuarioRepository.findByNombreUsuario(nombreUsuario).isPresent()) {
+        if (usuarioRepository.count() > 0) {
+            LOGGER.info("Se omite la provisión del gerente inicial porque ya existen usuarios.");
             return;
         }
 
+        validarConfiguracion();
+        String nombreUsuario = properties.getUsername().trim();
         Rol rolGerente = rolRepository.findByNombreRol(ROL_GERENTE)
-                .orElseThrow(() -> new IllegalStateException("No existe el rol gerente para la provisión inicial"));
+                .orElseThrow(() -> new IllegalStateException("No existe el rol gerente para la provision inicial"));
         OffsetDateTime ahora = OffsetDateTime.now(ZoneOffset.UTC);
 
         Usuario gerente = new Usuario();
@@ -72,7 +73,7 @@ public class BootstrapManagerInitializer implements ApplicationRunner {
         credencial.setEstado("activa");
         credencialUsuarioRepository.save(credencial);
 
-        LOGGER.info("Se provisionó el gerente inicial local '{}'.", gerenteGuardado.getNombreUsuario());
+        LOGGER.info("Se provisionó el gerente inicial '{}'.", gerenteGuardado.getNombreUsuario());
     }
 
     private void validarConfiguracion() {

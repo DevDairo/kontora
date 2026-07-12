@@ -22,6 +22,7 @@ frontend/
 |   |   |-- evidencias/
 |   |   |-- gastos/
 |   |   |-- inventario/
+|   |   |-- usuarios/
 |   |   `-- ventas/
 |   |-- shared/
 |   |   |-- components/
@@ -44,6 +45,7 @@ frontend/
 - `src/app`: composicion global, providers y rutas declaradas.
 - `src/modules`: superficie reservada para pantallas por modulo funcional.
 - `src/modules/auth`: login, proveedor de sesion, servicio de autenticacion y almacenamiento controlado de token.
+- `src/modules/usuarios`: gestion exclusiva de gerente para crear, editar y cambiar el estado de acceso de usuarios.
 - `src/shared/components`: componentes visuales reutilizables.
 - `src/shared/hooks`: hooks transversales para comprobaciones tecnicas cuando una vista los requiere.
 - `src/shared/services`: cliente HTTP y servicios de API.

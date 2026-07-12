@@ -320,7 +320,7 @@ export const appRoutes: AppRoute[] = [
     id: "usuarios",
     label: "Usuarios",
     path: "/usuarios",
-    status: "pendiente",
+    status: "base",
     description: "Gestion gerencial de usuarios, roles y estados de acceso con trazabilidad.",
     endpoints: [
       "GET /api/usuarios",

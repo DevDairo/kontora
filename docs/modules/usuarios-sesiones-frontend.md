@@ -1,4 +1,4 @@
-# Pantalla: Login y sesion frontend
+# Modulo: Autenticacion, sesion y gestion de usuarios frontend
 
 ## Objetivo
 
@@ -119,6 +119,50 @@ Logout vuelve a /login
 Consola sin errores durante el flujo
 ```
 
-## Pendiente de cierre
+## Pantalla: Gestion de usuarios
 
-El modulo no debe marcarse como completado en `docs/AVANCE_PROYECTO.md` hasta que el usuario confirme manualmente en navegador que el flujo funciona correctamente.
+### Objetivo
+
+Permitir que el gerente cree, edite, asigne roles y cambie el estado de acceso de los usuarios sin eliminar su historial.
+
+### Actor principal
+
+Gerente.
+
+### Endpoints consumidos
+
+- `GET /api/usuarios`.
+- `GET /api/usuarios/roles`.
+- `POST /api/usuarios`.
+- `PUT /api/usuarios/{idUsuario}`.
+- `PUT /api/usuarios/{idUsuario}/estado`.
+
+### Controles y reglas de interfaz
+
+- El directorio permite buscar por nombre, usuario o rol y filtrar por estado.
+- El formulario crea usuarios con nombre completo, nombre de usuario alfanumerico, rol, contrasena inicial y confirmacion.
+- La edicion permite cambiar nombre completo, usuario y rol; nunca muestra ni reenvia el hash de contrasena.
+- Activar, inactivar y bloquear requieren confirmacion previa. La propia cuenta gerente no puede inactivarse ni bloquearse desde la interfaz.
+- La navegacion muestra `/usuarios` solo al gerente. El backend sigue validando el rol en todos los endpoints.
+- La interfaz no ofrece eliminar usuarios porque RF-04 exige conservar el historial operativo.
+
+### Archivos principales
+
+```text
+frontend/src/modules/usuarios/components/UsuariosPanel.tsx
+frontend/src/modules/usuarios/services/usuariosService.ts
+frontend/src/modules/usuarios/types.ts
+frontend/src/modules/usuarios/index.ts
+frontend/src/app/routes/appRoutes.ts
+```
+
+### Evidencia de prueba
+
+- `npm run build`: exitoso.
+- Pruebas backend: `GestionUsuariosIntegrationTest` y `BootstrapManagerInitializerTest`, sin fallos.
+- El usuario confirmo manualmente que el apartado de usuarios funciona correctamente con gerente.
+- La ruta queda marcada como `Base lista`.
+
+## Validacion manual confirmada
+
+El usuario confirmo el funcionamiento del acceso y de la gestion de usuarios en navegador. El modulo queda cerrado para RF-03, RF-04 y RF-05; un futuro flujo de cambio o restablecimiento de contrasena queda fuera de este alcance.

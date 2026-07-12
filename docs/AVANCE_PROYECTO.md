@@ -4,11 +4,11 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 ## Estado actual
 
-- Fecha de registro: 2026-07-11.
+- Fecha de registro: 2026-07-12.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Consultas operativas frontend desarrollado e integrado; pendiente confirmacion manual final.
-- Fase anterior validada: Fase 4, Transferencias y validacion administrativa frontend.
-- Siguiente hito: confirmar manualmente Consultas operativas y avanzar a Auditoria frontend.
+- Fase actual: Fase 4, Gestion de usuarios frontend validada y marcada como base; Consultas y Auditoria conservan sus validaciones pendientes documentadas.
+- Fase anterior validada: Fase 4, Gestion de usuarios frontend.
+- Siguiente hito: completar las validaciones manuales pendientes de Consultas y Auditoria frontend.
 
 ## Fase 1: Creacion del proyecto y entorno Docker
 
@@ -162,7 +162,7 @@ Observaciones:
 
 - No se modifico el schema para acomodarlo al codigo.
 - La auditoria explicita de login/logout quedo implementada posteriormente en el modulo "Auditoria transversal".
-- La administracion completa de usuarios y cambio de contrasena quedan fuera de este modulo inicial y se retomaran cuando correspondan por flujo documentado.
+- La administracion de usuarios se implemento posteriormente en Fase 4. El cambio o restablecimiento de contrasena conserva un flujo pendiente independiente.
 
 ## Fase 3: Modulo 2 - Caja diaria
 
@@ -1631,3 +1631,47 @@ docker pull maven:3.9-eclipse-temurin-21
 ```
 
 Si esos comandos fallan con `lookup registry-1.docker.io: no such host`, se debe corregir DNS/proxy de Docker Desktop antes de repetir la validacion del backend.
+
+## Fase 4: Gestion de usuarios frontend
+
+Estado: base lista, validada tecnicamente y confirmada manualmente por el usuario.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Requisitos cubiertos:
+
+- RF-03: gestion de usuarios con roles `vendedor`, `administrador` y `gerente`.
+- RF-04: activacion, inactivacion y bloqueo sin eliminar historial operativo.
+- RF-05: trazabilidad de creacion, edicion y cambio de estado sobre `auditoria_operaciones`.
+- CU-GER-01: crear, editar, inactivar, bloquear usuarios y asignar roles.
+
+Cambios realizados:
+
+- Se implemento `UsuariosPanel` y la ruta `/usuarios`, visible solo al gerente.
+- Se integraron los endpoints reales de lista, roles activos, creacion, edicion y cambio de estado.
+- La interfaz incluye directorio filtrable, formulario de alta y edicion, confirmacion de cambios de acceso y proteccion para que un gerente no restrinja su propia cuenta.
+- Se marco la ruta `usuarios` como `Base lista` en `appRoutes.ts`.
+- Se preparo el inicializador opcional del gerente inicial para una base vacia, gobernado por `BOOTSTRAP_MANAGER_*` en `infra/.env` y documentado para la maquina virtual.
+
+Documentacion actualizada:
+
+- `docs/modules/usuarios-sesiones.md`.
+- `docs/modules/usuarios-sesiones-frontend.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/deployment/guia-despliegue-poc.md`.
+
+Validacion realizada:
+
+- `BootstrapManagerInitializerTest`: 2 pruebas, sin fallos ni errores.
+- `GestionUsuariosIntegrationTest`: 3 pruebas, sin fallos ni errores.
+- `npm run build` en `frontend/`: exitoso.
+- El usuario confirmo manualmente que el apartado de usuarios funciona correctamente con rol gerente.
+
+Observaciones:
+
+- Solo gerente puede gestionar usuarios. Administrador y vendedor permanecen excluidos por frontend y backend.
+- No se implemento cambio ni restablecimiento de contrasena porque requiere un flujo y contrato propios.
+- No se hicieron commits, merges ni cambios de rama.
