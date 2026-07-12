@@ -1502,6 +1502,43 @@ Pendiente de cierre:
 - Confirmacion manual final de filtros de fecha y de visibilidad con vendedor, administrador y gerente.
 - Actualizar `appRoutes.ts` para marcar `consultas` como `base` solo despues de esa confirmacion.
 
+## Fase 4: Ajustes responsive y limpieza visual de interfaz
+
+Estado: implementado; compilacion exitosa y patron de inicio de sesion revisado visualmente.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Cambios realizados:
+
+- Se actualizo la shell para usar menu desplegable en movil, con usuario y cierre de sesion en la parte superior derecha.
+- Se retiraron indicadores visuales de API, integracion local, estado de ruta y endpoints internos.
+- Se unificaron las barras de filtros de Transferencias, Evidencias y Consultas con la accion `Consultar`.
+- Se traslado el formulario de Adiciones diarias a Ventas. Caja conserva el resumen financiero y la proyeccion de efectivo sin duplicar la accion.
+- Se mejoro la presentacion de Inventario y Catalogos: nombres legibles sin guiones bajos, sin UUIDs ni rutas API visibles, y grids uniformes.
+- Se reemplazo la maqueta decorativa de `/login` por un patron diagonal que llena el panel derecho sobre fondo `#f5f8fc`.
+
+Documentacion actualizada:
+
+- `docs/frontend/ajustes-responsive-interfaz.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- Documentos frontend de Layout, Ventas, Gastos, Inventario, Catalogos, Transferencias, Evidencias y Consultas.
+
+Validacion tecnica realizada:
+
+- `npx tsc -b --pretty false`: exitoso.
+- `npm run build`: exitoso.
+- `/login` revisado visualmente en escritorio con el nuevo patron.
+
+Observaciones:
+
+- No se modificaron backend, schema, contratos ni permisos.
+- La validacion funcional autenticada por rol se conserva como verificacion manual antes de cerrar por completo la iteracion visual.
+- No se hizo commit, merge ni cambio de rama.
+
 ## Reglas activas para las siguientes fases
 
 - La base de datos sigue siendo la fuente principal de verdad.

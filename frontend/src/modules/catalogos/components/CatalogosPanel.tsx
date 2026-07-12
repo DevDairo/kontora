@@ -1,6 +1,7 @@
 import { Database, RefreshCw, Search, Tags } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiClientError } from "../../../shared/services/apiClient";
+import { formatDisplayName } from "../../../shared/utils/displayText";
 import { obtenerCatalogosFormulario } from "../services/catalogosService";
 import type { CatalogosFormulario, ItemInventario, PrecioGranizado, Promocion } from "../types";
 
@@ -62,7 +63,7 @@ function PriceRow({ precio }: { precio: PrecioGranizado }) {
   return (
     <li className="catalog-row">
       <span>
-        <strong>{precio.nombreTipo}</strong>
+        <strong>{formatDisplayName(precio.nombreTipo)}</strong>
         <small>{precio.onzas} oz</small>
       </span>
       <b>{formatCurrency(precio.valorPrecio)}</b>
@@ -74,9 +75,9 @@ function PromoRow({ promocion }: { promocion: Promocion }) {
   return (
     <li className="catalog-row stacked">
       <span>
-        <strong>{promocion.nombrePromocion}</strong>
+        <strong>{formatDisplayName(promocion.nombrePromocion)}</strong>
         <small>
-          {promocion.nombreTipo} · {promocion.onzas} oz · {promocion.tipoBeneficiario}
+          {formatDisplayName(promocion.nombreTipo)} · {promocion.onzas} oz · {formatDisplayName(promocion.tipoBeneficiario)}
         </small>
       </span>
       <b>{formatCurrency(promocion.valorPromocional)}</b>
@@ -89,9 +90,9 @@ function ItemRow({ item }: { item: ItemInventario }) {
   return (
     <li className="catalog-row stacked">
       <span>
-        <strong>{item.nombreItem}</strong>
+        <strong>{formatDisplayName(item.nombreItem)}</strong>
         <small>
-          {item.nombreCategoria} · {item.nombreUnidad}
+          {formatDisplayName(item.nombreCategoria)} · {formatDisplayName(item.nombreUnidad)}
           {item.onzas ? ` · ${item.onzas} oz` : ""}
         </small>
       </span>
@@ -145,9 +146,7 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
         <div>
           <p className="eyebrow">Catalogos base</p>
           <h1 id="catalogos-title">Catalogos para formularios</h1>
-          <p className="lead">
-            Consulta datos maestros activos desde la API real para preparar ventas, inventario, gastos y servicios.
-          </p>
+          <p className="lead">Consulta precios, promociones e insumos disponibles para la operacion diaria.</p>
         </div>
         <button className="ghost-button" type="button" onClick={loadCatalogos} disabled={loadState === "loading"}>
           <RefreshCw size={17} strokeWidth={2.2} />
@@ -212,7 +211,7 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
           <div className="panel-title">
             <div>
               <h2>Precios vigentes</h2>
-              <p>GET /api/catalogos/precios-granizado/vigentes</p>
+              <p>Valores disponibles para ventas</p>
             </div>
             <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredPrices.length}`}</span>
           </div>
@@ -227,7 +226,7 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
           <div className="panel-title">
             <div>
               <h2>Promociones</h2>
-              <p>GET /api/catalogos/promociones/vigentes</p>
+              <p>Beneficios aplicables en la jornada</p>
             </div>
             <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredPromos.length}`}</span>
           </div>
@@ -242,7 +241,7 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
           <div className="panel-title">
             <div>
               <h2>Inventario activo</h2>
-              <p>GET /api/catalogos/items-inventario</p>
+              <p>Insumos y vasos registrados</p>
             </div>
             <span className="badge">{loadState === "loading" ? "Cargando" : `${filteredItems.length}`}</span>
           </div>
@@ -257,7 +256,7 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
           <div className="panel-title">
             <div>
               <h2>Listas base</h2>
-              <p>Catalogos activos</p>
+              <p>Referencias disponibles</p>
             </div>
           </div>
           <dl className="catalog-base-list">
@@ -271,11 +270,11 @@ export function CatalogosPanel({ token }: CatalogosPanelProps) {
             </div>
             <div>
               <dt>Categorias</dt>
-              <dd>{catalogos?.categoriasInventario.map((categoria) => categoria.nombre).join(", ") || "Sin datos"}</dd>
+              <dd>{catalogos?.categoriasInventario.map((categoria) => formatDisplayName(categoria.nombre)).join(", ") || "Sin datos"}</dd>
             </div>
             <div>
               <dt>Servicios</dt>
-              <dd>{catalogos?.tiposServicio.map((servicio) => servicio.nombre).join(", ") || "Sin datos"}</dd>
+              <dd>{catalogos?.tiposServicio.map((servicio) => formatDisplayName(servicio.nombre)).join(", ") || "Sin datos"}</dd>
             </div>
           </dl>
         </article>

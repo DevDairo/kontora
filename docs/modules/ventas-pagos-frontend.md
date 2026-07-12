@@ -35,6 +35,7 @@ El panel usa:
 - El pago mixto registra solo el valor necesario por cada metodo. Un excedente en efectivo se trata como cambio; un excedente de transferencia se bloquea antes de enviar.
 - El pago de transferencia se registra pendiente de validacion segun la respuesta de backend.
 - El comprobante se envia como `FormData` al backend despues de registrar la venta. El navegador no contiene llaves de Supabase.
+- Adiciones diarias se registran desde Ventas. El formulario se habilita solo con caja abierta y conserva el contrato real de operaciones de caja.
 
 ## Validacion realizada
 
@@ -62,3 +63,9 @@ El usuario confirmo la revision manual final el 2026-07-09.
 
 - La consulta y decision administrativa de transferencias se implemento despues en `/transferencias`; ver `docs/modules/transferencias-validacion-frontend.md`.
 - El 2026-07-10 se validaron desde la interfaz una transferencia pura de `$12.000` y la porcion transferida de `$8.000` de un pago mixto. Ambas quedaron en estado `validada` con auditoria sobre `pagos_venta`.
+
+### Actualizacion visual del 2026-07-11
+
+- El encabezado deja de mostrar el endpoint tecnico.
+- `AdicionesDiariasPanel` se incorpora a la ruta `/ventas`; consulta la caja abierta y el registro existente antes de habilitar su formulario.
+- No se modificaron los contratos `POST /api/ventas` ni `POST /api/operaciones-caja/adiciones-diarias`.

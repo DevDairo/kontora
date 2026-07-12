@@ -106,3 +106,9 @@ El usuario confirmo continuar despues de revisar la pantalla de catalogos en nav
 ## Pendiente siguiente
 
 - Implementar registro de venta y pagos consumiendo `POST /api/ventas` y catalogos reales.
+
+## Actualizacion visual del 2026-07-11
+
+- Se sustituyeron los textos de endpoints visibles por descripciones funcionales de precios, promociones e inventario.
+- Los nombres visibles de items, tipos, categorias y servicios se presentan sin guiones bajos y con capitalizacion legible.
+- Los paneles de Precios vigentes, Promociones, Inventario activo y Listas base mantienen alturas uniformes en escritorio y se apilan en movil.

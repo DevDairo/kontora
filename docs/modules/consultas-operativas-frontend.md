@@ -37,7 +37,7 @@ frontend/src/index.css
 
 ## Comportamiento de interfaz
 
-- El periodo se edita en los controles de fecha y solo se aplica al pulsar `Actualizar`; cambiar una fecha no dispara una consulta intermedia.
+- El periodo se edita en los controles de fecha y solo se aplica al pulsar `Consultar`; cambiar una fecha no dispara una consulta intermedia.
 - Las consultas no realizan escrituras ni simulan saldos.
 - Un `404` de cierre se presenta como una jornada sin cierre registrado, sin tratarlo como error de pantalla.
 - Inventario concentra las existencias actuales y los movimientos por periodo; la operacion diaria de paquetes, consumos y ajustes queda en `/inventario`.
@@ -55,6 +55,7 @@ Los requisitos separan granizados con licor y sin licor, pero el stock diario ca
 - Navegador con gerente: ventas por `$24.000`, inventario actual, estado sin cierre, movimientos de deposito y manejo de estados vacios verificados contra el backend activo.
 - Navegador: `/inventario` ya no renderiza ni consulta movimientos; `/deposito` ya no renderiza ni consulta historial; ambos historiales se visualizan desde `/consultas`.
 - Se verifico que el registro de deposito renderiza un SVG para una entrada real por cierre.
+- La barra de periodo se unifico visualmente con los filtros de Catalogos, Transferencias y Evidencias.
 
 ## Pendiente de cierre
 

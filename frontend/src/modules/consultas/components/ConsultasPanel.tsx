@@ -1,7 +1,8 @@
-import { AlertCircle, Archive, Boxes, Building2, ClipboardList, Landmark, ReceiptText, RefreshCw, ShoppingBag, WalletCards } from "lucide-react";
+import { AlertCircle, Boxes, Building2, ClipboardList, Landmark, ReceiptText, RefreshCw, ShoppingBag, WalletCards } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { UserRole } from "../../../app/routes/appRoutes";
 import { ApiClientError } from "../../../shared/services/apiClient";
+import { formatDisplayName } from "../../../shared/utils/displayText";
 import {
   consultarCierrePorFecha,
   consultarGastos,
@@ -245,13 +246,9 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
           <h1>Consultas</h1>
           <p>Consulta la jornada sin modificar ventas, gastos, inventario, cierre ni movimientos de deposito.</p>
         </div>
-        <div className="consultas-readonly-status" aria-label="Modo de solo lectura">
-          <Archive size={18} aria-hidden="true" />
-          <span>Solo lectura desde backend</span>
-        </div>
       </header>
 
-      <form className="consultas-filter-form" onSubmit={actualizarConsulta}>
+      <form className="consultas-filter-form module-filter-bar panel" onSubmit={actualizarConsulta}>
         <label className="form-field">
           <span>Fecha inicial</span>
           <input className="field-control plain" type="date" value={fechaInicio} onChange={(event) => setFechaInicio(event.target.value)} />
@@ -262,7 +259,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
         </label>
         <button className="primary-button" type="submit" disabled={loadState === "loading"}>
           <RefreshCw size={18} aria-hidden="true" />
-          Actualizar
+          Consultar
         </button>
       </form>
 
@@ -361,8 +358,8 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
               {inventario.map((item) => (
                 <li className="consultas-record-row inventario" key={item.idItemInventario}>
                   <span>
-                    <strong>{item.nombreItem}</strong>
-                    <small>{item.nombreCategoria} · {item.nombreUnidad}{item.onzas ? ` · ${item.onzas} oz` : ""}</small>
+                    <strong>{formatDisplayName(item.nombreItem)}</strong>
+                    <small>{formatDisplayName(item.nombreCategoria)} · {formatDisplayName(item.nombreUnidad)}{item.onzas ? ` · ${item.onzas} oz` : ""}</small>
                   </span>
                   <span>
                     <strong>General {item.cantidadActualGeneral ?? 0}</strong>
@@ -386,7 +383,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
               {movimientosInventario.map((movimiento) => (
                 <li className="consultas-record-row movimientos" key={movimiento.idMovimientoInventario}>
                   <span>
-                    <strong>{movimiento.nombreItem}</strong>
+                    <strong>{formatDisplayName(movimiento.nombreItem)}</strong>
                     <small>{movimiento.tipoMovimiento} · {movimiento.nombreUsuarioRegistro}</small>
                   </span>
                   <span>

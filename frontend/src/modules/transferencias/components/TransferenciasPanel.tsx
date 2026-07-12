@@ -1,4 +1,4 @@
-import { AlertCircle, BadgeCheck, CheckCircle2, FileImage, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
+import { AlertCircle, BadgeCheck, CheckCircle2, FileImage, RefreshCw, XCircle } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { UserRole } from "../../../app/routes/appRoutes";
 import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
@@ -203,10 +203,6 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
           <h1>Transferencias</h1>
           <p>Consulta pagos por transferencia, revisa sus soportes y registra decisiones administrativas auditadas.</p>
         </div>
-        <div className="transferencias-role-status" aria-label="Alcance de permisos">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <span>{canDecide ? "Decision administrativa habilitada" : "Consulta de transferencias propias"}</span>
-        </div>
       </header>
 
       <div className="transferencias-summary-grid" aria-label="Resumen de transferencias">
@@ -232,7 +228,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
         </article>
       </div>
 
-      <form className="transferencias-filter-form" onSubmit={actualizarConsulta}>
+      <form className="transferencias-filter-form module-filter-bar panel" onSubmit={actualizarConsulta}>
         <label className="form-field">
           <span>Fecha inicial</span>
           <input className="field-control plain" type="date" value={fechaInicio} onChange={(event) => setFechaInicio(event.target.value)} />
@@ -243,7 +239,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
         </label>
         <button className="primary-button" type="submit" disabled={loadState === "loading"}>
           <RefreshCw size={18} aria-hidden="true" />
-          Actualizar
+          Consultar
         </button>
       </form>
 

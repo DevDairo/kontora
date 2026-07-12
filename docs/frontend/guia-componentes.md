@@ -14,7 +14,7 @@ La maqueta no es contrato funcional. El frontend real se implementa con React, T
 ## Principios visuales aplicados
 
 - Layout operativo con sidebar, topbar y area de trabajo.
-- Tarjetas compactas para estado de API y modulos.
+- Tarjetas compactas para modulos y resumenes operativos.
 - Bordes de 8px o menos.
 - Paleta clara con acentos azul, verde, cian, morado y naranja.
 - Iconos de `lucide-react` para navegacion y botones.
@@ -32,7 +32,7 @@ Responsabilidades:
 - Validar campos vacios antes de enviar.
 - Consumir `POST /api/auth/login` mediante el provider de autenticacion.
 - Mostrar errores devueltos por el backend.
-- Mostrar estado local de la API mediante el health check.
+- Presentar un panel decorativo de rayas en escritorio, oculto en movil para priorizar el formulario.
 
 ### `AuthProvider`
 
@@ -53,8 +53,8 @@ Ubicacion: `frontend/src/shared/components/AppShell.tsx`.
 Responsabilidades:
 
 - Renderizar marca, navegacion principal filtrada por rol y topbar.
-- Mostrar estado resumido de salud de API.
 - Mostrar usuario autenticado y rol.
+- Mantener navegacion lateral en escritorio y un menu desplegable en movil.
 - Permitir navegacion interna entre vistas base.
 - Ejecutar cierre de sesion desde la topbar.
 - Contener la pantalla activa.
@@ -76,7 +76,7 @@ Ubicacion: `frontend/src/shared/components/ModuleOverview.tsx`.
 Responsabilidades:
 
 - Mostrar la navegacion visible para el rol autenticado.
-- Referenciar endpoints reales documentados segun rol cuando aplica.
+- Mostrar modulos disponibles con descripciones orientadas a la operacion.
 - Permitir navegar a vistas base de modulos pendientes.
 
 ### `RouteWorkspace`

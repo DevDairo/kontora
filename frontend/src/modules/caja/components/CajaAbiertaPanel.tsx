@@ -164,9 +164,7 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
         <div>
           <p className="eyebrow">Caja diaria</p>
           <h1 id="caja-title">Panel de caja abierta</h1>
-          <p className="lead">
-            Consulta la caja activa desde la API real y habilita apertura solo para roles operativos autorizados.
-          </p>
+          <p className="lead">Consulta la jornada actual y realiza la apertura cuando corresponda.</p>
         </div>
         <button className="ghost-button" type="button" onClick={loadCaja} disabled={loadState === "loading"}>
           <RefreshCw size={17} strokeWidth={2.2} />
@@ -185,7 +183,7 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
             <p>
               {caja
                 ? `Apertura registrada por ${caja.nombreUsuarioApertura}.`
-                : "La consulta usa GET /api/cajas-diarias/abierta con el token activo."}
+                : "Aun no hay una jornada abierta."}
             </p>
           </div>
         </article>
@@ -202,7 +200,7 @@ export function CajaAbiertaPanel({ token, role }: CajaAbiertaPanelProps) {
             <div className="panel-title">
               <div>
                 <h2>Detalle de caja</h2>
-                <p>{caja.idCajaDiaria}</p>
+                <p>Informacion de la jornada activa</p>
               </div>
               <span className="badge success">{caja.estadoCaja}</span>
             </div>

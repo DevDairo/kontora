@@ -40,6 +40,7 @@ frontend/src/modules/transferencias/types.ts
 - Las acciones Validar y Rechazar piden confirmacion antes de llamar al backend. La observacion es opcional porque asi lo define el contrato real.
 - Luego de validar, la transferencia deja de aparecer en la consulta: `GET /api/consultas/transferencias` solo expone estados `pendiente` y `rechazada`. La decision validada se conserva en `pagos_venta` y auditoria.
 - No se previsualizan ni descargan archivos desde `supabase://...`; backend expone metadata, no contenido binario.
+- El filtro de periodo usa la misma barra visual que Catalogos y aplica el rango solo al pulsar `Consultar`.
 
 ## Validacion realizada
 

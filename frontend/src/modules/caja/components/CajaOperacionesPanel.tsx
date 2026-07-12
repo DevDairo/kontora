@@ -1,12 +1,10 @@
-import { Banknote, ClipboardList, RefreshCw, Save, WalletCards } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw, WalletCards } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiClientError } from "../../../shared/services/apiClient";
-import { normalizeMoneyInput } from "../../../shared/utils/moneyInput";
-import { obtenerGastosSnapshot, registrarAdicionDiaria } from "../../gastos/services/gastosService";
+import { obtenerGastosSnapshot } from "../../gastos/services/gastosService";
 import type { GastosSnapshot } from "../../gastos/types";
 
 type LoadState = "loading" | "success" | "no-cash-box" | "error";
-type SubmitAction = "adicion" | null;
 
 type CajaOperacionesPanelProps = {
   token: string;
@@ -32,10 +30,6 @@ function messageFor(error: unknown) {
   return error instanceof Error ? error.message : "No fue posible consultar las operaciones de caja";
 }
 
-function toNumber(value: string) {
-  return Number(value || 0);
-}
-
 function SummaryCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <article className="gastos-summary-card">
@@ -50,10 +44,6 @@ export function CajaOperacionesPanel({ token }: CajaOperacionesPanelProps) {
   const [snapshot, setSnapshot] = useState<GastosSnapshot>(emptySnapshot);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [submittingAction, setSubmittingAction] = useState<SubmitAction>(null);
-  const [cantidadAdiciones, setCantidadAdiciones] = useState("0");
-  const [valorAdicion, setValorAdicion] = useState("1000");
 
   const loadSnapshot = useCallback(async () => {
     setLoadState("loading");
@@ -81,46 +71,12 @@ export function CajaOperacionesPanel({ token }: CajaOperacionesPanelProps) {
     void loadSnapshot();
   }, [loadSnapshot]);
 
-  useEffect(() => {
-    if (!snapshot.adicion) {
-      return;
-    }
-
-    setCantidadAdiciones(String(snapshot.adicion.cantidadAdiciones));
-    setValorAdicion(String(snapshot.adicion.valorUnitario));
-  }, [snapshot.adicion]);
-
   const resumenCaja = snapshot.resumenCaja;
   const pagoTrabajadores = snapshot.pagoTrabajadores;
-  const isCashBoxOpen = loadState === "success";
   const gastosActivos = useMemo(
     () => snapshot.gastos.filter((gasto) => gasto.estadoGasto !== "anulado"),
     [snapshot.gastos],
   );
-
-  async function handleAdicionSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const cantidad = Number(cantidadAdiciones);
-    const valorUnitario = toNumber(valorAdicion);
-
-    if (!Number.isInteger(cantidad) || cantidad < 0 || !Number.isFinite(valorUnitario) || valorUnitario < 0) {
-      setActionMessage("La cantidad de adiciones y su valor unitario deben ser valores validos iguales o mayores a cero.");
-      return;
-    }
-
-    setSubmittingAction("adicion");
-    setActionMessage(null);
-
-    try {
-      await registrarAdicionDiaria(token, { cantidadAdiciones: cantidad, valorUnitario });
-      await loadSnapshot();
-      setActionMessage("Adiciones diarias actualizadas.");
-    } catch (error) {
-      setActionMessage(messageFor(error));
-    } finally {
-      setSubmittingAction(null);
-    }
-  }
 
   return (
     <section className="caja-operaciones-section" aria-labelledby="caja-operaciones-title">
@@ -128,7 +84,7 @@ export function CajaOperacionesPanel({ token }: CajaOperacionesPanelProps) {
         <div>
           <p className="eyebrow">Control financiero</p>
           <h2 id="caja-operaciones-title">Operaciones de caja diaria</h2>
-          <p>Adiciones, pago a trabajadores y proyeccion de efectivo para la caja abierta.</p>
+          <p>Proyeccion de efectivo y obligaciones registradas para la caja abierta.</p>
         </div>
         <button className="ghost-button" type="button" onClick={loadSnapshot} disabled={loadState === "loading"}>
           <RefreshCw size={17} strokeWidth={2.2} />
@@ -152,7 +108,7 @@ export function CajaOperacionesPanel({ token }: CajaOperacionesPanelProps) {
         <SummaryCard
           label="Adiciones"
           value={formatCurrency(resumenCaja?.totalAdiciones)}
-          detail={snapshot.adicion ? `${snapshot.adicion.cantidadAdiciones} adiciones registradas; suma efectivo esperado` : "Sin registro para la caja"}
+          detail={snapshot.adicion ? `${snapshot.adicion.cantidadAdiciones} adiciones registradas desde Ventas` : "Sin registro desde Ventas"}
         />
         <SummaryCard
           label="Pago trabajadores"
@@ -218,7 +174,7 @@ export function CajaOperacionesPanel({ token }: CajaOperacionesPanelProps) {
           </p>
           {!resumenCaja.listoParaCierre ? (
             <p className="gastos-cash-flow-warning">
-              {!resumenCaja.adicionDiariaRegistrada ? "Falta registrar adiciones diarias. " : ""}
+              {!resumenCaja.adicionDiariaRegistrada ? "Falta registrar las adiciones desde Ventas. " : ""}
               {!resumenCaja.pagoTrabajadoresRegistrado
                 ? "Falta registrar el pago diario a trabajadores."
                 : !resumenCaja.pagoTrabajadoresConfirmado
@@ -231,64 +187,6 @@ export function CajaOperacionesPanel({ token }: CajaOperacionesPanelProps) {
         </section>
       ) : null}
 
-      <section className="gastos-actions-grid" aria-label="Operaciones financieras de caja">
-        <form className="panel gastos-form-panel" onSubmit={handleAdicionSubmit}>
-          <div className="panel-title">
-            <div>
-              <h2>Adiciones diarias</h2>
-              <p>Registro unico por caja; se actualiza mientras siga abierta.</p>
-            </div>
-            <Banknote size={22} strokeWidth={2.2} />
-          </div>
-
-          <div className="gastos-field-row">
-            <label className="field-label">
-              Cantidad
-              <div className="field-control plain">
-                <input
-                  min="0"
-                  step="1"
-                  type="number"
-                  value={cantidadAdiciones}
-                  onChange={(event) => setCantidadAdiciones(event.target.value)}
-                  disabled={!isCashBoxOpen}
-                  required
-                />
-              </div>
-            </label>
-            <label className="field-label">
-              Valor unitario
-              <div className="field-control plain">
-                <input
-                  inputMode="decimal"
-                  type="text"
-                  value={valorAdicion}
-                  onChange={(event) => setValorAdicion(normalizeMoneyInput(event.target.value))}
-                  disabled={!isCashBoxOpen}
-                />
-              </div>
-            </label>
-          </div>
-
-          <div className="gastos-calculated-total">
-            <span>Total calculado por backend</span>
-            <strong>{formatCurrency(snapshot.adicion?.valorTotal ?? toNumber(cantidadAdiciones) * toNumber(valorAdicion))}</strong>
-          </div>
-
-          <button className="primary-button full" type="submit" disabled={!isCashBoxOpen || submittingAction === "adicion"}>
-            <Save size={18} strokeWidth={2.2} />
-            {submittingAction === "adicion" ? "Guardando" : "Guardar adiciones"}
-          </button>
-        </form>
-
-      </section>
-
-      {actionMessage ? (
-        <div className="form-alert" role="status">
-          <ClipboardList size={18} strokeWidth={2.2} />
-          <span>{actionMessage}</span>
-        </div>
-      ) : null}
     </section>
   );
 }

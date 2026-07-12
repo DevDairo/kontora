@@ -1,4 +1,4 @@
-# Pantalla: Gastos, adiciones y pago a trabajadores
+# Pantalla: Gastos y pago a trabajadores
 
 ## Estado
 
@@ -6,16 +6,17 @@ Completado y validado manualmente en navegador el 2026-07-10.
 
 ## Objetivo
 
-Operar gastos de caja, adiciones diarias y pago total a trabajadores contra los contratos reales del backend, manteniendo el cuadre financiero visible en Caja y los formularios de gastos y pago donde el usuario los necesita.
+Operar gastos de caja y pago total a trabajadores contra los contratos reales del backend, manteniendo el cuadre financiero visible en Caja. Las adiciones diarias se registran desde Ventas por su relacion con los productos vendidos.
 
 ## Distribucion de interfaz
 
 | Ruta | Contenido | Roles visibles |
 | :- | :- | :- |
 | `/gastos` | Registrar, listar, editar y anular gastos; registrar, confirmar o actualizar pago a trabajadores. | Gastos: vendedor, administrador y gerente. Pago y acciones administrativas: administrador y gerente. |
-| `/caja` | Apertura o detalle de caja, adiciones diarias, resumen y proyeccion de efectivo fisico. | Apertura, adiciones y proyeccion: administrador y gerente. |
+| `/ventas` | Registro de ventas y Adiciones diarias de la jornada. | Vendedor, administrador y gerente; el formulario de adiciones se habilita solo con caja abierta. |
+| `/caja` | Apertura o detalle de caja, resumen y proyeccion de efectivo fisico. | Apertura y proyeccion: administrador y gerente. |
 
-Caja conserva el valor del pago a trabajadores como dato de lectura para el cuadre; no duplica el formulario que se administra desde Gastos.
+Caja conserva el valor de adiciones y pago a trabajadores como datos de lectura para el cuadre; no duplica los formularios que se administran desde Ventas y Gastos.
 
 ## Endpoints consumidos
 
@@ -29,18 +30,18 @@ Caja conserva el valor del pago a trabajadores como dato de lectura para el cuad
 - `POST /api/operaciones-caja/pagos-trabajadores-diarios`.
 - `POST /api/operaciones-caja/pagos-trabajadores-diarios/{idPagoTrabajadoresDiario}/confirmar`.
 
-### Caja
+### Ventas y Caja
 
 - `GET /api/cajas-diarias/abierta`.
-- `POST /api/cajas-diarias`.
-- `GET /api/cajas-diarias/abierta/resumen`.
 - `GET /api/operaciones-caja/adiciones-diarias/abierta`.
 - `POST /api/operaciones-caja/adiciones-diarias`.
+- `POST /api/cajas-diarias`.
+- `GET /api/cajas-diarias/abierta/resumen`.
 
 ## Reglas de interfaz
 
 - La ausencia de caja abierta deshabilita las operaciones diarias y muestra el error real del backend.
-- Vendedor solo registra y consulta gastos; no ve adiciones, pago a trabajadores, proyeccion ni acciones de edicion o anulacion.
+- Vendedor solo registra y consulta gastos; no ve pago a trabajadores, proyeccion ni acciones de edicion o anulacion. Las adiciones se administran desde Ventas si existe caja abierta.
 - Administrador y gerente pueden editar o anular gastos con motivo obligatorio.
 - El pago a trabajadores puede actualizarse aun confirmado mientras la caja permanezca abierta; un valor cero exige confirmacion explicita.
 - Los importes aceptan entrada por teclado o pegado, incluyendo separadores de miles y hasta dos decimales.
@@ -54,6 +55,7 @@ frontend/src/modules/gastos/components/GastosPanel.tsx
 frontend/src/modules/gastos/services/gastosService.ts
 frontend/src/modules/gastos/types.ts
 frontend/src/modules/caja/components/CajaOperacionesPanel.tsx
+frontend/src/modules/ventas/components/AdicionesDiariasPanel.tsx
 frontend/src/shared/utils/moneyInput.ts
 frontend/src/app/routes/appRoutes.ts
 ```

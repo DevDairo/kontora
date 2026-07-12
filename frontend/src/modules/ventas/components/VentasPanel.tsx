@@ -8,6 +8,7 @@ import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import { registrarVenta } from "../services/ventasService";
 import type { RegistrarPagoVentaRequest, TipoComprador, VentaResponse } from "../types";
+import { AdicionesDiariasPanel } from "./AdicionesDiariasPanel";
 
 type PaymentMode = "efectivo" | "transferencia" | "mixto";
 type LoadState = "loading" | "success" | "error";
@@ -466,7 +467,7 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
         <div>
           <p className="eyebrow">Ventas y pagos</p>
           <h1 id="ventas-title">Registro de venta</h1>
-          <p className="lead">POST /api/ventas</p>
+          <p className="lead">Registra productos, pagos y adiciones de la jornada.</p>
         </div>
         <button className="ghost-button" type="button" onClick={loadCatalogos} disabled={loadState === "loading"}>
           <RefreshCw size={17} strokeWidth={2.2} />
@@ -756,6 +757,8 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
           </button>
         </section>
       </form>
+
+      <AdicionesDiariasPanel token={token} />
 
       {lastSale ? (
         <section className="panel venta-result" aria-labelledby="venta-result-title">

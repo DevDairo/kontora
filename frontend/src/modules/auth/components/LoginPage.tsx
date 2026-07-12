@@ -1,21 +1,8 @@
-import { AlertCircle, CheckCircle2, KeyRound, LogIn, Server, UserRound } from "lucide-react";
+import { AlertCircle, KeyRound, LogIn, UserRound } from "lucide-react";
 import { FormEvent, useState } from "react";
-import type { HealthStatus } from "../../../shared/hooks/useHealthCheck";
-import { API_BASE_URL } from "../../../shared/utils/env";
 import { useAuth } from "../hooks/useAuth";
 
-type LoginPageProps = {
-  healthStatus: HealthStatus;
-};
-
-const healthLabels: Record<HealthStatus, string> = {
-  idle: "Sin validar",
-  loading: "Validando API",
-  online: "API disponible",
-  offline: "API no disponible",
-};
-
-export function LoginPage({ healthStatus }: LoginPageProps) {
+export function LoginPage() {
   const auth = useAuth();
   const [nombreUsuario, setNombreUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
@@ -100,38 +87,9 @@ export function LoginPage({ healthStatus }: LoginPageProps) {
             {auth.isSubmitting ? "Ingresando" : "Ingresar"}
           </button>
         </form>
-
-        <div className={`login-api-status ${healthStatus}`}>
-          <Server size={18} strokeWidth={2.2} />
-          <span>{healthLabels[healthStatus]}</span>
-          <small>{API_BASE_URL}</small>
-        </div>
       </section>
 
-      <section className="login-preview" aria-label="Vista previa del sistema">
-        <div className="preview-window">
-          <div className="preview-sidebar" />
-          <div className="preview-content">
-            <div className="preview-top" />
-            <div className="preview-metrics">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="preview-table">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        </div>
-
-        <div className="login-proof">
-          <CheckCircle2 size={20} strokeWidth={2.2} />
-          <span>API real</span>
-        </div>
-      </section>
+      <section className="login-preview" aria-hidden="true" />
     </main>
   );
 }
