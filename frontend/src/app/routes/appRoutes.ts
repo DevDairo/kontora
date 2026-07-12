@@ -9,6 +9,7 @@ import {
   ListChecks,
   ReceiptText,
   ShieldCheck,
+  UsersRound,
   WalletCards,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -42,6 +43,7 @@ export const routeStatusLabels: Record<RouteStatus, string> = {
 
 const allRoles: UserRole[] = ["vendedor", "administrador", "gerente"];
 const adminRoles: UserRole[] = ["administrador", "gerente"];
+const managerRoles: UserRole[] = ["gerente"];
 
 export const appRoutes: AppRoute[] = [
   {
@@ -313,6 +315,22 @@ export const appRoutes: AppRoute[] = [
     },
     roles: allRoles,
     icon: ListChecks,
+  },
+  {
+    id: "usuarios",
+    label: "Usuarios",
+    path: "/usuarios",
+    status: "pendiente",
+    description: "Gestion gerencial de usuarios, roles y estados de acceso con trazabilidad.",
+    endpoints: [
+      "GET /api/usuarios",
+      "GET /api/usuarios/roles",
+      "POST /api/usuarios",
+      "PUT /api/usuarios/{idUsuario}",
+      "PUT /api/usuarios/{idUsuario}/estado",
+    ],
+    roles: managerRoles,
+    icon: UsersRound,
   },
   {
     id: "auditoria",

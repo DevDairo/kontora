@@ -9,6 +9,7 @@ import {
   type UserRole,
 } from "./app/routes/appRoutes";
 import { LoginPage, useAuth } from "./modules/auth";
+import { AuditoriaPanel } from "./modules/auditoria";
 import { CajaAbiertaPanel } from "./modules/caja";
 import { CatalogosPanel } from "./modules/catalogos";
 import { CierreCajaPanel } from "./modules/cierre";
@@ -18,6 +19,7 @@ import { EvidenciasPanel } from "./modules/evidencias";
 import { GastosPanel } from "./modules/gastos";
 import { InventarioPanel } from "./modules/inventario";
 import { TransferenciasPanel } from "./modules/transferencias";
+import { UsuariosPanel } from "./modules/usuarios";
 import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
 import { ModuleOverview } from "./shared/components/ModuleOverview";
@@ -231,6 +233,10 @@ function AppContent() {
         <CatalogosPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "consultas" ? (
         <ConsultasPanel token={auth.token ?? ""} role={role} />
+      ) : activeRoute.id === "usuarios" ? (
+        <UsuariosPanel token={auth.token ?? ""} currentUserId={auth.user.idUsuario} />
+      ) : activeRoute.id === "auditoria" ? (
+        <AuditoriaPanel token={auth.token ?? ""} role={role} />
       ) : (
         <RouteWorkspace route={activeRoute} role={role} />
       )}

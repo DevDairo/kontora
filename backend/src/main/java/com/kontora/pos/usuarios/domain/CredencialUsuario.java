@@ -3,11 +3,13 @@ package com.kontora.pos.usuarios.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -17,6 +19,8 @@ import java.util.UUID;
 public class CredencialUsuario {
 
     @Id
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id_credencial_usuario", nullable = false)
     private UUID idCredencialUsuario;
 
@@ -51,12 +55,24 @@ public class CredencialUsuario {
         return usuario;
     }
 
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
     public String getContrasenaHash() {
         return contrasenaHash;
     }
 
+    public void setContrasenaHash(String contrasenaHash) {
+        this.contrasenaHash = contrasenaHash;
+    }
+
     public boolean isRequiereCambioContrasena() {
         return requiereCambioContrasena;
+    }
+
+    public void setRequiereCambioContrasena(boolean requiereCambioContrasena) {
+        this.requiereCambioContrasena = requiereCambioContrasena;
     }
 
     public int getIntentosFallidos() {
@@ -79,8 +95,16 @@ public class CredencialUsuario {
         return fechaCambioContrasena;
     }
 
+    public void setFechaCambioContrasena(OffsetDateTime fechaCambioContrasena) {
+        this.fechaCambioContrasena = fechaCambioContrasena;
+    }
+
     public String getEstado() {
         return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }
 

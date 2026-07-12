@@ -32,6 +32,12 @@ management:
 kontora:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  bootstrap:
+    manager:
+      enabled: ${BOOTSTRAP_MANAGER_ENABLED:false}
+      username: ${BOOTSTRAP_MANAGER_USERNAME:}
+      full-name: ${BOOTSTRAP_MANAGER_FULL_NAME:}
+      password: ${BOOTSTRAP_MANAGER_PASSWORD:}
   storage:
     supabase:
       url: ${SUPABASE_URL:}
