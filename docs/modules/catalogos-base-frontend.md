@@ -1,12 +1,14 @@
-# Pantalla: Catalogos para formularios
+# Pantalla: Catalogos y gestion administrativa
 
 ## Objetivo
 
-Consultar catalogos base activos desde la API real para alimentar formularios operativos de ventas, inventario, gastos y servicios.
+Consultar catalogos base activos para los formularios operativos y permitir a administrador y gerente gestionar items de inventario y vigencias de precios.
 
 ## Actor principal
 
-Vendedor / Administrador / Gerente.
+- Consulta: Administrador / Gerente.
+- Gestion: Administrador / Gerente.
+- Vendedor: sin acceso a la ruta independiente de Catalogos.
 
 ## Endpoints consumidos
 
@@ -19,6 +21,12 @@ Vendedor / Administrador / Gerente.
 - `GET /api/catalogos/precios-granizado/vigentes?fecha=YYYY-MM-DD`
 - `GET /api/catalogos/promociones/vigentes?fecha=YYYY-MM-DD`
 - `GET /api/catalogos/tipos-servicio`
+- `GET /api/catalogos/gestion/items-inventario`
+- `POST /api/catalogos/gestion/items-inventario`
+- `PUT /api/catalogos/gestion/items-inventario/{idItemInventario}`
+- `PUT /api/catalogos/gestion/items-inventario/{idItemInventario}/estado`
+- `GET /api/catalogos/gestion/precios-granizado`
+- `POST /api/catalogos/gestion/precios-granizado`
 
 ## Contrato usado
 
@@ -39,6 +47,8 @@ La pantalla consume catalogos autenticados y conserva los nombres reales expuest
 
 - `fechaVigencia`: fecha usada para consultar precios y promociones vigentes.
 - `buscar`: filtro local para precios, promociones e items ya recibidos.
+- Gestion de producto: nombre, categoria y unidad de medida; para vasos automaticos, tamano de vaso y paquetes fijos de 20 unidades.
+- Gestion de precio: tipo de granizado, tamano, valor y fecha de inicio de vigencia.
 
 ## Validaciones de interfaz
 
@@ -46,7 +56,12 @@ La pantalla consume catalogos autenticados y conserva los nombres reales expuest
 - La fecha de vigencia se envia como query param `fecha`.
 - El filtro de busqueda no modifica datos ni llama endpoints de escritura.
 - Si la API rechaza la consulta, se muestra el mensaje real del backend.
-- Los catalogos se usan solo como lectura y preparacion de formularios.
+- La pestana `Gestion` solo se muestra a administrador y gerente.
+- El formulario permite `manual_por_consumo` para consumibles y `automatico_por_venta` para vasos, conforme a RF-38 y RF-39.
+- Un vaso automatico fija la categoria `vasos`, exige un tamano y se envia con paquetes de 20 unidades.
+- La vigencia de precio se gestiona aparte por tipo de granizado y tamano; no cambia el control ni las existencias de los vasos.
+- El cambio de estado solicita confirmacion antes de invocar el endpoint.
+- El valor de precio se ingresa como texto numerico para evitar depender de los controles de incremento del navegador.
 
 ## Reglas que no debe duplicar el frontend
 
@@ -54,12 +69,14 @@ La pantalla consume catalogos autenticados y conserva los nombres reales expuest
 - Filtrado definitivo por estado activo.
 - Reglas de aplicacion de promociones en ventas.
 - Permisos finales de acceso.
+- Restriccion de inactivar con stock, proteccion de estructura con movimientos y escritura de auditoria.
 
 El frontend solo presenta datos maestros y mejora busqueda/seleccion; el backend conserva la autoridad.
 
 ## Respuestas esperadas
 
-- Caso exitoso: se muestran conteos y listas de metodos de pago, tipos de granizado, items, precios, promociones y listas base.
+- Consulta: se muestran conteos y listas de metodos de pago, tipos de granizado, items, precios, promociones y listas base.
+- Gestion: el item creado aparece con existencia general inicial en cero; una nueva vigencia aparece en el historial sin sobrescribir el precio anterior.
 - Caso con error: se muestra el mensaje devuelto por la API y se permite reintentar.
 
 ## Evidencia de prueba
@@ -73,7 +90,7 @@ npm run build
 
 Resultado: exitoso.
 
-- Validacion API real con token de `test_auth_activo`:
+- Validacion API real con token de gerente:
 
 ```text
 GET /api/catalogos/metodos-pago -> 2 registros
@@ -85,30 +102,39 @@ GET /api/catalogos/items-inventario -> 16 registros
 GET /api/catalogos/precios-granizado/vigentes?fecha=2026-07-07 -> 12 registros
 GET /api/catalogos/promociones/vigentes?fecha=2026-07-07 -> 12 registros
 GET /api/catalogos/tipos-servicio -> 5 registros
+GET /api/catalogos/gestion/items-inventario -> 16 registros
+GET /api/catalogos/gestion/precios-granizado -> 12 registros
 ```
 
 - Validacion en navegador integrado:
 
 ```text
-/catalogos muestra Catalogos para formularios
-La pantalla muestra datos reales de precios, promociones, inventario y listas base
-Caja aparece como Base lista
-Catalogos aparece como Base lista despues de la confirmacion manual
-Consola sin errores ni advertencias
+/catalogos muestra las vistas Consulta y Gestion para administrador y gerente
+La vista Gestion permite crear items manuales o vasos automaticos, editar nombre, cambiar estado y registrar vigencias de precio
+Los vasos automaticos requieren tamano y paquetes fijos de 20 unidades
+La configuracion de precios se conserva separada del control de inventario de vasos
 ```
 
-- Validacion manual del usuario:
+- Validacion manual pendiente:
 
 ```text
-El usuario confirmo continuar despues de revisar la pantalla de catalogos en navegador.
+Confirmar en `/catalogos` que el control `Vaso por venta` conserva categoria `vasos`, selector de tamano y paquetes fijos de 20 unidades, sin afectar el panel independiente de vigencias de precios.
 ```
 
 ## Pendiente siguiente
 
-- Implementar registro de venta y pagos consumiendo `POST /api/ventas` y catalogos reales.
+- Administracion historica de promociones.
 
 ## Actualizacion visual del 2026-07-11
 
 - Se sustituyeron los textos de endpoints visibles por descripciones funcionales de precios, promociones e inventario.
 - Los nombres visibles de items, tipos, categorias y servicios se presentan sin guiones bajos y con capitalizacion legible.
 - Los paneles de Precios vigentes, Promociones, Inventario activo y Listas base mantienen alturas uniformes en escritorio y se apilan en movil.
+
+## Actualizacion funcional del 2026-07-12
+
+- Se agrego la vista `Gestion` dentro de `/catalogos`, sin retirar la vista de consulta de datos maestros.
+- La interfaz permite alta, edicion permitida e inactivacion de items, junto con la consulta y registro de vigencias de precios.
+- La alta conserva los dos controles de inventario requeridos: consumo manual y vaso por venta con paquetes de 20 unidades.
+- La configuracion de precios permanece en un panel independiente y conserva historial por tipo de granizado y tamano.
+- El backend conserva la autoridad sobre roles, stock inicial, inactivacion, historial de precios y auditoria.

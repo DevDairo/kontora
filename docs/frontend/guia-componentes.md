@@ -162,6 +162,19 @@ Responsabilidades:
 - Mostrar precios vigentes, promociones, inventario activo y listas base.
 - Permitir filtrar localmente por granizado, item o promocion.
 - Permitir cambiar la fecha de vigencia para precios y promociones sin crear ni modificar datos.
+- Mostrar la vista `Gestion` solo a administrador y gerente.
+
+### `CatalogosGestionPanel`
+
+Ubicacion: `frontend/src/modules/catalogos/components/CatalogosGestionPanel.tsx`.
+
+Responsabilidades:
+
+- Consultar items activos e inactivos y el historial de precios con token activo.
+- Dar de alta consumibles manuales o vasos automaticos, con stock general inicial definido por backend y paquetes fijos de 20 unidades para vasos.
+- Permitir editar los datos autorizados, solicitar confirmacion para cambios de estado y mostrar la respuesta real de las restricciones de inventario.
+- Registrar vigencias de precios y mostrar el historial sin sobrescribir valores anteriores.
+- Mantener separados el control de inventario de vasos y la configuracion de vigencias de precios por tipo de granizado y tamano.
 
 ### `VentasPanel`
 

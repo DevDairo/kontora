@@ -4,11 +4,13 @@ import com.kontora.pos.usuarios.domain.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,6 +21,8 @@ import java.util.UUID;
 public class PrecioGranizado {
 
     @Id
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id_precio_granizado", nullable = false)
     private UUID idPrecioGranizado;
 
@@ -55,27 +59,55 @@ public class PrecioGranizado {
         return tipoGranizado;
     }
 
+    public void setTipoGranizado(TipoGranizado tipoGranizado) {
+        this.tipoGranizado = tipoGranizado;
+    }
+
     public TamanoVaso getTamanoVaso() {
         return tamanoVaso;
+    }
+
+    public void setTamanoVaso(TamanoVaso tamanoVaso) {
+        this.tamanoVaso = tamanoVaso;
     }
 
     public BigDecimal getValorPrecio() {
         return valorPrecio;
     }
 
+    public void setValorPrecio(BigDecimal valorPrecio) {
+        this.valorPrecio = valorPrecio;
+    }
+
     public LocalDate getFechaInicioVigencia() {
         return fechaInicioVigencia;
+    }
+
+    public void setFechaInicioVigencia(LocalDate fechaInicioVigencia) {
+        this.fechaInicioVigencia = fechaInicioVigencia;
     }
 
     public LocalDate getFechaFinVigencia() {
         return fechaFinVigencia;
     }
 
+    public void setFechaFinVigencia(LocalDate fechaFinVigencia) {
+        this.fechaFinVigencia = fechaFinVigencia;
+    }
+
     public String getEstado() {
         return estado;
     }
 
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
     public Usuario getUsuarioCreacion() {
         return usuarioCreacion;
+    }
+
+    public void setUsuarioCreacion(Usuario usuarioCreacion) {
+        this.usuarioCreacion = usuarioCreacion;
     }
 }

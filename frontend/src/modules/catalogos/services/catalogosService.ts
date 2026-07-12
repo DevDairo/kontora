@@ -2,7 +2,9 @@ import { apiClient } from "../../../shared/services/apiClient";
 import type {
   CatalogoBasico,
   CatalogosFormulario,
+  ItemInventarioGestionRequest,
   ItemInventario,
+  PrecioGranizadoGestionRequest,
   PrecioGranizado,
   Promocion,
   TamanoVaso,
@@ -51,6 +53,30 @@ export function obtenerPromocionesVigentes(token: string, fecha?: string) {
 
 export function obtenerTiposServicio(token: string) {
   return apiClient.get<CatalogoBasico[]>("/catalogos/tipos-servicio", { token });
+}
+
+export function obtenerItemsInventarioGestion(token: string) {
+  return apiClient.get<ItemInventario[]>("/catalogos/gestion/items-inventario", { token });
+}
+
+export function crearItemInventario(token: string, request: ItemInventarioGestionRequest) {
+  return apiClient.post<ItemInventario>("/catalogos/gestion/items-inventario", JSON.stringify(request), { token });
+}
+
+export function actualizarItemInventario(token: string, idItemInventario: string, request: ItemInventarioGestionRequest) {
+  return apiClient.put<ItemInventario>(`/catalogos/gestion/items-inventario/${idItemInventario}`, JSON.stringify(request), { token });
+}
+
+export function actualizarEstadoItemInventario(token: string, idItemInventario: string, estado: "activo" | "inactivo") {
+  return apiClient.put<ItemInventario>(`/catalogos/gestion/items-inventario/${idItemInventario}/estado`, JSON.stringify({ estado }), { token });
+}
+
+export function obtenerPreciosGranizadoGestion(token: string) {
+  return apiClient.get<PrecioGranizado[]>("/catalogos/gestion/precios-granizado", { token });
+}
+
+export function crearPrecioGranizado(token: string, request: PrecioGranizadoGestionRequest) {
+  return apiClient.post<PrecioGranizado>("/catalogos/gestion/precios-granizado", JSON.stringify(request), { token });
 }
 
 export async function obtenerCatalogosFormulario(token: string, fecha?: string): Promise<CatalogosFormulario> {

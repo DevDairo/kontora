@@ -73,3 +73,20 @@ export type CatalogosFormulario = {
   promocionesVigentes: Promocion[];
   tiposServicio: CatalogoBasico[];
 };
+
+export type ItemInventarioGestionRequest = {
+  idCategoriaInventario: string;
+  idTamanoVaso?: string;
+  idUnidadMedida: string;
+  manejaPaquetes: boolean;
+  nombreItem: string;
+  tipoControl: "automatico_por_venta" | "manual_por_consumo";
+  unidadesPorPaquete?: number;
+};
+
+export type PrecioGranizadoGestionRequest = {
+  fechaInicioVigencia: string;
+  idTamanoVaso: string;
+  idTipoGranizado: string;
+  valorPrecio: number;
+};

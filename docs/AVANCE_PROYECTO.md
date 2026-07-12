@@ -6,7 +6,7 @@ Este documento registra el avance real del proyecto para mantener control de con
 
 - Fecha de registro: 2026-07-12.
 - Rama actual: `chore/inicializacion-frontend`.
-- Fase actual: Fase 4, Gestion de usuarios frontend validada y marcada como base; Consultas y Auditoria conservan sus validaciones pendientes documentadas.
+- Fase actual: Fase 4, Gestion administrativa de catalogos implementada y validada; Consultas y Auditoria conservan sus validaciones pendientes documentadas.
 - Fase anterior validada: Fase 4, Gestion de usuarios frontend.
 - Siguiente hito: completar las validaciones manuales pendientes de Consultas y Auditoria frontend.
 
@@ -1674,4 +1674,56 @@ Observaciones:
 
 - Solo gerente puede gestionar usuarios. Administrador y vendedor permanecen excluidos por frontend y backend.
 - No se implemento cambio ni restablecimiento de contrasena porque requiere un flujo y contrato propios.
+- No se hicieron commits, merges ni cambios de rama.
+
+## Fase 4: Gestion administrativa de catalogos
+
+Estado: implementada y validada tecnicamente. Pendiente una comprobacion visual puntual del control de vasos restaurado.
+
+Rama de trabajo:
+
+- `chore/inicializacion-frontend`.
+
+Requisitos cubiertos:
+
+- RF-36: crear, editar, consultar e inhabilitar items de inventario.
+- RF-37: crear cada item con stock general inicial.
+- RF-38: conservar stock diario operativo para vasos descontados automaticamente por venta.
+- RF-39: registrar paquetes de vasos de 20 unidades para abastecer el stock diario.
+- RF-54: configurar precios de granizado.
+- RF-55: conservar historial de precios.
+- RF-56: auditar operaciones sensibles de items y precios.
+
+Cambios realizados:
+
+- Se implementaron rutas administrativas para listar, crear, editar y cambiar el estado de items de inventario.
+- Un item creado genera su existencia general inicial en cero; no se permite inactivarlo mientras conserve stock.
+- Se impide alterar la estructura de un item que ya tiene movimientos, para preservar trazabilidad.
+- Se implementaron consulta historica y alta de vigencias de precio. El precio abierto anterior se cierra sin modificar ventas historicas.
+- Se registran en `auditoria_operaciones` la creacion, edicion, cambio de estado y cambio de precio.
+- Se agrego la vista `Gestion` en `/catalogos` para administrador y gerente, mientras la consulta de catalogos se conserva.
+- El formulario de productos conserva consumo manual y vaso por venta, con categoria `vasos`, tamano requerido y paquetes fijos de 20 unidades para el control automatico.
+- La configuracion de precios se mantiene en un panel independiente por tipo de granizado y tamano; no modifica existencias ni el control de vasos de RF-38 y RF-39.
+
+Documentacion actualizada:
+
+- `docs/modules/catalogos-base.md`.
+- `docs/modules/catalogos-base-frontend.md`.
+- `docs/frontend/estructura-frontend.md`.
+- `docs/frontend/guia-componentes.md`.
+- `docs/frontend/pantallas.md`.
+- `docs/development/fases/fase_4_frontend_validacion.md`.
+
+Validacion realizada:
+
+- `GestionCatalogosIntegrationTest`: 4 pruebas, sin fallos ni errores.
+- `mvn clean test`: 73 pruebas, sin fallos ni errores.
+- `npm run build` en `frontend/`: exitoso.
+- Backend local con token de gerente: `GET /api/catalogos/gestion/items-inventario` devolvio 16 items y `GET /api/catalogos/gestion/precios-granizado` devolvio 12 precios.
+- Pendiente: confirmar en navegador que el control `Vaso por venta` muestra categoria `vasos`, tamano requerido y paquetes fijos de 20 unidades.
+
+Observaciones:
+
+- No se agregaron migraciones ni se modifico el schema canonico.
+- Administrador y gerente pueden gestionar catalogos; vendedor permanece sin acceso a la ruta independiente.
 - No se hicieron commits, merges ni cambios de rama.

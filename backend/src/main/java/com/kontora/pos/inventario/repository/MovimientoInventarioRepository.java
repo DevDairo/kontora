@@ -22,4 +22,6 @@ public interface MovimientoInventarioRepository extends JpaRepository<Movimiento
     List<MovimientoInventario> findByCajaDiaria_IdCajaDiariaAndItemInventario_IdItemInventarioOrderByFechaMovimientoDesc(
             UUID idCajaDiaria,
             UUID idItemInventario);
+
+    boolean existsByItemInventario_IdItemInventario(UUID idItemInventario);
 }

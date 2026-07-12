@@ -160,6 +160,7 @@ function AppContent() {
   const [activePath, setActivePath] = useState(() => window.location.pathname);
 
   const role = useMemo(() => normalizeRole(auth.user?.nombreRol ?? ""), [auth.user?.nombreRol]);
+  const canManageCatalogos = role === "administrador" || role === "gerente";
   const visibleRoutes = useMemo(() => getVisibleRoutes(auth.user?.nombreRol ?? ""), [auth.user?.nombreRol]);
   const activeRoute = findRouteByPath(visibleRoutes, activePath) ?? visibleRoutes[0];
 
@@ -230,7 +231,7 @@ function AppContent() {
       ) : activeRoute.id === "evidencias" ? (
         <EvidenciasPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "catalogos" ? (
-        <CatalogosPanel token={auth.token ?? ""} />
+        <CatalogosPanel token={auth.token ?? ""} canManage={canManageCatalogos} />
       ) : activeRoute.id === "consultas" ? (
         <ConsultasPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "usuarios" ? (

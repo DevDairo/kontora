@@ -522,15 +522,15 @@ Vendedor para consulta propia; Administrador / Gerente para consulta y decision.
 - Consola: las dos ventas de la jornada `2026-07-11` conservan sus valores, no quedan transferencias pendientes o rechazadas y ambas decisiones dejaron auditoria `validar` sobre `pagos_venta`.
 - Las consultas de metadata de los dos pagos respondieron correctamente sin soportes, resultado esperado sin Supabase local.
 
-## Pantalla: Catalogos para formularios
+## Pantalla: Catalogos y gestion administrativa
 
 ### Objetivo
 
-Consultar catalogos base activos desde la API real para preparar formularios operativos.
+Consultar catalogos base activos desde la API real y gestionar items de inventario y vigencias de precios.
 
 ### Actor principal
 
-Vendedor / Administrador / Gerente.
+Administrador / Gerente. El vendedor no accede a la ruta independiente de Catalogos.
 
 ### Endpoint consumido
 
@@ -543,11 +543,19 @@ Vendedor / Administrador / Gerente.
 - `GET /api/catalogos/precios-granizado/vigentes`
 - `GET /api/catalogos/promociones/vigentes`
 - `GET /api/catalogos/tipos-servicio`
+- `GET /api/catalogos/gestion/items-inventario`
+- `POST /api/catalogos/gestion/items-inventario`
+- `PUT /api/catalogos/gestion/items-inventario/{idItemInventario}`
+- `PUT /api/catalogos/gestion/items-inventario/{idItemInventario}/estado`
+- `GET /api/catalogos/gestion/precios-granizado`
+- `POST /api/catalogos/gestion/precios-granizado`
 
 ### Campos del formulario
 
 - `fechaVigencia`
 - `buscar`
+- Item de inventario: nombre, categoria y unidad de medida; el vaso automatico exige tamano y paquetes fijos de 20 unidades.
+- Precio: tipo de granizado, tamano, valor y fecha de inicio.
 
 ### Validaciones de interfaz
 
@@ -555,11 +563,15 @@ Vendedor / Administrador / Gerente.
 - La fecha de vigencia se envia como filtro para precios y promociones.
 - La busqueda es local sobre datos ya consultados.
 - Si la API devuelve error, se muestra el mensaje real.
-- La pantalla no crea ni edita catalogos.
+- La vista de gestion solo se muestra a administrador y gerente.
+- El formulario conserva consumo manual y vaso por venta. El vaso automatico usa categoria `vasos`, tamano y paquetes fijos de 20 unidades.
+- La configuracion de precios se realiza de forma independiente por tipo de granizado y tamano, sin cambiar existencias ni control de los vasos.
+- El cambio de estado requiere confirmacion y las reglas finales permanecen en backend.
 
 ### Respuestas esperadas
 
-- Caso exitoso: se muestran conteos y listas de catalogos, precios, promociones e items.
+- Consulta: se muestran conteos y listas de catalogos, precios, promociones e items.
+- Gestion: se registra un item manual o un vaso automatico con stock inicial en cero, o una nueva vigencia que conserva el precio anterior en historial.
 - Caso con error: se muestra mensaje de API y se permite reintento.
 
 ### Evidencia de prueba
@@ -567,8 +579,8 @@ Vendedor / Administrador / Gerente.
 - `npm run build`.
 - Endpoints de catalogos validados contra backend real con token.
 - Panel `/catalogos` validado en navegador integrado.
-- Consola del navegador sin errores ni advertencias.
-- Verificacion manual del usuario completada antes de documentar el cierre.
+- Backend de gestion validado con gerente: 16 items y 12 precios recuperados.
+- Pendiente de revalidacion visual: el control `Vaso por venta` debe conservar categoria `vasos`, tamano y paquetes fijos de 20 unidades.
 
 ## Pantalla: Gestion de usuarios
 
