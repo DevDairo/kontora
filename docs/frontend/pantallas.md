@@ -15,7 +15,6 @@ Vendedor / Administrador / Gerente.
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
-- `GET /api/health`
 
 ### Campos del formulario
 
@@ -29,10 +28,11 @@ Vendedor / Administrador / Gerente.
 - Sin token valido se muestra `/login`.
 - Con token valido se muestra la shell principal.
 - El logout limpia la sesion local y vuelve a `/login`.
+- En escritorio el panel derecho usa un patron diagonal continuo sobre fondo `#f5f8fc`; en movil se oculta.
 
 ### Respuestas esperadas
 
-- Caso exitoso: el backend devuelve JWT y datos del usuario; el frontend muestra `Sesion activa`.
+- Caso exitoso: el backend devuelve JWT y datos del usuario; el frontend abre la shell correspondiente al rol.
 - Caso con error: el backend devuelve `mensaje` y el formulario conserva el estado no autenticado.
 
 ### Evidencia de prueba
@@ -42,7 +42,7 @@ Vendedor / Administrador / Gerente.
 - Flujo validado en navegador integrado con el fixture local `test_auth_activo`.
 - Pendiente confirmacion manual final del usuario en navegador.
 
-## Pantalla: Inicio de inicializacion
+## Pantalla: Inicio de inicializacion (referencia tecnica)
 
 ### Objetivo
 
@@ -62,9 +62,8 @@ Equipo de desarrollo.
 
 ### Validaciones de interfaz
 
-- La pantalla muestra estado de conexion: pendiente, validando, disponible o sin conexion.
-- El boton de reintento ejecuta nuevamente la consulta.
-- La URL base proviene de `VITE_API_URL`.
+- El endpoint se conserva para comprobaciones tecnicas del entorno.
+- No se presenta como tarjeta ni indicador visible en la interfaz operativa.
 
 ### Respuestas esperadas
 
@@ -90,9 +89,8 @@ Vendedor / Administrador / Gerente.
 
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
-- `GET /api/health`
 
-La pantalla no ejecuta todavia endpoints de negocio; solo referencia contratos documentados para las vistas base.
+La pantalla no expone endpoints de negocio ni indicadores tecnicos en la interfaz.
 
 ### Campos del formulario
 
@@ -105,12 +103,13 @@ La pantalla no ejecuta todavia endpoints de negocio; solo referencia contratos d
 - `vendedor` ve navegacion operativa: ventas, caja, gastos, transferencias y consultas. No ve interfaces independientes de Inventario, Catalogos ni Evidencias.
 - `administrador` ve Inventario y Catalogos, ademas de las rutas administrativas de cierre, deposito, evidencias y auditoria.
 - `gerente` ve navegacion gerencial con visibilidad administrativa completa.
-- Cada ruta informa si su pantalla esta en estado `Base lista` o `Pantalla pendiente`.
 - El frontend no decide permisos finales; el backend sigue siendo autoridad.
+- En escritorio el menu lateral permanece visible; en movil se abre desde el icono de barras y se cierra al navegar.
+- Usuario y cierre de sesion permanecen en la esquina superior derecha.
 
 ### Respuestas esperadas
 
-- Caso exitoso: la shell muestra usuario, rol, estado de API y menu visible segun rol.
+- Caso exitoso: la shell muestra usuario, rol y menu visible segun rol.
 - Caso con token invalido: el frontend limpia sesion y vuelve a `/login`.
 
 ### Evidencia de prueba
@@ -423,7 +422,7 @@ Vendedor / Administrador / Gerente, segun la vista autorizada.
 
 ### Campos y controles
 
-- Fecha inicial, fecha final y accion `Actualizar`.
+- Fecha inicial, fecha final y accion `Consultar`.
 - Pestañas de Ventas y Gastos para vendedor.
 - Pestañas adicionales de Inventario, Cierre y Deposito para administrador y gerente.
 - Los movimientos de deposito conservan iconos SVG para distinguir entradas por cierre de salidas administrativas.
@@ -431,7 +430,7 @@ Vendedor / Administrador / Gerente, segun la vista autorizada.
 ### Validaciones de interfaz
 
 - Ninguna vista modifica ventas, gastos, inventario, cierres ni deposito.
-- El periodo se aplica de forma explicita con `Actualizar`.
+- El periodo se aplica de forma explicita con `Consultar`.
 - Un cierre inexistente se muestra como estado vacio controlado.
 - Inventario concentra existencias consolidadas y movimientos; Deposito concentra historial y saldo posterior de cada movimiento.
 - El desglose de stock diario por tipo de granizado no se implementa: el stock fisico canonico sigue siendo unico por tamano y no se modificaron backend ni schema.

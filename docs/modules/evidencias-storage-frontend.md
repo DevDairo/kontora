@@ -49,6 +49,7 @@ La pestaña Deposito solo admite como destino de evidencia los movimientos que t
 - Metadata visible: nombre, formato, tamanos original y comprimido, compresion, usuario de subida, fecha y estado.
 - Selector de archivo y accion Adjuntar. El archivo se conserva en memoria durante la sesion cuando falla la carga, habilitando Reintentar.
 - No hay vista previa ni descarga de archivo: la ruta `supabase://...` no es una URL publica y el backend actual no expone contenido binario.
+- El filtro de periodo usa una barra uniforme y aplica el rango solo al pulsar `Consultar`.
 
 ## Reglas y limites de interfaz
 

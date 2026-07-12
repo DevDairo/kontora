@@ -1,9 +1,4 @@
-import {
-  getRouteEndpointsForRole,
-  routeStatusLabels,
-  type AppRoute,
-  type UserRole,
-} from "../../app/routes/appRoutes";
+import { getRouteDescriptionForRole, type AppRoute, type UserRole } from "../../app/routes/appRoutes";
 
 type ModuleOverviewProps = {
   routes: AppRoute[];
@@ -20,17 +15,16 @@ export function ModuleOverview({ routes, activePath, role, roleLabel, onNavigate
     <article className="panel">
       <div className="panel-title">
         <div>
-          <h2>Navegacion visible</h2>
+          <h2>Modulos disponibles</h2>
           <p>{roleLabel}</p>
         </div>
-        <span className="badge">Layout</span>
       </div>
 
       <div className="module-grid">
         {moduleRoutes.map((route) => {
           const Icon = route.icon;
           const isActive = route.path === activePath;
-          const endpoints = getRouteEndpointsForRole(route, role);
+          const description = getRouteDescriptionForRole(route, role);
           return (
             <button
               className={`metric-card route-card-button ${isActive ? "active" : ""}`}
@@ -44,9 +38,8 @@ export function ModuleOverview({ routes, activePath, role, roleLabel, onNavigate
               </div>
               <div>
                 <h3>{route.label}</h3>
-                <span>{routeStatusLabels[route.status]}</span>
+                <span>{description}</span>
               </div>
-              <p>{endpoints[0]}</p>
             </button>
           );
         })}

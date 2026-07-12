@@ -45,10 +45,10 @@ frontend/
 - `src/modules`: superficie reservada para pantallas por modulo funcional.
 - `src/modules/auth`: login, proveedor de sesion, servicio de autenticacion y almacenamiento controlado de token.
 - `src/shared/components`: componentes visuales reutilizables.
-- `src/shared/hooks`: hooks transversales como validacion de salud backend.
+- `src/shared/hooks`: hooks transversales para comprobaciones tecnicas cuando una vista los requiere.
 - `src/shared/services`: cliente HTTP y servicios de API.
 - `src/shared/types`: tipos compartidos de contratos API.
-- `src/shared/utils`: utilidades de configuracion.
+- `src/shared/utils`: utilidades de configuracion, moneda y presentacion de texto.
 
 ## Layout principal por rol
 
@@ -68,11 +68,18 @@ Responsabilidades:
 
 - `appRoutes.ts` centraliza rutas visibles, roles, estado de pantalla y endpoints documentados.
 - `App.tsx` filtra rutas con `nombreRol` devuelto por `/api/auth/me`.
-- `AppShell` renderiza sidebar, topbar, usuario autenticado, estado de API y navegacion.
-- `ModuleOverview` muestra la navegacion visible para el rol autenticado.
-- `RouteWorkspace` muestra vistas base de modulos pendientes con endpoints reales documentados.
+- `AppShell` renderiza sidebar de escritorio, menu desplegable en movil, topbar, usuario autenticado y navegacion filtrada por rol.
+- `ModuleOverview` muestra los modulos visibles con descripciones de negocio.
+- `RouteWorkspace` conserva la vista base para modulos pendientes sin exponer endpoints en la interfaz.
 
 El filtro por rol en frontend es solo una mejora de experiencia. Los permisos finales se mantienen en backend.
+
+## Ajuste responsive y limpieza visual
+
+- `LoginPage` usa un panel decorativo diagonal a pantalla completa en escritorio, con fondo `#f5f8fc`; se oculta en movil.
+- `index.css` concentra los breakpoints de la shell y de los filtros uniformes.
+- `shared/utils/displayText.ts` transforma los nombres tecnicos de inventario en etiquetas legibles sin modificar los valores recibidos del backend.
+- Las rutas operativas conservan sus contratos; la limpieza visual no cambia endpoints, DTOs ni autorizacion.
 
 ## Panel de caja abierta
 

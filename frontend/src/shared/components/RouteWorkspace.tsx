@@ -1,9 +1,6 @@
-import { CheckCircle2 } from "lucide-react";
 import {
   getRouteDescriptionForRole,
-  getRouteEndpointsForRole,
   roleLabels,
-  routeStatusLabels,
   type AppRoute,
   type UserRole,
 } from "../../app/routes/appRoutes";
@@ -17,7 +14,6 @@ export function RouteWorkspace({ route, role }: RouteWorkspaceProps) {
   const Icon = route.icon;
   const roleLabel = role ? roleLabels[role] : "Rol no reconocido";
   const description = getRouteDescriptionForRole(route, role);
-  const endpoints = getRouteEndpointsForRole(route, role);
 
   return (
     <>
@@ -27,9 +23,6 @@ export function RouteWorkspace({ route, role }: RouteWorkspaceProps) {
           <h1 id={`${route.id}-title`}>{route.label}</h1>
           <p className="lead">{description}</p>
         </div>
-        <span className={`badge ${route.status === "base" ? "success" : "warning"}`}>
-          {routeStatusLabels[route.status]}
-        </span>
       </section>
 
       <div className="route-workspace-grid">
@@ -41,21 +34,6 @@ export function RouteWorkspace({ route, role }: RouteWorkspaceProps) {
             <h2>{route.label}</h2>
             <p>{description}</p>
           </div>
-        </article>
-
-        <article className="panel">
-          <div className="panel-title">
-            <div>
-              <h2>Endpoints documentados</h2>
-              <p>Contrato backend real</p>
-            </div>
-            <CheckCircle2 size={20} strokeWidth={2.2} aria-hidden="true" />
-          </div>
-          <ul className="endpoint-list">
-            {endpoints.map((endpoint) => (
-              <li key={endpoint}>{endpoint}</li>
-            ))}
-          </ul>
         </article>
 
         <article className="panel">

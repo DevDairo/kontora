@@ -12,6 +12,7 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { UserRole } from "../../../app/routes/appRoutes";
 import { ApiClientError } from "../../../shared/services/apiClient";
+import { formatDisplayName } from "../../../shared/utils/displayText";
 import {
   aprobarAjusteInventario,
   obtenerInventarioSnapshot,
@@ -63,7 +64,7 @@ function formatDateTime(value: string | null | undefined) {
 }
 
 function itemLabel(item: { nombreItem: string; onzas: number | null }) {
-  return `${item.nombreItem}${item.onzas ? ` · ${item.onzas} oz` : ""}`;
+  return `${formatDisplayName(item.nombreItem)}${item.onzas ? ` · ${item.onzas} oz` : ""}`;
 }
 
 function emptySnapshot(): InventarioSnapshot {
@@ -89,7 +90,7 @@ function DailyRow({ item }: { item: ExistenciaInventarioDiario }) {
     <li className="inventory-row daily">
       <span>
         <strong>{itemLabel(item)}</strong>
-        <small>{item.idCajaDiaria}</small>
+        <small>Control de jornada</small>
       </span>
       <dl>
         <div>
@@ -144,7 +145,7 @@ function AdjustmentRow({
         <Icon size={18} strokeWidth={2.3} />
       </div>
       <span>
-        <strong>{adjustment.nombreItem}</strong>
+        <strong>{formatDisplayName(adjustment.nombreItem)}</strong>
         <small>
           {adjustment.sentidoAjuste} · {adjustment.cantidadAjuste} unidades · {adjustment.nombreUsuarioSolicitante}
         </small>
@@ -436,16 +437,16 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
           <PackageOpen size={18} strokeWidth={2.2} />
           <span>
             {lastAction.type === "paquete"
-              ? `Paquete registrado: ${lastAction.response.nombreItem}, ${lastAction.response.unidadesDisponibles} unidades disponibles.`
+              ? `Paquete registrado: ${formatDisplayName(lastAction.response.nombreItem)}, ${lastAction.response.unidadesDisponibles} unidades disponibles.`
               : lastAction.type === "consumo"
-                ? `Consumo registrado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadConsumida} unidades.`
+                ? `Consumo registrado: ${formatDisplayName(lastAction.response.nombreItem)}, ${lastAction.response.cantidadConsumida} unidades.`
                 : lastAction.type === "ajuste"
                   ? lastAction.response.estadoAprobacion === "aprobado"
-                    ? `Stock actualizado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
-                    : `Ajuste solicitado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
+                    ? `Stock actualizado: ${formatDisplayName(lastAction.response.nombreItem)}, ${lastAction.response.cantidadAjuste} unidades.`
+                    : `Ajuste solicitado: ${formatDisplayName(lastAction.response.nombreItem)}, ${lastAction.response.cantidadAjuste} unidades.`
                   : lastAction.type === "ajuste-aprobado"
-                    ? `Ajuste aprobado: ${lastAction.response.nombreItem}, ${lastAction.response.cantidadAjuste} unidades.`
-                    : `Ajuste rechazado: ${lastAction.response.nombreItem}.`}
+                    ? `Ajuste aprobado: ${formatDisplayName(lastAction.response.nombreItem)}, ${lastAction.response.cantidadAjuste} unidades.`
+                    : `Ajuste rechazado: ${formatDisplayName(lastAction.response.nombreItem)}.`}
           </span>
         </div>
       ) : null}
@@ -453,7 +454,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
       <div className="inventario-summary-grid">
         <SummaryCard label="Stock diario" value={snapshot.existenciasDiarias.length} detail={`${totalDiario} unidades teoricas`} />
         <SummaryCard label="Ajustes" value={snapshot.ajustes.length} detail={`${pendingAdjustments} pendientes`} />
-        <SummaryCard label="Gestion" value={managementValue} detail="Backend valida permisos" />
+        <SummaryCard label="Gestion" value={managementValue} detail="Acciones segun tu rol" />
       </div>
 
       {canManageInventory ? (
@@ -534,7 +535,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
                   <select value={idItemConsumo} onChange={(event) => setIdItemConsumo(event.target.value)}>
                     {manualItems.map((item) => (
                       <option key={item.idItemInventario} value={item.idItemInventario}>
-                        {item.nombreItem} · stock general {item.cantidadActual}
+                        {formatDisplayName(item.nombreItem)} · stock general {item.cantidadActual}
                       </option>
                     ))}
                   </select>
@@ -667,9 +668,9 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
       <div className="inventory-panel-grid">
         <article className="panel">
           <div className="panel-title">
-            <div>
-              <h2>Stock diario</h2>
-              <p>GET /api/inventario/existencias/diarias/abierta</p>
+              <div>
+                <h2>Stock diario</h2>
+              <p>Conteo operativo de la jornada abierta</p>
             </div>
             <span className="badge">{loadState === "loading" ? "Cargando" : `${snapshot.existenciasDiarias.length}`}</span>
           </div>
@@ -684,9 +685,9 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
 
         <article className="panel">
           <div className="panel-title">
-            <div>
-              <h2>Ajustes de stock general</h2>
-              <p>GET /api/inventario/ajustes</p>
+              <div>
+                <h2>Ajustes de stock general</h2>
+              <p>Solicitudes y decisiones registradas</p>
             </div>
             <span className="badge">{loadState === "loading" ? "Cargando" : `${snapshot.ajustes.length}`}</span>
           </div>

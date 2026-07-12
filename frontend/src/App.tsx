@@ -20,10 +20,8 @@ import { InventarioPanel } from "./modules/inventario";
 import { TransferenciasPanel } from "./modules/transferencias";
 import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
-import { HealthCheckPanel } from "./shared/components/HealthCheckPanel";
 import { ModuleOverview } from "./shared/components/ModuleOverview";
 import { RouteWorkspace } from "./shared/components/RouteWorkspace";
-import { useHealthCheck } from "./shared/hooks/useHealthCheck";
 
 const roleHomeContent: Record<
   UserRole,
@@ -39,9 +37,9 @@ const roleHomeContent: Record<
     title: "Panel de vendedor",
     lead: "Acceso operativo a ventas, caja abierta, registro de gastos y transferencias propias.",
     highlights: [
-      { label: "Sesion", value: "Activa", detail: "Confirmada con /api/auth/me" },
-      { label: "Caja", value: "Consulta", detail: "GET /api/cajas-diarias/abierta" },
-      { label: "Ventas", value: "Registro", detail: "POST /api/ventas" },
+      { label: "Sesion", value: "Activa", detail: "Cuenta autenticada" },
+      { label: "Caja", value: "Consulta", detail: "Estado de la jornada" },
+      { label: "Ventas", value: "Registro", detail: "Productos y pagos" },
     ],
   },
   administrador: {
@@ -49,9 +47,9 @@ const roleHomeContent: Record<
     title: "Panel de administrador",
     lead: "Vista para caja, catalogos, inventario, gastos, cierre, deposito y consultas operativas.",
     highlights: [
-      { label: "Sesion", value: "Activa", detail: "Confirmada con /api/auth/me" },
-      { label: "Caja", value: "Apertura", detail: "POST /api/cajas-diarias" },
-      { label: "Cierre", value: "Disponible", detail: "POST /api/cajas-diarias/{id}/cerrar" },
+      { label: "Sesion", value: "Activa", detail: "Cuenta autenticada" },
+      { label: "Caja", value: "Apertura", detail: "Jornada operativa" },
+      { label: "Cierre", value: "Disponible", detail: "Arqueo y deposito" },
     ],
   },
   gerente: {
@@ -59,9 +57,9 @@ const roleHomeContent: Record<
     title: "Panel de gerente",
     lead: "Visibilidad gerencial sobre operacion, transferencias, cierres, deposito, consultas y auditoria completa.",
     highlights: [
-      { label: "Sesion", value: "Activa", detail: "Confirmada con /api/auth/me" },
-      { label: "Auditoria", value: "Completa", detail: "GET /api/consultas/auditoria" },
-      { label: "Deposito", value: "Historial", detail: "GET /api/consultas/deposito/movimientos" },
+      { label: "Sesion", value: "Activa", detail: "Cuenta autenticada" },
+      { label: "Auditoria", value: "Completa", detail: "Trazabilidad operativa" },
+      { label: "Deposito", value: "Historial", detail: "Movimientos y saldo" },
     ],
   },
 };
@@ -94,13 +92,12 @@ function SessionLoading() {
 
 type RoleHomeProps = {
   role: UserRole | null;
-  health: ReturnType<typeof useHealthCheck>;
   routes: ReturnType<typeof getVisibleRoutes>;
   activePath: string;
   onNavigate: (path: string) => void;
 };
 
-function RoleHome({ role, health, routes, activePath, onNavigate }: RoleHomeProps) {
+function RoleHome({ role, routes, activePath, onNavigate }: RoleHomeProps) {
   const content = role ? roleHomeContent[role] : roleHomeContent.vendedor;
   const roleLabel = role ? roleLabels[role] : "Rol no reconocido";
   const inventoryRoute = routes.find((route) => route.id === "inventario");
@@ -145,22 +142,18 @@ function RoleHome({ role, health, routes, activePath, onNavigate }: RoleHomeProp
         </section>
       ) : null}
 
-      <div className="dashboard-grid">
-        <HealthCheckPanel health={health} />
-        <ModuleOverview
-          routes={routes}
-          activePath={activePath}
-          role={role}
-          roleLabel={roleLabel}
-          onNavigate={onNavigate}
-        />
-      </div>
+      <ModuleOverview
+        routes={routes}
+        activePath={activePath}
+        role={role}
+        roleLabel={roleLabel}
+        onNavigate={onNavigate}
+      />
     </>
   );
 }
 
 function AppContent() {
-  const health = useHealthCheck();
   const auth = useAuth();
   const [activePath, setActivePath] = useState(() => window.location.pathname);
 
@@ -199,14 +192,13 @@ function AppContent() {
   }
 
   if (auth.status !== "authenticated" || !auth.user) {
-    return <LoginPage healthStatus={health.status} />;
+    return <LoginPage />;
   }
 
   return (
     <AppShell
       routes={visibleRoutes}
       activePath={activeRoute.path}
-      healthStatus={health.status}
       user={auth.user}
       onNavigate={navigate}
       onLogout={auth.logout}
@@ -215,7 +207,6 @@ function AppContent() {
       {activeRoute.id === "inicio" ? (
         <RoleHome
           role={role}
-          health={health}
           routes={visibleRoutes}
           activePath={activeRoute.path}
           onNavigate={navigate}

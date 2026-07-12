@@ -189,7 +189,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
     }
 
     return [
-      !resumen.adicionDiariaRegistrada ? "Falta registrar adiciones diarias." : null,
+      !resumen.adicionDiariaRegistrada ? "Falta registrar las adiciones de la jornada desde Ventas." : null,
       !resumen.pagoTrabajadoresRegistrado ? "Falta registrar el pago diario a trabajadores." : null,
       resumen.pagoTrabajadoresRegistrado && !resumen.pagoTrabajadoresConfirmado
         ? "Falta confirmar el pago diario a trabajadores."
@@ -633,7 +633,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
               <ul className="cierre-requirements-list">
                 <li className={resumen.adicionDiariaRegistrada ? "complete" : "pending"}>
                   <CheckCircle2 size={18} strokeWidth={2.2} />
-                  <span>Adiciones diarias registradas</span>
+                  <span>Adiciones registradas desde Ventas</span>
                 </li>
                 <li className={resumen.pagoTrabajadoresConfirmado ? "complete" : "pending"}>
                   <CheckCircle2 size={18} strokeWidth={2.2} />

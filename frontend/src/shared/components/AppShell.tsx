@@ -1,12 +1,10 @@
-import { LogOut, Server, UserRound } from "lucide-react";
-import type { PropsWithChildren } from "react";
-import { routeStatusLabels, type AppRoute } from "../../app/routes/appRoutes";
-import type { HealthStatus } from "../hooks/useHealthCheck";
+import { LogOut, Menu, UserRound, X } from "lucide-react";
+import { useState, type PropsWithChildren } from "react";
+import type { AppRoute } from "../../app/routes/appRoutes";
 
 type AppShellProps = PropsWithChildren<{
   routes: AppRoute[];
   activePath: string;
-  healthStatus: HealthStatus;
   user: {
     nombreCompleto: string;
     nombreUsuario: string;
@@ -17,32 +15,31 @@ type AppShellProps = PropsWithChildren<{
   isLoggingOut?: boolean;
 }>;
 
-const healthLabels: Record<HealthStatus, string> = {
-  idle: "Sin validar",
-  loading: "Validando API",
-  online: "API disponible",
-  offline: "API no disponible",
-};
-
 export function AppShell({
   routes,
   activePath,
-  healthStatus,
   user,
   onNavigate,
   onLogout,
   isLoggingOut = false,
   children,
 }: AppShellProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  function navigateTo(path: string) {
+    onNavigate(path);
+    setIsMenuOpen(false);
+  }
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside className={`sidebar ${isMenuOpen ? "mobile-open" : ""}`}>
         <div className="brand">
           <span className="brand-mark">K</span>
           <span>Kontora POS</span>
         </div>
 
-        <nav className="menu" aria-label="Navegacion principal">
+        <nav className="menu" id="main-navigation" aria-label="Navegacion principal">
           {routes.map((route) => {
             const Icon = route.icon;
             const isActive = route.path === activePath;
@@ -52,39 +49,38 @@ export function AppShell({
                 className={isActive ? "active" : undefined}
                 type="button"
                 aria-current={isActive ? "page" : undefined}
-                onClick={() => onNavigate(route.path)}
+                onClick={() => navigateTo(route.path)}
               >
                 <Icon size={18} strokeWidth={2.2} />
-                <span className="menu-label">
-                  <span>{route.label}</span>
-                  <small>{routeStatusLabels[route.status]}</small>
-                </span>
-                <span className={`menu-status ${route.status}`} aria-hidden="true" />
+                <span className="menu-label">{route.label}</span>
               </button>
             );
           })}
         </nav>
-
-        <div className="sidebar-note">
-          <strong>Contrato backend</strong>
-          <span>Endpoints reales documentados en docs/modules.</span>
-        </div>
       </aside>
 
       <div className="workspace">
         <header className="topbar">
-          <div className="topbar-title">
-            <Server size={20} strokeWidth={2.2} />
-            <span>Integracion local</span>
+          <div className="topbar-start">
+            <button
+              className="icon-button mobile-menu-button"
+              type="button"
+              onClick={() => setIsMenuOpen((current) => !current)}
+              aria-label={isMenuOpen ? "Cerrar menu" : "Abrir menu"}
+              aria-expanded={isMenuOpen}
+              aria-controls="main-navigation"
+              title={isMenuOpen ? "Cerrar menu" : "Abrir menu"}
+            >
+              {isMenuOpen ? <X size={20} strokeWidth={2.2} /> : <Menu size={20} strokeWidth={2.2} />}
+            </button>
+            <div className="brand mobile-brand">
+              <span className="brand-mark">K</span>
+              <span>Kontora POS</span>
+            </div>
           </div>
 
           <div className="topbar-actions">
-            <div className={`status-pill ${healthStatus}`}>
-              <span className="status-dot" aria-hidden="true" />
-              <span>{healthLabels[healthStatus]}</span>
-            </div>
-
-            <div className="user-chip">
+            <div className="user-chip" aria-label={`Sesion de ${user.nombreCompleto}`}>
               <span className="avatar" aria-hidden="true">
                 <UserRound size={17} strokeWidth={2.2} />
               </span>

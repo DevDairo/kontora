@@ -124,12 +124,11 @@ La secuencia inicial de Catalogos, Ventas, Inventario, Gastos y Cierre ya fue co
 
 `CajaOperacionesPanel` extiende la pantalla `/caja` para administrador y gerente con:
 
-- Registro y actualizacion de adiciones diarias mediante `POST /api/operaciones-caja/adiciones-diarias`.
 - Consulta de `GET /api/cajas-diarias/abierta/resumen` para la proyeccion de efectivo fisico sin base.
 - Lectura de gastos activos y pago a trabajadores como insumos del cuadre, sin duplicar sus formularios de escritura.
 - Separacion visible entre efectivo, transferencias y base de caja.
 
-El pago a trabajadores se administra en `/gastos`; Caja conserva el dato solo para el resumen financiero. Vendedor no ve estas operaciones administrativas.
+El pago a trabajadores se administra en `/gastos` y las Adiciones diarias en `/ventas`; Caja conserva ambos datos solo para el resumen financiero. Vendedor no ve estas operaciones administrativas dentro de Caja.
 
 ## Actualizacion: apertura segura y jornada nocturna
 

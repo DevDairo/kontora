@@ -13,7 +13,6 @@ Vendedor / Administrador / Gerente.
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
-- `GET /api/health`
 
 ## Campos del formulario
 
@@ -68,10 +67,11 @@ Respuesta esperada de `/auth/me`:
 - Si hay token local, se consulta `GET /api/auth/me` antes de mostrar la shell principal.
 - Si `/auth/me` rechaza el token, se limpia la sesion local.
 - El token se almacena en `sessionStorage`, no en estado global suelto.
+- En escritorio, el panel decorativo derecho usa un patron diagonal sobre fondo `#f5f8fc`; no representa datos ni contratos y se oculta en movil.
 
 ## Respuestas esperadas
 
-- Login exitoso: se guarda token, se muestra `Sesion activa`, usuario y rol.
+- Login exitoso: se guarda token y se muestra la shell correspondiente al usuario y rol.
 - Login fallido: se conserva la pantalla de login y se muestra el mensaje del backend.
 - Token invalido o expirado: se limpia el token local y se vuelve a `/login`.
 - Logout exitoso: el backend cierra la sesion y el frontend limpia token local.

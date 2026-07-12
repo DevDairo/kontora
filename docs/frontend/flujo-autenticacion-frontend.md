@@ -49,7 +49,7 @@ Responsabilidades:
 - `authService` encapsula llamadas reales a `/auth/login`, `/auth/me` y `/auth/logout`.
 - `tokenStorage` limita el almacenamiento del JWT a `sessionStorage`.
 - `App.tsx` protege la aplicacion: sin sesion valida redirige a `/login`; con sesion valida muestra la shell operativa.
-- `AppShell` muestra usuario, rol, estado de API y accion de cierre de sesion.
+- `AppShell` muestra usuario, rol, navegacion responsive y accion de cierre de sesion.
 
 ## Reglas que no debe duplicar el frontend
 
@@ -80,9 +80,8 @@ La pantalla principal queda protegida por el estado confirmado desde backend:
 - `POST /api/auth/logout` con token real: exitoso.
 - Validacion en navegador integrado:
   - Login muestra `Iniciar sesion`.
-  - API local muestra `API disponible`.
   - Login redirige a `/`.
-  - Pantalla protegida muestra `Sesion activa`, usuario, rol y boton de logout.
+  - Pantalla protegida muestra usuario, rol, navegacion y boton de logout.
   - Logout vuelve a `/login`.
   - Consola sin errores durante login/logout.
 

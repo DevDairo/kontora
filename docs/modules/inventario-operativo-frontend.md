@@ -42,6 +42,13 @@ El panel consume:
 - El remanente diario de cada item de vaso se arrastra al abrir la siguiente caja. La interfaz no interpreta una caja nueva como stock diario vacio.
 - Vendedor no recibe la ruta de Inventario. Tampoco recibe Catalogos ni Evidencias como interfaces independientes.
 
+## Actualizacion visual del 2026-07-11
+
+- `/inventario` conserva solo stock diario, formularios operativos y ajustes; el stock general y los movimientos historicos se consultan desde `/consultas`.
+- Los nombres visibles de vasos y consumibles se presentan sin guiones bajos y con capitalizacion legible.
+- Se retiraron de la interfaz los identificadores de caja y las rutas API que acompanaban el stock diario y los ajustes.
+- Los tres formularios operativos mantienen boton principal alineado y altura uniforme en escritorio; en movil se apilan.
+
 ## Validacion realizada
 
 ### Backend y contratos

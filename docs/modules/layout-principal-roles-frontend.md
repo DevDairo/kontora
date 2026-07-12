@@ -12,9 +12,8 @@ Vendedor / Administrador / Gerente.
 
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
-- `GET /api/health`
 
-La pantalla referencia endpoints documentados de negocio, pero no ejecuta todavia operaciones de esos modulos.
+La interfaz no expone endpoints ni indicadores tecnicos; los contratos permanecen documentados en los modulos correspondientes.
 
 ## Contrato usado
 
@@ -44,10 +43,8 @@ Roles reconocidos por el layout:
 - Inicio.
 - Ventas.
 - Caja.
-- Inventario.
 - Gastos.
 - Transferencias.
-- Evidencias.
 - Consultas.
 
 ### Administrador
@@ -85,8 +82,8 @@ Roles reconocidos por el layout:
 - Sin sesion valida se muestra `/login`.
 - Con sesion valida se renderiza el panel correspondiente al rol.
 - Las opciones administrativas no se muestran en el menu de `vendedor`.
-- Las pantallas de negocio no implementadas se muestran como `Pantalla pendiente`.
-- Los endpoints mostrados para `vendedor` no incluyen acciones administrativas cuando existe diferencia de rol.
+- En escritorio el menu lateral se mantiene visible; en movil se presenta como menu desplegable desde el icono de barras.
+- Usuario y cierre de sesion se mantienen en la esquina superior derecha.
 
 ## Reglas que no debe duplicar el frontend
 
@@ -104,6 +101,11 @@ El frontend solo mejora la experiencia ocultando opciones no relevantes. El back
 - Login con `administrador`: se muestra panel de administrador y navegacion administrativa.
 - Login con `gerente`: se muestra panel de gerente y navegacion gerencial.
 - Logout: se llama `/api/auth/logout`, se limpia la sesion local y se vuelve a `/login`.
+
+## Actualizacion responsive del 2026-07-11
+
+- Se eliminaron los estados de pantalla, endpoints e indicadores de API como elementos visibles de navegacion.
+- La navegacion conserva el filtro por rol y el backend sigue siendo la autoridad final de permisos.
 
 ## Evidencia de prueba
 

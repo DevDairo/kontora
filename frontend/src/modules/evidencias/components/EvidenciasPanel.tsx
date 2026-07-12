@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, FileImage, FileUp, Landmark, ReceiptText, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileImage, FileUp, Landmark, ReceiptText, RefreshCw } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import {
@@ -297,10 +297,6 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
           <h1>Evidencias</h1>
           <p>Consulta los soportes asociados a operaciones administrativas y sus metadatos registrados.</p>
         </div>
-        <div className="evidence-storage-status" aria-label="Estado de almacenamiento local">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <span>Storage pendiente de despliegue</span>
-        </div>
       </header>
 
       <div className="evidence-summary-grid" aria-label="Resumen de registros consultados">
@@ -326,7 +322,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
         </article>
       </div>
 
-      <form className="evidence-filter-form" onSubmit={actualizarRegistros}>
+      <form className="evidence-filter-form module-filter-bar panel" onSubmit={actualizarRegistros}>
         <label className="form-field">
           <span>Fecha inicial</span>
           <input className="field-control plain" type="date" value={fechaInicio} onChange={(event) => setFechaInicio(event.target.value)} />
@@ -337,7 +333,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
         </label>
         <button className="primary-button" type="submit" disabled={loadState === "loading"}>
           <RefreshCw size={18} aria-hidden="true" />
-          Actualizar
+          Consultar
         </button>
       </form>
 

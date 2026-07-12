@@ -236,8 +236,8 @@ Resultado:
 
 ## Estado esperado en pantalla
 
-En `http://127.0.0.1:5173`, la pantalla inicial del frontend debe mostrar:
+La interfaz operativa ya no muestra un indicador de API. La comprobacion se realiza con la consola o las solicitudes de red, mientras que el login debe renderizar su formulario correctamente:
 
 ```text
-API disponible
+Iniciar sesion
 ```
