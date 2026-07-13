@@ -371,6 +371,23 @@ npm run build
 
 Publicar `frontend/dist` en Vercel, Nginx u otro hosting estatico con soporte de rutas SPA. En Vercel la variable debe llamarse `VITE_API_URL` y se debe volver a construir tras cambiarla.
 
+### Rutas SPA en Vercel
+
+El frontend usa rutas del lado del cliente, como `/login`, `/caja` e `/inventario`. Al recargar una de esas rutas, Vercel debe responder con `index.html` para que React resuelva la pantalla. El archivo `frontend/vercel.json` ya incluye esta regla:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+Mantener este archivo dentro de `frontend/`, porque esa es la raiz configurada para el proyecto de Vercel. Sin la regla, Vercel puede responder `NOT_FOUND` al actualizar directamente una ruta interna aunque el build haya terminado correctamente.
+
 ## Seguridad y mantenimiento
 
 - No versionar `.env`, claves de Supabase, contrasenas ni `JWT_SECRET`.
