@@ -40,7 +40,9 @@ La guia funcional vigente esta en [docs/00-indice.md](docs/00-indice.md). El pro
 - Node.js `^20.19.0` o `>=22.12.0` para el frontend.
 - Java 21 y Maven solo si se ejecutaran pruebas o backend fuera de Docker.
 
-## Ejecucion local con Docker
+## Ejecucion local: backend con Docker y frontend Vite
+
+Este procedimiento sirve cuando el navegador, Vite y Docker se ejecutan en la **misma computadora**. El backend y PostgreSQL se ejecutan en contenedores; el frontend se ejecuta con Vite directamente desde Node.js.
 
 Desde la raiz del repositorio, en PowerShell:
 
@@ -72,6 +74,8 @@ npm run dev -- --host 127.0.0.1
 
 Abrir `http://127.0.0.1:5173`.
 
+`frontend/.env` se lee al iniciar Vite. Si se modifica `VITE_API_URL`, detener Vite con `Ctrl+C` y ejecutar de nuevo el comando anterior. No copiar archivos `.env` desde otra computadora ni versionarlos: cada instalacion debe generar sus propios archivos desde los ejemplos.
+
 ## CORS local y produccion
 
 ### Entorno local
@@ -100,6 +104,28 @@ Despues de editar `infra/.env`, recrear el contenedor backend para que lea las v
 ```powershell
 docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend up -d --force-recreate backend
 ```
+
+### Acceso desde otro equipo de la red local
+
+Esto es distinto de clonar y ejecutar el proyecto en una segunda computadora. Si el navegador se abre desde otro equipo, `localhost` y `127.0.0.1` apuntan a ese equipo cliente, no al que ejecuta Docker. En ese caso:
+
+1. Obtener la IPv4 de la computadora que ejecuta Docker, por ejemplo `192.168.1.50`.
+2. En `frontend/.env`, configurar `VITE_API_URL=http://192.168.1.50:8080/api`.
+3. En `infra/.env`, agregar el origen exacto del navegador:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.50:5173
+```
+
+4. Recrear el backend y reiniciar Vite. Para que Vite acepte conexiones de la red, iniciarlo asi:
+
+```powershell
+npm run dev -- --host 0.0.0.0
+```
+
+5. Abrir `http://192.168.1.50:5173` desde el equipo cliente y permitir los puertos `5173` y `8080` en el firewall de Windows solo para la red privada.
+
+No utilizar esta configuracion como despliegue publico; para ello se debe seguir la configuracion HTTPS de produccion descrita mas abajo.
 
 ### Entorno de produccion
 
@@ -184,6 +210,38 @@ Para reiniciar desde una base local vacia se debe bajar el stack con volumenes. 
 ```powershell
 docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend down -v
 ```
+
+## Diagnostico de "Failed to fetch"
+
+Ese mensaje lo produce el navegador cuando no puede completar una solicitud HTTP. No representa un error de credenciales: si el usuario o la contrasena fueran invalidos, el backend responderia `401` con un mensaje visible en el formulario.
+
+Realizar estas comprobaciones desde la raiz del repositorio, en este orden:
+
+```powershell
+docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend ps
+Invoke-WebRequest http://127.0.0.1:8080/api/health
+docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend logs --tail=200 backend
+```
+
+La segunda instruccion debe responder `200` con un cuerpo que incluya `"status":"ok"`. Si no responde, el problema esta en Docker, PostgreSQL o las variables del backend; los ultimos logs indican la causa concreta.
+
+Si el health responde `200`, verificar que `frontend/.env` tenga exactamente una URL utilizable desde el navegador:
+
+```env
+# Misma computadora
+VITE_API_URL=http://127.0.0.1:8080/api
+
+# Navegador en otro equipo de la red: reemplazar por la IP del servidor local
+# VITE_API_URL=http://192.168.1.50:8080/api
+```
+
+Si se cambia `APP_PORT` en `infra/.env`, reemplazar tambien `8080` por ese mismo puerto en `VITE_API_URL` y en las comprobaciones de health. Despues de editar `frontend/.env`, reiniciar Vite. Si el navegador usa otro puerto u otra IP, agregar ese origen a `CORS_ALLOWED_ORIGINS` y recrear el backend. Tambien se puede comprobar CORS localmente:
+
+```powershell
+Invoke-WebRequest http://127.0.0.1:8080/api/health -Headers @{ Origin = "http://127.0.0.1:5173" }
+```
+
+La respuesta debe incluir el encabezado `Access-Control-Allow-Origin: http://127.0.0.1:5173`. Si la pestaña Network del navegador muestra `ERR_CONNECTION_REFUSED`, revisar la URL y los puertos; si muestra un bloqueo CORS, revisar el origen exacto, incluido protocolo, IP y puerto.
 
 ## Validacion local
 

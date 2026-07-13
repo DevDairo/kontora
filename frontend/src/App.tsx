@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, PackageOpen } from "lucide-react";
 import { AppProviders } from "./app/providers/AppProviders";
 import {
   findRouteByPath,
   getVisibleRoutes,
   normalizeRole,
-  roleLabels,
-  type UserRole,
 } from "./app/routes/appRoutes";
 import { LoginPage, useAuth } from "./modules/auth";
 import { AuditoriaPanel } from "./modules/auditoria";
@@ -22,49 +19,8 @@ import { TransferenciasPanel } from "./modules/transferencias";
 import { UsuariosPanel } from "./modules/usuarios";
 import { VentasPanel } from "./modules/ventas";
 import { AppShell } from "./shared/components/AppShell";
-import { ModuleOverview } from "./shared/components/ModuleOverview";
+import { RoleHome } from "./shared/components/RoleHome";
 import { RouteWorkspace } from "./shared/components/RouteWorkspace";
-
-const roleHomeContent: Record<
-  UserRole,
-  {
-    eyebrow: string;
-    title: string;
-    lead: string;
-    highlights: Array<{ label: string; value: string; detail: string }>;
-  }
-> = {
-  vendedor: {
-    eyebrow: "Operacion de mostrador",
-    title: "Panel de vendedor",
-    lead: "Acceso operativo a ventas, caja abierta, registro de gastos y transferencias propias.",
-    highlights: [
-      { label: "Sesion", value: "Activa", detail: "Cuenta autenticada" },
-      { label: "Caja", value: "Consulta", detail: "Estado de la jornada" },
-      { label: "Ventas", value: "Registro", detail: "Productos y pagos" },
-    ],
-  },
-  administrador: {
-    eyebrow: "Gestion operativa",
-    title: "Panel de administrador",
-    lead: "Vista para caja, catalogos, inventario, gastos, cierre, deposito y consultas operativas.",
-    highlights: [
-      { label: "Sesion", value: "Activa", detail: "Cuenta autenticada" },
-      { label: "Caja", value: "Apertura", detail: "Jornada operativa" },
-      { label: "Cierre", value: "Disponible", detail: "Arqueo y deposito" },
-    ],
-  },
-  gerente: {
-    eyebrow: "Control gerencial",
-    title: "Panel de gerente",
-    lead: "Visibilidad gerencial sobre operacion, transferencias, cierres, deposito, consultas y auditoria completa.",
-    highlights: [
-      { label: "Sesion", value: "Activa", detail: "Cuenta autenticada" },
-      { label: "Auditoria", value: "Completa", detail: "Trazabilidad operativa" },
-      { label: "Deposito", value: "Historial", detail: "Movimientos y saldo" },
-    ],
-  },
-};
 
 function setBrowserPath(path: string, replace = false) {
   if (window.location.pathname === path) {
@@ -89,69 +45,6 @@ function SessionLoading() {
       <div className="loading-bar" aria-hidden="true" />
       <span>Validando sesion</span>
     </main>
-  );
-}
-
-type RoleHomeProps = {
-  role: UserRole | null;
-  routes: ReturnType<typeof getVisibleRoutes>;
-  activePath: string;
-  onNavigate: (path: string) => void;
-};
-
-function RoleHome({ role, routes, activePath, onNavigate }: RoleHomeProps) {
-  const content = role ? roleHomeContent[role] : roleHomeContent.vendedor;
-  const roleLabel = role ? roleLabels[role] : "Rol no reconocido";
-  const inventoryRoute = routes.find((route) => route.id === "inventario");
-  const canManageInventory = role === "administrador" || role === "gerente";
-
-  return (
-    <>
-      <section className="section-heading" aria-labelledby="home-title">
-        <div>
-          <p className="eyebrow">{content.eyebrow}</p>
-          <h1 id="home-title">{content.title}</h1>
-          <p className="lead">{content.lead}</p>
-        </div>
-      </section>
-
-      <div className="role-highlight-grid">
-        {content.highlights.map((item) => (
-          <article className="role-highlight" key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-            <small>{item.detail}</small>
-          </article>
-        ))}
-      </div>
-
-      {canManageInventory && inventoryRoute ? (
-        <section className="inventory-shortcut-band" aria-labelledby="inventory-actions-title">
-          <div>
-            <p className="eyebrow">Inventario operativo</p>
-            <h2 id="inventory-actions-title">Acciones de jornada</h2>
-          </div>
-          <div className="inventory-shortcut-actions">
-            <button className="primary-button" type="button" onClick={() => onNavigate(inventoryRoute.path)}>
-              <PackageOpen size={18} strokeWidth={2.2} />
-              Abrir paquetes de vasos
-            </button>
-            <button className="ghost-button" type="button" onClick={() => onNavigate(inventoryRoute.path)}>
-              <ClipboardList size={18} strokeWidth={2.2} />
-              Registrar consumo diario
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      <ModuleOverview
-        routes={routes}
-        activePath={activePath}
-        role={role}
-        roleLabel={roleLabel}
-        onNavigate={onNavigate}
-      />
-    </>
   );
 }
 
@@ -211,7 +104,8 @@ function AppContent() {
         <RoleHome
           role={role}
           routes={visibleRoutes}
-          activePath={activeRoute.path}
+          token={auth.token ?? ""}
+          user={auth.user}
           onNavigate={navigate}
         />
       ) : activeRoute.id === "caja" ? (
