@@ -171,11 +171,10 @@ CORS_ALLOWED_ORIGINS=https://pos.midominio.com
 VITE_API_URL=https://api.midominio.com/api
 ```
 
-4. Recrear el contenedor backend para que cargue el nuevo valor de CORS:
+4. Recrear el servicio backend para que cargue el nuevo valor de CORS:
 
 ```bash
-docker rm -f kontora-pos-backend
-docker run -d --name kontora-pos-backend --restart unless-stopped --env-file infra/.env -p 8080:8080 kontora-pos-backend:latest
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --force-recreate backend
 ```
 
 5. Generar y publicar un nuevo build del frontend:
@@ -299,7 +298,14 @@ El procedimiento completo, incluidos los casos de una cuenta existente y el rein
 
 ## Despliegue del backend en servidor
 
-Requisitos: Ubuntu Server con Docker Engine y acceso saliente a Supabase. Copiar el repositorio al servidor y crear `infra/.env` a partir de `infra/.env.example` con valores de produccion:
+Requisitos: Ubuntu Server con Docker Engine y acceso saliente a Supabase. Copiar el repositorio al servidor y crear `infra/.env` desde la plantilla exclusiva de produccion:
+
+```bash
+cp infra/.env.production.example infra/.env
+chmod 600 infra/.env
+```
+
+Completar en `infra/.env` los valores reales de produccion:
 
 ```env
 APP_PORT=8080
@@ -310,7 +316,7 @@ DB_USER=<usuario-del-pooler>
 DB_PASSWORD=<contrasena-del-pooler>
 DB_SSLMODE=require
 JWT_SECRET=<secreto-largo-y-aleatorio>
-CORS_ALLOWED_ORIGINS=https://<dominio-frontend>
+CORS_ALLOWED_ORIGINS=https://kontora-pos.store,https://www.kontora-pos.store
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SECRET_KEY=<clave-secreta-del-proyecto>
 SUPABASE_STORAGE_BUCKET=kontoraimagenes
@@ -320,29 +326,39 @@ BOOTSTRAP_MANAGER_FULL_NAME=Gerente Local
 BOOTSTRAP_MANAGER_PASSWORD=<contrasena-segura>
 ```
 
-Construir y ejecutar el backend sin levantar PostgreSQL local:
+Construir y ejecutar el backend sin levantar PostgreSQL local. El Compose de produccion publica el puerto solo en `127.0.0.1`; Cloudflare Tunnel sera el unico acceso publico a la API:
 
 ```bash
-docker build -t kontora-pos-backend:latest ./backend
-docker run -d --name kontora-pos-backend --restart unless-stopped --env-file infra/.env -p 8080:8080 kontora-pos-backend:latest
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --build
+docker compose --env-file infra/.env -f infra/compose.prod.yml ps
 curl http://127.0.0.1:8080/api/health
 ```
+
+### Publicacion de dominios
+
+Una zona DNS sin registros, como `kontora-pos.store` antes de este despliegue, es el estado inicial esperado. Las variables de CORS no crean DNS: solo autorizan al navegador cuando el frontend ya este publicado. Completar los servicios en este orden:
+
+1. Con el health local exitoso, crear en Cloudflare Zero Trust un tunnel para la VM y registrar la aplicacion publica `api.kontora-pos.store` con servicio `http://127.0.0.1:8080`. Cloudflare crea el registro DNS del subdominio del tunnel.
+2. Crear o importar el proyecto frontend en Vercel, definir `VITE_API_URL=https://api.kontora-pos.store/api` y asociar los dominios `kontora-pos.store` y `www.kontora-pos.store`.
+3. Crear en Cloudflare exclusivamente los registros que Vercel indique para los dominios web. No crear registros `A` hacia la IP de la VM ni publicar el puerto `8080`.
+4. Probar `https://api.kontora-pos.store/api/health`, abrir `https://kontora-pos.store/login` y verificar una solicitud autenticada desde el navegador.
+
+El token de Cloudflare Tunnel se configura en el servicio `cloudflared` de la VM; no es una variable del backend y no debe agregarse a `infra/.env`.
 
 Despues de iniciar sesion con el gerente inicial, desactivar el bootstrap en `infra/.env` y recrear el contenedor:
 
 ```bash
-docker rm -f kontora-pos-backend
-docker run -d --name kontora-pos-backend --restart unless-stopped --env-file infra/.env -p 8080:8080 kontora-pos-backend:latest
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --force-recreate backend
 ```
 
-Exponer el backend mediante un proxy HTTPS y permitir en CORS solo el dominio real del frontend.
+El backend queda accesible desde Internet solo por `api.kontora-pos.store` a traves del tunnel. Los dos origenes de Vercel configurados en CORS cubren el dominio principal y `www`.
 
 ## Publicacion del frontend
 
 Antes de generar el build de produccion, configurar la URL HTTPS publica del backend:
 
 ```env
-VITE_API_URL=https://<dominio-backend>/api
+VITE_API_URL=https://api.kontora-pos.store/api
 ```
 
 Luego ejecutar:

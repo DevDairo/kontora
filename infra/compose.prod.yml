@@ -8,5 +8,6 @@ services:
     env_file:
       - .env
     ports:
-      - "${APP_PORT:-8080}:8080"
-
+      # Cloudflare Tunnel se ejecuta en la VM y consume este origen local.
+      # No publicar Spring Boot directamente en Internet.
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
