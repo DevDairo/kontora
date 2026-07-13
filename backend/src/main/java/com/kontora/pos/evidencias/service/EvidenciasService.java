@@ -1,5 +1,6 @@
 package com.kontora.pos.evidencias.service;
 
+import com.kontora.pos.auditoria.service.AuditoriaService;
 import com.kontora.pos.caja.domain.GastoCaja;
 import com.kontora.pos.caja.repository.GastoCajaRepository;
 import com.kontora.pos.common.exception.ApiException;
@@ -9,9 +10,11 @@ import com.kontora.pos.deposito.domain.PagoServicio;
 import com.kontora.pos.deposito.repository.ConsignacionBancariaRepository;
 import com.kontora.pos.deposito.repository.PagoServicioRepository;
 import com.kontora.pos.evidencias.domain.ArchivoEvidencia;
+import com.kontora.pos.evidencias.dto.ArchivoEvidenciaDescargada;
 import com.kontora.pos.evidencias.dto.ArchivoEvidenciaResponse;
 import com.kontora.pos.evidencias.repository.ArchivoEvidenciaRepository;
 import com.kontora.pos.evidencias.storage.ArchivoAlmacenado;
+import com.kontora.pos.evidencias.storage.ArchivoDescargado;
 import com.kontora.pos.evidencias.storage.EvidenciaStorageClient;
 import com.kontora.pos.usuarios.domain.Usuario;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
@@ -36,9 +39,12 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+
+import static com.kontora.pos.common.audit.AuditoriaValores.valores;
 
 @Service
 public class EvidenciasService {
@@ -67,6 +73,7 @@ public class EvidenciasService {
     private final PagoServicioRepository pagoServicioRepository;
     private final UsuarioRepository usuarioRepository;
     private final EvidenciaStorageClient storageClient;
+    private final AuditoriaService auditoriaService;
 
     public EvidenciasService(
             ArchivoEvidenciaRepository archivoEvidenciaRepository,
@@ -75,7 +82,8 @@ public class EvidenciasService {
             ConsignacionBancariaRepository consignacionBancariaRepository,
             PagoServicioRepository pagoServicioRepository,
             UsuarioRepository usuarioRepository,
-            EvidenciaStorageClient storageClient) {
+            EvidenciaStorageClient storageClient,
+            AuditoriaService auditoriaService) {
         this.archivoEvidenciaRepository = archivoEvidenciaRepository;
         this.pagoVentaRepository = pagoVentaRepository;
         this.gastoCajaRepository = gastoCajaRepository;
@@ -83,6 +91,7 @@ public class EvidenciasService {
         this.pagoServicioRepository = pagoServicioRepository;
         this.usuarioRepository = usuarioRepository;
         this.storageClient = storageClient;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -101,6 +110,35 @@ public class EvidenciasService {
                 "pagos-venta",
                 idPagoVenta,
                 evidencia -> evidencia.setPagoVenta(pagoVenta));
+    }
+
+    @Transactional
+    public ArchivoEvidenciaResponse cargarAjusteEvidenciaPagoVenta(
+            UUID idPagoVenta,
+            MultipartFile archivo,
+            PrincipalUsuario principalUsuario) {
+        validarGerente(principalUsuario);
+        PagoVenta pagoVenta = obtenerPagoVenta(idPagoVenta);
+        if (!METODO_TRANSFERENCIA.equals(pagoVenta.getMetodoPago().getNombreMetodo())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Solo se pueden ajustar evidencias de pagos por transferencia");
+        }
+
+        // The prior support remains attached; the adjustment is an additional auditable record.
+        ArchivoEvidenciaResponse evidencia = guardarEvidencia(
+                archivo,
+                principalUsuario,
+                "pagos-venta",
+                idPagoVenta,
+                registro -> registro.setPagoVenta(pagoVenta));
+        auditoriaService.registrar(
+                principalUsuario.idUsuario(),
+                "archivos_evidencia",
+                evidencia.idArchivoEvidencia(),
+                "crear",
+                null,
+                snapshotAjusteEvidencia(evidencia),
+                "Ajuste de evidencia de transferencia por gerente");
+        return evidencia;
     }
 
     @Transactional
@@ -157,6 +195,18 @@ public class EvidenciasService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Evidencia no encontrada"));
         validarAccesoEvidencia(evidencia, principalUsuario);
         return toResponse(evidencia);
+    }
+
+    @Transactional(readOnly = true)
+    public ArchivoEvidenciaDescargada descargarEvidencia(UUID idArchivoEvidencia, PrincipalUsuario principalUsuario) {
+        ArchivoEvidencia evidencia = archivoEvidenciaRepository.findByIdArchivoEvidencia(idArchivoEvidencia)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Evidencia no encontrada"));
+        validarAccesoDescarga(evidencia, principalUsuario);
+        ArchivoDescargado archivo = storageClient.descargar(evidencia.getUrlArchivo());
+        return new ArchivoEvidenciaDescargada(
+                archivo.contenido(),
+                archivo.contentType(),
+                evidencia.getNombreArchivo());
     }
 
     @Transactional(readOnly = true)
@@ -381,6 +431,14 @@ public class EvidenciasService {
         }
     }
 
+    private void validarAccesoDescarga(ArchivoEvidencia evidencia, PrincipalUsuario principalUsuario) {
+        if (evidencia.getPagoVenta() != null) {
+            validarRolAdministrativo(principalUsuario, "Solo administrador o gerente puede descargar evidencias de transferencias");
+            return;
+        }
+        validarAccesoEvidencia(evidencia, principalUsuario);
+    }
+
     private void validarAccesoPagoVenta(PagoVenta pagoVenta, PrincipalUsuario principalUsuario) {
         if (tieneRolAdministrativo(principalUsuario)) {
             return;
@@ -407,9 +465,25 @@ public class EvidenciasService {
         }
     }
 
+    private void validarGerente(PrincipalUsuario principalUsuario) {
+        if (!"gerente".equals(principalUsuario.nombreRol().toLowerCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo el gerente puede adjuntar ajustes de evidencias de transferencias");
+        }
+    }
+
     private boolean tieneRolAdministrativo(PrincipalUsuario principalUsuario) {
         String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
         return "administrador".equals(rol) || "gerente".equals(rol);
+    }
+
+    private Map<String, Object> snapshotAjusteEvidencia(ArchivoEvidenciaResponse evidencia) {
+        return valores(
+                "id_archivo_evidencia", evidencia.idArchivoEvidencia(),
+                "id_pago_venta", evidencia.idPagoVenta(),
+                "nombre_archivo", evidencia.nombreArchivo(),
+                "tipo_archivo", evidencia.tipoArchivo(),
+                "formato_archivo", evidencia.formatoArchivo(),
+                "id_usuario_subida", evidencia.idUsuarioSubida());
     }
 
     private String construirRutaArchivo(String carpeta, UUID idProceso, String formatoArchivo) {

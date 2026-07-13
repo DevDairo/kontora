@@ -1,8 +1,14 @@
-import { CheckCircle2, ClipboardList, Pencil, Plus, ReceiptText, RefreshCw, Save, UsersRound, X, XCircle } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { CheckCircle2, ClipboardList, Download, FileImage, FileUp, Pencil, Plus, ReceiptText, RefreshCw, Save, UsersRound, X, XCircle } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { UserRole } from "../../../app/routes/appRoutes";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import { normalizeMoneyInput } from "../../../shared/utils/moneyInput";
+import {
+  cargarEvidenciaGastoCaja,
+  descargarEvidencia,
+  listarEvidenciasGastoCaja,
+} from "../../evidencias/services/evidenciasService";
+import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import {
   anularGastoCaja,
   confirmarPagoTrabajadores,
@@ -15,6 +21,7 @@ import {
 import type { GastoCaja, PagoTrabajadoresDiario } from "../types";
 
 type LoadState = "loading" | "success" | "no-cash-box" | "error";
+type EvidenceLoadState = "idle" | "loading" | "success" | "error";
 type SubmitAction = "gasto" | "pago" | "confirmar-pago" | "editar-gasto" | "anular-gasto" | null;
 type GastoAction = { mode: "editar" | "anular"; gasto: GastoCaja } | null;
 
@@ -22,6 +29,8 @@ type GastosPanelProps = {
   token: string;
   role: UserRole | null;
 };
+
+const FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf";
 
 function formatCurrency(value: number | null | undefined) {
   return new Intl.NumberFormat("es-CO", {
@@ -74,6 +83,7 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
   const [submittingAction, setSubmittingAction] = useState<SubmitAction>(null);
   const [valorGasto, setValorGasto] = useState("");
   const [descripcionGasto, setDescripcionGasto] = useState("");
+  const [archivoEvidenciaGasto, setArchivoEvidenciaGasto] = useState<File | null>(null);
   const [pagoTrabajadores, setPagoTrabajadores] = useState<PagoTrabajadoresDiario | null>(null);
   const [valorPagoTrabajadores, setValorPagoTrabajadores] = useState("0");
   const [descripcionPagoTrabajadores, setDescripcionPagoTrabajadores] = useState("");
@@ -82,6 +92,14 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
   const [valorGastoEdicion, setValorGastoEdicion] = useState("");
   const [descripcionGastoEdicion, setDescripcionGastoEdicion] = useState("");
   const [motivoGastoAction, setMotivoGastoAction] = useState("");
+  const [gastoEvidenciaSeleccionado, setGastoEvidenciaSeleccionado] = useState<GastoCaja | null>(null);
+  const [evidenciasGasto, setEvidenciasGasto] = useState<ArchivoEvidenciaResponse[]>([]);
+  const [evidenceState, setEvidenceState] = useState<EvidenceLoadState>("idle");
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [downloadingEvidenceId, setDownloadingEvidenceId] = useState<string | null>(null);
+  const registroEvidenceInputRef = useRef<HTMLInputElement>(null);
+  const gestionEvidenceInputRef = useRef<HTMLInputElement>(null);
 
   const canManageGastos = role === "administrador" || role === "gerente";
   const isCashBoxOpen = loadState === "success";
@@ -143,6 +161,93 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
     setMotivoGastoAction("");
   }
 
+  async function cargarEvidenciasGasto(gasto: GastoCaja) {
+    setEvidenceState("loading");
+    setEvidenceError(null);
+
+    try {
+      const response = await listarEvidenciasGastoCaja(token, gasto.idGastoCaja);
+      setEvidenciasGasto(response);
+      setEvidenceState("success");
+    } catch (error) {
+      setEvidenciasGasto([]);
+      setEvidenceState("error");
+      setEvidenceError(messageFor(error));
+    }
+  }
+
+  function seleccionarEvidenciaGasto(gasto: GastoCaja) {
+    setGastoEvidenciaSeleccionado(gasto);
+    setArchivoEvidenciaGasto(null);
+    if (gestionEvidenceInputRef.current) {
+      gestionEvidenceInputRef.current.value = "";
+    }
+    void cargarEvidenciasGasto(gasto);
+  }
+
+  function cerrarEvidenciaGasto() {
+    setGastoEvidenciaSeleccionado(null);
+    setEvidenciasGasto([]);
+    setEvidenceState("idle");
+    setEvidenceError(null);
+    setArchivoEvidenciaGasto(null);
+    if (gestionEvidenceInputRef.current) {
+      gestionEvidenceInputRef.current.value = "";
+    }
+  }
+
+  function seleccionarArchivoEvidencia(event: ChangeEvent<HTMLInputElement>) {
+    setArchivoEvidenciaGasto(event.target.files?.[0] ?? null);
+    setEvidenceError(null);
+  }
+
+  async function adjuntarEvidenciaGasto() {
+    if (!gastoEvidenciaSeleccionado || !archivoEvidenciaGasto || gastoEvidenciaSeleccionado.estadoGasto === "anulado") {
+      return;
+    }
+
+    setIsUploadingEvidence(true);
+    setEvidenceError(null);
+
+    try {
+      await cargarEvidenciaGastoCaja(token, gastoEvidenciaSeleccionado.idGastoCaja, archivoEvidenciaGasto);
+      setArchivoEvidenciaGasto(null);
+      if (registroEvidenceInputRef.current) {
+        registroEvidenceInputRef.current.value = "";
+      }
+      if (gestionEvidenceInputRef.current) {
+        gestionEvidenceInputRef.current.value = "";
+      }
+      setActionMessage("Evidencia del gasto adjunta correctamente.");
+      await cargarEvidenciasGasto(gastoEvidenciaSeleccionado);
+    } catch (error) {
+      setEvidenceError(messageFor(error));
+    } finally {
+      setIsUploadingEvidence(false);
+    }
+  }
+
+  async function descargarArchivoEvidencia(evidencia: ArchivoEvidenciaResponse) {
+    setDownloadingEvidenceId(evidencia.idArchivoEvidencia);
+    setEvidenceError(null);
+
+    try {
+      const archivo = await descargarEvidencia(token, evidencia.idArchivoEvidencia);
+      const urlArchivo = URL.createObjectURL(archivo);
+      const enlace = document.createElement("a");
+      enlace.href = urlArchivo;
+      enlace.download = evidencia.nombreArchivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(urlArchivo);
+    } catch (error) {
+      setEvidenceError(messageFor(error));
+    } finally {
+      setDownloadingEvidenceId(null);
+    }
+  }
+
   async function handleGastoSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(valorGasto);
@@ -157,11 +262,29 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
     setActionMessage(null);
 
     try {
-      await registrarGastoCaja(token, { descripcion, valorGasto: value });
+      const gasto = await registrarGastoCaja(token, { descripcion, valorGasto: value });
       await loadGastos();
       setValorGasto("");
       setDescripcionGasto("");
-      setActionMessage("Gasto de caja registrado.");
+
+      if (!archivoEvidenciaGasto) {
+        setActionMessage("Gasto de caja registrado.");
+        return;
+      }
+
+      setGastoEvidenciaSeleccionado(gasto);
+      try {
+        await cargarEvidenciaGastoCaja(token, gasto.idGastoCaja, archivoEvidenciaGasto);
+        setArchivoEvidenciaGasto(null);
+        if (registroEvidenceInputRef.current) {
+          registroEvidenceInputRef.current.value = "";
+        }
+        setActionMessage("Gasto de caja registrado con evidencia.");
+        await cargarEvidenciasGasto(gasto);
+      } catch (error) {
+        setEvidenceError(messageFor(error));
+        setActionMessage("Gasto de caja registrado. La evidencia queda pendiente de reintento.");
+      }
     } catch (error) {
       setActionMessage(messageFor(error));
     } finally {
@@ -340,6 +463,12 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
                 required
               />
             </div>
+          </label>
+
+          <label className="file-picker-control gasto-evidence-picker">
+            <FileUp size={18} strokeWidth={2.2} />
+            <span>{archivoEvidenciaGasto ? archivoEvidenciaGasto.name : "Adjuntar evidencia opcional"}</span>
+            <input ref={registroEvidenceInputRef} type="file" accept={FILE_ACCEPT} onChange={seleccionarArchivoEvidencia} disabled={!isCashBoxOpen} />
           </label>
 
           <button className="primary-button full" type="submit" disabled={!isCashBoxOpen || submittingAction === "gasto"}>
@@ -532,8 +661,18 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
                 </div>
                 <strong className="gasto-row-value">{formatCurrency(gasto.valorGasto)}</strong>
                 <span className={`badge ${gastoStateClass(gasto.estadoGasto)}`}>{gasto.estadoGasto}</span>
-                {canManageGastos && gasto.estadoGasto !== "anulado" ? (
-                  <div className="gasto-row-actions">
+                <div className="gasto-row-actions">
+                  <button
+                    className="icon-only-button"
+                    type="button"
+                    onClick={() => seleccionarEvidenciaGasto(gasto)}
+                    aria-label={`Gestionar evidencia de gasto ${gasto.descripcion}`}
+                    title="Gestionar evidencia"
+                  >
+                    <FileImage size={17} strokeWidth={2.2} />
+                  </button>
+                  {canManageGastos && gasto.estadoGasto !== "anulado" ? (
+                    <>
                     <button
                       className="icon-only-button"
                       type="button"
@@ -552,8 +691,9 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
                     >
                       <XCircle size={17} strokeWidth={2.2} />
                     </button>
+                    </>
+                  ) : null}
                   </div>
-                ) : null}
               </li>
             ))
           ) : (
@@ -561,6 +701,65 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
           )}
         </ul>
       </article>
+
+      {gastoEvidenciaSeleccionado ? (
+        <article className="panel gasto-evidence-panel" aria-labelledby="gasto-evidence-title">
+          <div className="panel-title">
+            <div>
+              <h2 id="gasto-evidence-title">Evidencias del gasto</h2>
+              <p>{gastoEvidenciaSeleccionado.descripcion} · {formatCurrency(gastoEvidenciaSeleccionado.valorGasto)}</p>
+            </div>
+            <button className="icon-only-button" type="button" onClick={cerrarEvidenciaGasto} aria-label="Cerrar evidencias del gasto" title="Cerrar">
+              <X size={18} strokeWidth={2.2} />
+            </button>
+          </div>
+
+          {gastoEvidenciaSeleccionado.estadoGasto === "anulado" ? (
+            <p className="empty-copy">El gasto fue anulado. Sus soportes se conservan para consulta, pero no se pueden adjuntar nuevos archivos.</p>
+          ) : (
+            <div className="evidence-upload-row gasto-evidence-upload-row">
+              <label className="file-picker-control">
+                <FileUp size={18} aria-hidden="true" />
+                <span>{archivoEvidenciaGasto ? archivoEvidenciaGasto.name : "Seleccionar archivo"}</span>
+                <input ref={gestionEvidenceInputRef} type="file" accept={FILE_ACCEPT} onChange={seleccionarArchivoEvidencia} />
+              </label>
+              <button className="primary-button" type="button" onClick={() => void adjuntarEvidenciaGasto()} disabled={!archivoEvidenciaGasto || isUploadingEvidence}>
+                <FileUp size={18} aria-hidden="true" />
+                {isUploadingEvidence ? "Adjuntando" : "Adjuntar"}
+              </button>
+            </div>
+          )}
+
+          {evidenceState === "loading" ? <p className="loading-copy">Consultando evidencias...</p> : null}
+          {evidenceError ? <p className="form-alert" role="alert">{evidenceError}</p> : null}
+          {evidenceState === "success" && evidenciasGasto.length === 0 ? <p className="empty-copy">No hay evidencias registradas para este gasto.</p> : null}
+          <ul className="evidence-metadata-list">
+            {evidenciasGasto.map((evidencia) => (
+              <li className="evidence-metadata-item" key={evidencia.idArchivoEvidencia}>
+                <FileImage size={20} aria-hidden="true" />
+                <div>
+                  <strong>{evidencia.nombreArchivo}</strong>
+                  <small>{evidencia.formatoArchivo.toUpperCase()} · {formatDateTime(evidencia.fechaSubida)}</small>
+                  <small>{evidencia.nombreUsuarioSubida}</small>
+                </div>
+                <div className="evidence-metadata-actions">
+                  <span className="status-badge active">{evidencia.estado}</span>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    aria-label={`Descargar ${evidencia.nombreArchivo}`}
+                    title="Descargar evidencia"
+                    onClick={() => void descargarArchivoEvidencia(evidencia)}
+                    disabled={downloadingEvidenceId === evidencia.idArchivoEvidencia}
+                  >
+                    <Download size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </article>
+      ) : null}
     </>
   );
 }

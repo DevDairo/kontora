@@ -15,11 +15,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +32,7 @@ class VentasIntegrationTest {
 
     private static final String PASSWORD = "Clave12345";
     private static final String USUARIO_ADMIN = "test_ventas_admin";
+    private static final String USUARIO_GERENTE = "test_ventas_gerente";
     private static final String USUARIO_VENDEDOR = "test_ventas_vendedor";
     private static final String USUARIO_TRABAJADOR = "test_ventas_trabajador";
     private static final LocalDate FECHA_CAJA = LocalDate.of(2200, 1, 1);
@@ -46,12 +49,14 @@ class VentasIntegrationTest {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private UUID idUsuarioAdmin;
+    private UUID idUsuarioGerente;
     private UUID idUsuarioTrabajador;
 
     @BeforeEach
     void setUp() {
         limpiarDatosDePrueba();
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Ventas", "administrador");
+        idUsuarioGerente = crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Ventas", "gerente");
         crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Ventas", "vendedor");
         idUsuarioTrabajador = crearUsuarioConCredencial(USUARIO_TRABAJADOR, "Trabajador Ventas", "vendedor");
     }
@@ -129,6 +134,32 @@ class VentasIntegrationTest {
                 AND pv.estado_validacion = 'pendiente'
                 """, BigDecimal.class);
         assertThat(transferenciasPendientes).isEqualByComparingTo("15000.00");
+    }
+
+    @Test
+    void listaBeneficiariosActivosYRegistraPromocionParaGerente() throws Exception {
+        String token = iniciarSesion(USUARIO_VENDEDOR);
+
+        mockMvc.perform(get("/api/ventas/trabajadores")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.nombreUsuario == 'test_ventas_admin')]").exists())
+                .andExpect(jsonPath("$[?(@.nombreUsuario == 'test_ventas_gerente')]").exists())
+                .andExpect(jsonPath("$[?(@.nombreUsuario == 'test_ventas_vendedor')]").exists())
+                .andExpect(jsonPath("$[?(@.nombreUsuario == 'test_ventas_trabajador')]").exists());
+
+        crearCajaAbierta();
+        Map<String, Object> request = new HashMap<>(requestVentaHibridaTrabajador());
+        request.put("idUsuarioComprador", idUsuarioGerente.toString());
+
+        mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.idUsuarioComprador").value(idUsuarioGerente.toString()))
+                .andExpect(jsonPath("$.descuentoPromocion").value(4000.00))
+                .andExpect(jsonPath("$.detalles[0].cantidadConPromocion").value(2));
     }
 
     @Test

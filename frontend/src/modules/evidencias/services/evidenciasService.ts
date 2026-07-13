@@ -12,6 +12,17 @@ export function cargarEvidenciaPagoVenta(token: string, idPagoVenta: string, arc
   );
 }
 
+export function cargarAjusteEvidenciaPagoVenta(token: string, idPagoVenta: string, archivo: File) {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+
+  return apiClient.post<ArchivoEvidenciaResponse>(
+    `/evidencias/pagos-venta/${encodeURIComponent(idPagoVenta)}/ajustes`,
+    formData,
+    { token },
+  );
+}
+
 export function cargarEvidenciaGastoCaja(token: string, idGastoCaja: string, archivo: File) {
   const formData = new FormData();
   formData.append("archivo", archivo);
@@ -69,6 +80,13 @@ export function listarEvidenciasConsignacionBancaria(token: string, idConsignaci
 export function listarEvidenciasPagoServicio(token: string, idPagoServicio: string) {
   return apiClient.get<ArchivoEvidenciaResponse[]>(
     `/evidencias/pagos-servicios/${encodeURIComponent(idPagoServicio)}`,
+    { token },
+  );
+}
+
+export function descargarEvidencia(token: string, idArchivoEvidencia: string) {
+  return apiClient.getBlob(
+    `/evidencias/${encodeURIComponent(idArchivoEvidencia)}/descargar`,
     { token },
   );
 }

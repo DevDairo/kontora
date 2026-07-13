@@ -40,6 +40,6 @@ kontora:
       password: ${BOOTSTRAP_MANAGER_PASSWORD:}
   storage:
     supabase:
-      url: ${SUPABASE_URL:}
-      service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
       bucket: ${SUPABASE_STORAGE_BUCKET:evidencias}
+      url: ${SUPABASE_URL:}
+      service-role-key: ${SUPABASE_SECRET_KEY:${SUPABASE_SERVICE_ROLE_KEY:}}

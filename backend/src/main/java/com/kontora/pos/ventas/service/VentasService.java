@@ -23,6 +23,7 @@ import com.kontora.pos.ventas.dto.PagoVentaResponse;
 import com.kontora.pos.ventas.dto.RegistrarDetalleVentaRequest;
 import com.kontora.pos.ventas.dto.RegistrarPagoVentaRequest;
 import com.kontora.pos.ventas.dto.RegistrarVentaRequest;
+import com.kontora.pos.ventas.dto.TrabajadorVentaResponse;
 import com.kontora.pos.ventas.dto.VentaResponse;
 import com.kontora.pos.ventas.repository.DetalleVentaRepository;
 import com.kontora.pos.ventas.repository.PagoVentaRepository;
@@ -55,6 +56,7 @@ public class VentasService {
     private static final String METODO_TRANSFERENCIA = "transferencia";
     private static final String TIPO_CLIENTE = "cliente";
     private static final String TIPO_TRABAJADOR = "trabajador";
+    private static final String ESTADO_USUARIO_ACTIVO = "activo";
 
     private final CajaDiariaRepository cajaDiariaRepository;
     private final UsuarioRepository usuarioRepository;
@@ -135,6 +137,18 @@ public class VentasService {
         return toResponse(ventaGuardada, detallesGuardados, pagosGuardados);
     }
 
+    @Transactional(readOnly = true)
+    public List<TrabajadorVentaResponse> listarTrabajadores() {
+        return usuarioRepository.findAllByOrderByNombreCompletoAsc()
+                .stream()
+                .filter(this::esUsuarioBeneficiario)
+                .map(usuario -> new TrabajadorVentaResponse(
+                        usuario.getIdUsuario(),
+                        usuario.getNombreUsuario(),
+                        usuario.getNombreCompleto()))
+                .toList();
+    }
+
     @Transactional
     public VentaResponse anularVenta(UUID idVenta, AnularVentaRequest request, PrincipalUsuario principalUsuario) {
         Venta venta = ventaRepository.findByIdVenta(idVenta)
@@ -197,7 +211,15 @@ public class VentasService {
         if (idUsuarioComprador == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "idUsuarioComprador es obligatorio para ventas a trabajador");
         }
-        return obtenerUsuario(idUsuarioComprador, "Usuario comprador trabajador no encontrado");
+        Usuario usuarioComprador = obtenerUsuario(idUsuarioComprador, "Usuario comprador trabajador no encontrado");
+        if (!esUsuarioBeneficiario(usuarioComprador)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El comprador debe ser un usuario activo");
+        }
+        return usuarioComprador;
+    }
+
+    private boolean esUsuarioBeneficiario(Usuario usuario) {
+        return ESTADO_USUARIO_ACTIVO.equals(usuario.getEstado());
     }
 
     private List<DetalleCalculado> calcularDetalles(

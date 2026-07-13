@@ -2,6 +2,7 @@ package com.kontora.pos.evidencias.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kontora.pos.evidencias.storage.ArchivoAlmacenado;
+import com.kontora.pos.evidencias.storage.ArchivoDescargado;
 import com.kontora.pos.evidencias.storage.EvidenciaStorageClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -49,6 +52,7 @@ class EvidenciasIntegrationTest {
 
     private static final String PASSWORD = "Clave12345";
     private static final String USUARIO_ADMIN = "test_evidencias_admin";
+    private static final String USUARIO_GERENTE = "test_evidencias_gerente";
     private static final String USUARIO_VENDEDOR = "test_evidencias_vendedor";
     private static final String USUARIO_OTRO_VENDEDOR = "test_evidencias_otro_vendedor";
     private static final LocalDate FECHA_CAJA = LocalDate.of(2200, 5, 1);
@@ -68,6 +72,7 @@ class EvidenciasIntegrationTest {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private UUID idUsuarioAdmin;
+    private UUID idUsuarioGerente;
     private UUID idUsuarioVendedor;
     private UUID idUsuarioOtroVendedor;
     private UUID idCajaDiaria;
@@ -79,8 +84,13 @@ class EvidenciasIntegrationTest {
         when(storageClient.subir(anyString(), anyString(), any(byte[].class)))
                 .thenAnswer(invocation -> new ArchivoAlmacenado(
                         "supabase://test/" + invocation.getArgument(0, String.class)));
+        when(storageClient.descargar(anyString()))
+                .thenReturn(new ArchivoDescargado(
+                        "evidencia descargada".getBytes(StandardCharsets.UTF_8),
+                        MediaType.APPLICATION_PDF_VALUE));
 
         idUsuarioAdmin = crearUsuarioConCredencial(USUARIO_ADMIN, "Administrador Evidencias", "administrador");
+        idUsuarioGerente = crearUsuarioConCredencial(USUARIO_GERENTE, "Gerente Evidencias", "gerente");
         idUsuarioVendedor = crearUsuarioConCredencial(USUARIO_VENDEDOR, "Vendedor Evidencias", "vendedor");
         idUsuarioOtroVendedor = crearUsuarioConCredencial(USUARIO_OTRO_VENDEDOR, "Otro Vendedor Evidencias", "vendedor");
     }
@@ -149,6 +159,54 @@ class EvidenciasIntegrationTest {
     }
 
     @Test
+    void gerenteAdjuntaAjusteDeTransferenciaYConservaSoportesAnteriores() throws Exception {
+        crearCajaAbierta();
+        UUID idPagoTransferencia = crearVentaConPago(idUsuarioVendedor, "transferencia", "pendiente", new BigDecimal("15000.00"));
+        UUID idEvidenciaAnterior = insertarEvidenciaPagoVenta(idPagoTransferencia, idUsuarioVendedor);
+        String tokenAdministrador = iniciarSesion(USUARIO_ADMIN);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        mockMvc.perform(multipart("/api/evidencias/pagos-venta/{idPagoVenta}/ajustes", idPagoTransferencia)
+                        .file(pdf("soporte-corregido.pdf"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdministrador)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo el gerente puede adjuntar ajustes de evidencias de transferencias"));
+
+        mockMvc.perform(multipart("/api/evidencias/pagos-venta/{idPagoVenta}/ajustes", idPagoTransferencia)
+                        .file(pdf("soporte-corregido.pdf"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.idPagoVenta").value(idPagoTransferencia.toString()))
+                .andExpect(jsonPath("$.nombreArchivo").value("soporte-corregido.pdf"))
+                .andExpect(jsonPath("$.nombreUsuarioSubida").value(USUARIO_GERENTE));
+
+        Integer evidencias = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM archivos_evidencia
+                WHERE id_pago_venta = ?
+                """, Integer.class, idPagoTransferencia);
+        Integer evidenciaAnterior = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM archivos_evidencia
+                WHERE id_archivo_evidencia = ?
+                AND id_pago_venta = ?
+                """, Integer.class, idEvidenciaAnterior, idPagoTransferencia);
+        Integer auditorias = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM auditoria_operaciones
+                WHERE id_usuario = ?
+                AND tabla_afectada = 'archivos_evidencia'
+                AND accion = 'crear'::accion_auditoria_enum
+                AND descripcion = 'Ajuste de evidencia de transferencia por gerente'
+                """, Integer.class, idUsuarioGerente);
+
+        assertThat(evidencias).isEqualTo(2);
+        assertThat(evidenciaAnterior).isEqualTo(1);
+        assertThat(auditorias).isEqualTo(1);
+        verify(storageClient, times(1)).subir(anyString(), eq(MediaType.APPLICATION_PDF_VALUE), any(byte[].class));
+    }
+
+    @Test
     void rechazaEvidenciaParaPagoEnEfectivo() throws Exception {
         crearCajaAbierta();
         UUID idPagoEfectivo = crearVentaConPago(idUsuarioVendedor, "efectivo", "no_aplica", new BigDecimal("8000.00"));
@@ -174,6 +232,29 @@ class EvidenciasIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.mensaje").value("No autorizado para acceder a evidencias de este pago"));
+    }
+
+    @Test
+    void administradorDescargaEvidenciaTransferenciaYVendedorNo() throws Exception {
+        crearCajaAbierta();
+        UUID idPagoVendedor = crearVentaConPago(idUsuarioVendedor, "transferencia", "pendiente", new BigDecimal("12000.00"));
+        UUID idArchivoEvidencia = insertarEvidenciaPagoVenta(idPagoVendedor, idUsuarioVendedor);
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+
+        mockMvc.perform(get("/api/evidencias/{idArchivoEvidencia}/descargar", idArchivoEvidencia)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede descargar evidencias de transferencias"));
+
+        mockMvc.perform(get("/api/evidencias/{idArchivoEvidencia}/descargar", idArchivoEvidencia)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(content().bytes("evidencia descargada".getBytes(StandardCharsets.UTF_8)))
+                .andExpect(header().exists(HttpHeaders.CONTENT_DISPOSITION));
+
+        verify(storageClient, times(1)).descargar("supabase://test/manual.jpg");
     }
 
     @Test
@@ -335,8 +416,8 @@ class EvidenciasIntegrationTest {
                 """, UUID.class, tipoMovimiento, valorMovimiento, idUsuarioAdmin);
     }
 
-    private void insertarEvidenciaPagoVenta(UUID idPagoVenta, UUID idUsuarioSubida) {
-        jdbcTemplate.update("""
+    private UUID insertarEvidenciaPagoVenta(UUID idPagoVenta, UUID idUsuarioSubida) {
+        return jdbcTemplate.queryForObject("""
                 INSERT INTO archivos_evidencia (
                     id_pago_venta,
                     url_archivo,
@@ -361,7 +442,8 @@ class EvidenciasIntegrationTest {
                     ?,
                     'activo'::estado_basico_enum
                 )
-                """, idPagoVenta, idUsuarioSubida);
+                RETURNING id_archivo_evidencia
+                """, UUID.class, idPagoVenta, idUsuarioSubida);
     }
 
     private UUID idMetodoPago(String nombreMetodo) {

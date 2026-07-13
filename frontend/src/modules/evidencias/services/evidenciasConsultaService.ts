@@ -2,7 +2,6 @@ import { apiClient } from "../../../shared/services/apiClient";
 import type {
   ConsultaGastoCajaEvidencia,
   ConsultaMovimientoDepositoEvidencia,
-  ConsultaTransferenciaEvidencia,
 } from "../types";
 
 export type FiltroEvidencias = {
@@ -24,13 +23,6 @@ function construirQuery(filtro: FiltroEvidencias, requiereFechaInicio = false) {
 
   const query = params.toString();
   return query ? `?${query}` : "";
-}
-
-export function consultarTransferenciasConEvidencia(token: string, filtro: FiltroEvidencias) {
-  return apiClient.get<ConsultaTransferenciaEvidencia[]>(
-    `/consultas/transferencias${construirQuery(filtro)}`,
-    { token },
-  );
 }
 
 export function consultarGastosConEvidencia(token: string, filtro: FiltroEvidencias) {

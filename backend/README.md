@@ -1,60 +1,18 @@
-# Backend - Kontora POS
+# Backend Kontora POS
 
-Backend construido con Java 21 y Spring Boot.
+Backend Java 21 y Spring Boot responsable de autenticacion, autorizacion, reglas transaccionales, auditoria y acceso a PostgreSQL y Supabase Storage.
 
-## Responsabilidades
+La guia de configuracion, pruebas y despliegue se mantiene centralizada en el [README principal](../README.md). Los contratos funcionales por modulo estan en [docs/00-indice.md](../docs/00-indice.md).
 
-- Exponer API REST.
-- Gestionar autenticacion y autorizacion.
-- Ejecutar logica de negocio transaccional.
-- Persistir informacion en PostgreSQL/Supabase respetando el schema canonico.
-- Registrar auditoria.
-- Coordinar evidencias con Supabase Storage.
-
-## Estado actual
-
-Fase 2: infraestructura base del backend creada. Todavia no hay modulos de negocio implementados.
-
-## Ejecucion local
-
-1. Confirmar que PostgreSQL local este levantado.
-2. Configurar variables de entorno si se requiere cambiar los valores por defecto.
-3. Compilar:
+Comandos principales:
 
 ```bash
 mvn clean test
-```
-
-4. Ejecutar:
-
-```bash
 mvn spring-boot:run
 ```
 
-5. Validar:
-
-```bash
-curl http://localhost:8080/api/health
-```
-
-Respuesta esperada:
-
-```json
-{"status":"ok","service":"kontora-pos-backend"}
-```
-
-Para desarrollo frontend local, el backend permite por defecto estos origenes Vite:
+Healthcheck:
 
 ```text
-http://localhost:5173,http://127.0.0.1:5173
+GET /api/health
 ```
-
-Se puede ajustar con la variable `CORS_ALLOWED_ORIGINS`.
-
-## Pruebas
-
-```bash
-mvn clean test
-```
-
-La prueba de integracion levanta Spring Boot, conecta a PostgreSQL local y valida `GET /api/health`.

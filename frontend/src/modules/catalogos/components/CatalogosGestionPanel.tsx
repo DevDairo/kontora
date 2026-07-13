@@ -23,7 +23,6 @@ import type {
 
 type LoadState = "loading" | "success" | "error";
 type ItemMode = "create" | "edit";
-type ItemControl = ItemInventarioGestionRequest["tipoControl"];
 
 type CatalogosGestionPanelProps = {
   catalogos: CatalogosFormulario | null;
@@ -33,10 +32,8 @@ type CatalogosGestionPanelProps = {
 
 type ItemForm = {
   idCategoriaInventario: string;
-  idTamanoVaso: string;
   idUnidadMedida: string;
   nombreItem: string;
-  tipoControl: ItemControl;
 };
 
 type PriceForm = {
@@ -57,10 +54,8 @@ function todayLocalDate() {
 function emptyItemForm(categorias: CatalogoBasico[], unidades: UnidadMedida[]): ItemForm {
   return {
     idCategoriaInventario: categorias[0]?.id ?? "",
-    idTamanoVaso: "",
     idUnidadMedida: unidades[0]?.idUnidadMedida ?? "",
     nombreItem: "",
-    tipoControl: "manual_por_consumo",
   };
 }
 
@@ -104,6 +99,10 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
   const unidades = catalogos?.unidadesMedida ?? [];
   const tamanos = catalogos?.tamanosVaso ?? [];
   const tiposGranizado = catalogos?.tiposGranizado ?? [];
+  const categoriasConsumibles = useMemo(
+    () => categorias.filter((categoria) => categoria.nombre !== "vasos"),
+    [categorias],
+  );
   const [items, setItems] = useState<ItemInventario[]>([]);
   const [precios, setPrecios] = useState<PrecioGranizado[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -144,9 +143,9 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
 
   useEffect(() => {
     if (itemMode === "create") {
-      setItemForm(emptyItemForm(categorias, unidades));
+      setItemForm(emptyItemForm(categoriasConsumibles, unidades));
     }
-  }, [categorias, itemMode, unidades]);
+  }, [categoriasConsumibles, itemMode, unidades]);
 
   useEffect(() => {
     setPriceForm((current) => current.idTipoGranizado && current.idTamanoVaso
@@ -161,10 +160,11 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
 
   const filteredItems = useMemo(() => {
     const query = itemQuery.trim().toLowerCase();
+    const itemsManual = items.filter((item) => item.tipoControl === "manual_por_consumo" && item.nombreCategoria !== "vasos");
     if (!query) {
-      return items;
+      return itemsManual;
     }
-    return items.filter((item) => [item.nombreItem, item.nombreCategoria, item.nombreUnidad, item.estado]
+    return itemsManual.filter((item) => [item.nombreItem, item.nombreCategoria, item.nombreUnidad, item.estado]
       .some((value) => value.toLowerCase().includes(query)));
   }, [itemQuery, items]);
 
@@ -176,15 +176,10 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
     return precios.filter((precio) => `${precio.nombreTipo} ${precio.onzas} ${precio.estado}`.toLowerCase().includes(query));
   }, [precios, priceQuery]);
 
-  const categoriaVasos = useMemo(
-    () => categorias.find((categoria) => categoria.nombre === "vasos") ?? null,
-    [categorias],
-  );
-
   function iniciarCreacionItem() {
     setSelectedItemId(null);
     setItemMode("create");
-    setItemForm(emptyItemForm(categorias, unidades));
+    setItemForm(emptyItemForm(categoriasConsumibles, unidades));
     setItemMessage(null);
   }
 
@@ -193,25 +188,9 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
     setItemMode("edit");
     setItemForm({
       idCategoriaInventario: item.idCategoriaInventario,
-      idTamanoVaso: item.idTamanoVaso ?? "",
       idUnidadMedida: item.idUnidadMedida,
       nombreItem: item.nombreItem,
-      tipoControl: item.tipoControl as ItemControl,
     });
-    setItemMessage(null);
-  }
-
-  function cambiarTipoControl(tipoControl: ItemControl) {
-    if (tipoControl === "automatico_por_venta") {
-      setItemForm((current) => ({
-        ...current,
-        idCategoriaInventario: categoriaVasos?.id ?? "",
-        idTamanoVaso: current.idTamanoVaso || tamanos[0]?.idTamanoVaso || "",
-        tipoControl,
-      }));
-    } else {
-      setItemForm((current) => ({ ...current, idTamanoVaso: "", tipoControl }));
-    }
     setItemMessage(null);
   }
 
@@ -221,18 +200,12 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
       setItemMessage("Completa los datos obligatorios del item.");
       return null;
     }
-    if (itemForm.tipoControl === "automatico_por_venta" && !itemForm.idTamanoVaso) {
-      setItemMessage("Selecciona el tamano del vaso.");
-      return null;
-    }
     return {
       idCategoriaInventario: itemForm.idCategoriaInventario,
-      ...(itemForm.tipoControl === "automatico_por_venta" ? { idTamanoVaso: itemForm.idTamanoVaso } : {}),
       idUnidadMedida: itemForm.idUnidadMedida,
-      manejaPaquetes: itemForm.tipoControl === "automatico_por_venta",
+      manejaPaquetes: false,
       nombreItem,
-      tipoControl: itemForm.tipoControl,
-      ...(itemForm.tipoControl === "automatico_por_venta" ? { unidadesPorPaquete: 20 } : {}),
+      tipoControl: "manual_por_consumo",
     };
   }
 
@@ -254,10 +227,8 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
       setItemMode("edit");
       setItemForm({
         idCategoriaInventario: response.idCategoriaInventario,
-        idTamanoVaso: response.idTamanoVaso ?? "",
         idUnidadMedida: response.idUnidadMedida,
         nombreItem: response.nombreItem,
-        tipoControl: response.tipoControl as ItemControl,
       });
       setItemMessage(itemMode === "create" ? "Item creado con existencia general en cero." : "Cambios guardados correctamente.");
     } catch (error) {
@@ -339,35 +310,26 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
         <section className="panel catalog-management-form-panel" aria-labelledby="catalog-item-form-title">
           <div className="panel-title">
             <div>
-              <h2 id="catalog-item-form-title">{itemMode === "create" ? "Nuevo producto" : "Editar producto"}</h2>
-              <p>{itemMode === "create" ? "Alta en inventario general" : "Datos y estado de acceso operativo"}</p>
+              <h2 id="catalog-item-form-title">{itemMode === "create" ? "Nuevo item inventariable" : "Editar item inventariable"}</h2>
+              <p>{itemMode === "create" ? "Alta en inventario general" : "Nombre, categoria, unidad y estado operativo"}</p>
             </div>
             {itemMode === "create" ? <ClipboardPlus size={21} aria-hidden="true" /> : <Pencil size={21} aria-hidden="true" />}
           </div>
 
           <form className="catalog-management-form" onSubmit={guardarItem}>
             <label className="field-label catalog-management-full">
-              Nombre del producto
+              Nombre del item
               <div className="field-control plain">
                 <input value={itemForm.nombreItem} onChange={(event) => setItemForm((current) => ({ ...current, nombreItem: event.target.value }))} required maxLength={120} />
               </div>
             </label>
 
-            <div className="catalog-control-switch catalog-management-full" role="group" aria-label="Control de inventario">
-              <button className={itemForm.tipoControl === "manual_por_consumo" ? "active" : ""} type="button" onClick={() => cambiarTipoControl("manual_por_consumo")}>
-                Consumo manual
-              </button>
-              <button className={itemForm.tipoControl === "automatico_por_venta" ? "active" : ""} type="button" onClick={() => cambiarTipoControl("automatico_por_venta")}>
-                Vaso por venta
-              </button>
-            </div>
-
             <label className="field-label">
               Categoria
               <div className="field-control plain">
-                <select value={itemForm.idCategoriaInventario} onChange={(event) => setItemForm((current) => ({ ...current, idCategoriaInventario: event.target.value }))} disabled={itemForm.tipoControl === "automatico_por_venta"} required>
+                <select value={itemForm.idCategoriaInventario} onChange={(event) => setItemForm((current) => ({ ...current, idCategoriaInventario: event.target.value }))} required>
                   <option value="" disabled>Selecciona categoria</option>
-                  {categorias.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}
+                  {categoriasConsumibles.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}
                 </select>
               </div>
             </label>
@@ -382,23 +344,10 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
               </div>
             </label>
 
-            {itemForm.tipoControl === "automatico_por_venta" ? (
-              <label className="field-label catalog-management-full">
-                Tamano de vaso
-                <div className="field-control plain">
-                  <select value={itemForm.idTamanoVaso} onChange={(event) => setItemForm((current) => ({ ...current, idTamanoVaso: event.target.value }))} required>
-                    <option value="" disabled>Selecciona tamano</option>
-                    {tamanos.map((tamano) => <option key={tamano.idTamanoVaso} value={tamano.idTamanoVaso}>{tamano.onzas} oz</option>)}
-                  </select>
-                </div>
-                <small className="field-hint">Los vasos se registran en paquetes fijos de 20 unidades.</small>
-              </label>
-            ) : null}
-
             <div className="catalog-management-actions catalog-management-full">
               <button className="primary-button" type="submit" disabled={isSavingItem || loadState !== "success"}>
                 {itemMode === "create" ? <Plus size={18} aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
-                {isSavingItem ? "Guardando" : itemMode === "create" ? "Crear producto" : "Guardar cambios"}
+                {isSavingItem ? "Guardando" : itemMode === "create" ? "Crear item" : "Guardar cambios"}
               </button>
               {itemMode === "edit" ? (
                 <button className="ghost-button" type="button" onClick={iniciarCreacionItem} disabled={isSavingItem}>
@@ -427,7 +376,7 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
         <section className="panel catalog-management-list-panel" aria-labelledby="catalog-item-list-title">
           <div className="panel-title">
             <div>
-              <h2 id="catalog-item-list-title">Productos registrados</h2>
+              <h2 id="catalog-item-list-title">Items inventariables</h2>
               <p>Incluye activos e inactivos para conservar trazabilidad.</p>
             </div>
             <span className="badge">{loadState === "loading" ? "..." : filteredItems.length}</span>
@@ -435,11 +384,11 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
 
           <label className="field-control catalog-management-search">
             <Search size={18} aria-hidden="true" />
-            <input type="search" value={itemQuery} onChange={(event) => setItemQuery(event.target.value)} placeholder="Buscar producto o categoria" />
+            <input type="search" value={itemQuery} onChange={(event) => setItemQuery(event.target.value)} placeholder="Buscar item o categoria" />
           </label>
 
-          {loadState === "loading" ? <p className="loading-copy">Cargando productos...</p> : null}
-          {loadState === "success" && filteredItems.length === 0 ? <p className="empty-copy">No hay productos para el filtro actual.</p> : null}
+          {loadState === "loading" ? <p className="loading-copy">Cargando items...</p> : null}
+          {loadState === "success" && filteredItems.length === 0 ? <p className="empty-copy">No hay items para el filtro actual.</p> : null}
           <ul className="catalog-management-list">
             {filteredItems.map((item) => (
               <li key={item.idItemInventario}>
@@ -448,7 +397,6 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
                     <strong>{item.nombreItem}</strong>
                     <small>{item.nombreCategoria} · {item.nombreUnidad}{item.onzas ? ` · ${item.onzas} oz` : ""}</small>
                   </span>
-                  <em>{item.tipoControl === "automatico_por_venta" ? "Vaso por venta" : "Consumo manual"}</em>
                   <b className={`catalog-status ${item.estado}`}>{statusLabel(item.estado)}</b>
                   <Pencil size={17} aria-hidden="true" />
                 </button>

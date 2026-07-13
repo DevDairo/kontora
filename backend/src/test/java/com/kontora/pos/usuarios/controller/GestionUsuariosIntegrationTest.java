@@ -126,9 +126,17 @@ class GestionUsuariosIntegrationTest {
     void administradorYVendedorNoPuedenGestionarUsuarios() throws Exception {
         String tokenAdministrador = iniciarSesion(usuarioAdministrador);
         String tokenVendedor = iniciarSesion(usuarioVendedor);
+        UUID idUsuarioGerente = idUsuario(usuarioGerente);
 
         mockMvc.perform(get("/api/usuarios")
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdministrador)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo el gerente puede gestionar usuarios"));
+
+        mockMvc.perform(put("/api/usuarios/{idUsuario}/contrasena", idUsuarioGerente)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdministrador))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("nuevaContrasena", "ClaveNueva123"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.mensaje").value("Solo el gerente puede gestionar usuarios"));
 
@@ -159,6 +167,56 @@ class GestionUsuariosIntegrationTest {
                 .andExpect(jsonPath("$[?(@.nombreRol == 'gerente')]").exists());
     }
 
+    @Test
+    void gerenteRestableceContrasenaYRevocaSesionesActivasDelUsuario() throws Exception {
+        crearUsuarioConCredencial(usuarioCreado, "Usuario para clave", "vendedor", "activo");
+        UUID idUsuarioCreado = idUsuario(usuarioCreado);
+        String tokenGerente = iniciarSesion(usuarioGerente);
+        String tokenUsuario = iniciarSesion(usuarioCreado);
+        jdbcTemplate.update("""
+                UPDATE credenciales_usuario
+                SET intentos_fallidos = 2
+                WHERE id_usuario = ?
+                """, idUsuarioCreado);
+
+        mockMvc.perform(put("/api/usuarios/{idUsuario}/contrasena", idUsuarioCreado)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("nuevaContrasena", "ClaveReemplazo123"))))
+                .andExpect(status().isNoContent());
+
+        Map<String, Object> credencial = jdbcTemplate.queryForMap("""
+                SELECT contrasena_hash, intentos_fallidos, fecha_cambio_contrasena
+                FROM credenciales_usuario
+                WHERE id_usuario = ?
+                """, idUsuarioCreado);
+        assertThat(passwordEncoder.matches("ClaveReemplazo123", (String) credencial.get("contrasena_hash"))).isTrue();
+        assertThat((Integer) credencial.get("intentos_fallidos")).isZero();
+        assertThat(credencial.get("fecha_cambio_contrasena")).isNotNull();
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenUsuario)))
+                .andExpect(status().isUnauthorized());
+        iniciarSesion(usuarioCreado, "ClaveReemplazo123");
+
+        Integer sesionesRevocadas = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM sesiones_usuario
+                WHERE id_usuario = ?
+                  AND estado_sesion = 'revocada'::estado_sesion_enum
+                """, Integer.class, idUsuarioCreado);
+        assertThat(sesionesRevocadas).isEqualTo(1);
+
+        String valorNuevoAuditoria = jdbcTemplate.queryForObject("""
+                SELECT valor_nuevo::text
+                FROM auditoria_operaciones
+                WHERE tabla_afectada = 'credenciales_usuario'
+                ORDER BY fecha_accion DESC
+                LIMIT 1
+                """, String.class);
+        assertThat(valorNuevoAuditoria).doesNotContain("ClaveReemplazo123");
+    }
+
     private String iniciarSesion(String nombreUsuario) throws Exception {
         return iniciarSesion(nombreUsuario, PASSWORD);
     }
@@ -178,6 +236,13 @@ class GestionUsuariosIntegrationTest {
 
     private String bearer(String token) {
         return "Bearer " + token;
+    }
+
+    private UUID idUsuario(String nombreUsuario) {
+        return jdbcTemplate.queryForObject(
+                "SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?",
+                UUID.class,
+                nombreUsuario);
     }
 
     private void crearUsuarioConCredencial(String nombreUsuario, String nombreCompleto, String nombreRol, String estadoUsuario) {

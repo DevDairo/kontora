@@ -217,7 +217,7 @@ function AppContent() {
       ) : activeRoute.id === "caja" ? (
         <CajaAbiertaPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "ventas" ? (
-        <VentasPanel token={auth.token ?? ""} usuario={auth.user} />
+        <VentasPanel token={auth.token ?? ""} />
       ) : activeRoute.id === "inventario" ? (
         <InventarioPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "gastos" ? (
@@ -237,7 +237,7 @@ function AppContent() {
       ) : activeRoute.id === "usuarios" ? (
         <UsuariosPanel token={auth.token ?? ""} currentUserId={auth.user.idUsuario} />
       ) : activeRoute.id === "auditoria" ? (
-        <AuditoriaPanel token={auth.token ?? ""} role={role} />
+        <AuditoriaPanel token={auth.token ?? ""} />
       ) : (
         <RouteWorkspace route={activeRoute} role={role} />
       )}

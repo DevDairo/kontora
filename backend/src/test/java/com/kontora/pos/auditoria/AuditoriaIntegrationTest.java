@@ -173,24 +173,32 @@ class AuditoriaIntegrationTest {
         UUID idPagoValidar = crearPagoTransferencia(idCajaDiaria, new BigDecimal("9000.00"));
         UUID idPagoRechazar = crearPagoTransferencia(idCajaDiaria, new BigDecimal("7000.00"));
         String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
 
         mockMvc.perform(post("/api/pagos-venta/{idPagoVenta}/validar", idPagoValidar)
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo gerente puede validar transferencias"));
+
+        mockMvc.perform(post("/api/pagos-venta/{idPagoVenta}/validar", idPagoValidar)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "observacionValidacion", "Transferencia confirmada"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estadoValidacion").value("validada"))
-                .andExpect(jsonPath("$.idUsuarioValidacion").value(idUsuarioAdmin.toString()));
+                .andExpect(jsonPath("$.idUsuarioValidacion").value(idUsuarioGerente.toString()));
 
         mockMvc.perform(post("/api/pagos-venta/{idPagoVenta}/rechazar", idPagoRechazar)
-                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "observacionValidacion", "Comprobante invalido"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estadoValidacion").value("rechazada"))
-                .andExpect(jsonPath("$.idUsuarioValidacion").value(idUsuarioAdmin.toString()));
+                .andExpect(jsonPath("$.idUsuarioValidacion").value(idUsuarioGerente.toString()));
 
         assertThat(valorJsonAuditoria("pagos_venta", "validar", idPagoValidar, "valor_anterior", "estado_validacion"))
                 .isEqualTo("pendiente");

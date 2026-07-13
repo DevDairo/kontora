@@ -1,4 +1,4 @@
-import { AlertCircle, Ban, CheckCircle2, CircleOff, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
+import { AlertCircle, Ban, CheckCircle2, CircleOff, KeyRound, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
 import { ApiClientError } from "../../../shared/services/apiClient";
@@ -8,6 +8,7 @@ import {
   crearUsuario,
   listarRolesGestion,
   listarUsuarios,
+  restablecerContrasenaUsuario,
 } from "../services/usuariosService";
 import type { ActualizarUsuarioRequest, CrearUsuarioRequest, EstadoUsuario, RolGestion, UsuarioGestion } from "../types";
 
@@ -27,6 +28,11 @@ type UserForm = {
   nombreUsuario: string;
 };
 
+type PasswordForm = {
+  confirmacionContrasena: string;
+  nuevaContrasena: string;
+};
+
 const ESTADOS: EstadoUsuario[] = ["activo", "inactivo", "bloqueado"];
 
 function emptyForm(nombreRol = ""): UserForm {
@@ -36,6 +42,13 @@ function emptyForm(nombreRol = ""): UserForm {
     nombreCompleto: "",
     nombreRol,
     nombreUsuario: "",
+  };
+}
+
+function emptyPasswordForm(): PasswordForm {
+  return {
+    confirmacionContrasena: "",
+    nuevaContrasena: "",
   };
 }
 
@@ -81,12 +94,15 @@ export function UsuariosPanel({ currentUserId, token }: UsuariosPanelProps) {
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [form, setForm] = useState<UserForm>(emptyForm());
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | EstadoUsuario>("todos");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingState, setPendingState] = useState<EstadoUsuario | null>(null);
   const [isChangingState, setIsChangingState] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [pendingPasswordChange, setPendingPasswordChange] = useState(false);
 
   const cargarUsuarios = useCallback(async () => {
     setLoadState("loading");
@@ -144,6 +160,7 @@ export function UsuariosPanel({ currentUserId, token }: UsuariosPanelProps) {
     setFormMode("create");
     setSelectedId(null);
     setForm(emptyForm(roles[0]?.nombreRol ?? ""));
+    setPasswordForm(emptyPasswordForm());
     setFormMessage(null);
   }
 
@@ -157,6 +174,7 @@ export function UsuariosPanel({ currentUserId, token }: UsuariosPanelProps) {
       nombreRol: usuario.nombreRol,
       nombreUsuario: usuario.nombreUsuario,
     });
+    setPasswordForm(emptyPasswordForm());
     setFormMessage(null);
   }
 
@@ -217,6 +235,47 @@ export function UsuariosPanel({ currentUserId, token }: UsuariosPanelProps) {
       setPendingState(null);
     } finally {
       setIsChangingState(false);
+    }
+  }
+
+  function actualizarCampoContrasena<K extends keyof PasswordForm>(campo: K, valor: PasswordForm[K]) {
+    setPasswordForm((current) => ({ ...current, [campo]: valor }));
+    setFormMessage(null);
+  }
+
+  function solicitarCambioContrasena(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormMessage(null);
+
+    if (passwordForm.nuevaContrasena !== passwordForm.confirmacionContrasena) {
+      setFormMessage("La confirmacion de contrasena no coincide.");
+      return;
+    }
+
+    setPendingPasswordChange(true);
+  }
+
+  async function confirmarCambioContrasena() {
+    if (!selectedUser) {
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setFormMessage(null);
+    try {
+      await restablecerContrasenaUsuario(token, selectedUser.idUsuario, {
+        nuevaContrasena: passwordForm.nuevaContrasena,
+      });
+      setPasswordForm(emptyPasswordForm());
+      setPendingPasswordChange(false);
+      setFormMessage(selectedUser.idUsuario === currentUserId
+        ? "Contrasena actualizada. Tu sesion actual se conserva y las demas se revocaron."
+        : "Contrasena actualizada. Las sesiones activas del usuario fueron revocadas.");
+    } catch (error) {
+      setFormMessage(messageFor(error));
+      setPendingPasswordChange(false);
+    } finally {
+      setIsResettingPassword(false);
     }
   }
 
@@ -310,6 +369,34 @@ export function UsuariosPanel({ currentUserId, token }: UsuariosPanelProps) {
               </div>
             </form>
 
+            {selectedUser && formMode === "edit" ? (
+              <form className="usuarios-password-reset" onSubmit={solicitarCambioContrasena}>
+                <div className="usuarios-password-heading">
+                  <div>
+                    <span className="eyebrow">Seguridad</span>
+                    <h3>Restablecer contrasena</h3>
+                  </div>
+                  <KeyRound size={20} aria-hidden="true" />
+                </div>
+                <div className="usuarios-password-fields">
+                  <label className="form-field">
+                    <span>Nueva contrasena</span>
+                    <input className="field-control plain" type="password" value={passwordForm.nuevaContrasena} onChange={(event) => actualizarCampoContrasena("nuevaContrasena", event.target.value)} autoComplete="new-password" required minLength={8} maxLength={72} />
+                  </label>
+                  <label className="form-field">
+                    <span>Confirmar contrasena</span>
+                    <input className="field-control plain" type="password" value={passwordForm.confirmacionContrasena} onChange={(event) => actualizarCampoContrasena("confirmacionContrasena", event.target.value)} autoComplete="new-password" required minLength={8} maxLength={72} />
+                  </label>
+                </div>
+                <div className="usuarios-form-actions">
+                  <button className="ghost-button" type="submit" disabled={isResettingPassword || loadState !== "success"}>
+                    <KeyRound size={17} aria-hidden="true" />
+                    {isResettingPassword ? "Actualizando" : "Cambiar contrasena"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
             {formMessage ? <p className="usuarios-form-message" role="status">{formMessage}</p> : null}
 
             {selectedUser && formMode === "edit" ? (
@@ -394,6 +481,18 @@ export function UsuariosPanel({ currentUserId, token }: UsuariosPanelProps) {
         onConfirm={() => void confirmarCambioEstado()}
         open={pendingState !== null}
         title={pendingState ? `${actionLabel(pendingState)} usuario` : "Cambiar estado"}
+      />
+
+      <ConfirmationDialog
+        confirmLabel="Cambiar contrasena"
+        description={selectedUser?.idUsuario === currentUserId
+          ? "Se actualizara tu contrasena. La sesion actual se conserva y las demas sesiones activas se revocaran."
+          : `Se actualizara la contrasena de ${selectedUser?.nombreCompleto ?? "este usuario"} y se revocaran sus sesiones activas.`}
+        isConfirming={isResettingPassword}
+        onCancel={() => setPendingPasswordChange(false)}
+        onConfirm={() => void confirmarCambioContrasena()}
+        open={pendingPasswordChange}
+        title="Cambiar contrasena"
       />
     </>
   );

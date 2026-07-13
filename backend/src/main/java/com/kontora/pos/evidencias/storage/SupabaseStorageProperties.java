@@ -34,4 +34,5 @@ public class SupabaseStorageProperties {
     public void setBucket(String bucket) {
         this.bucket = bucket;
     }
+
 }

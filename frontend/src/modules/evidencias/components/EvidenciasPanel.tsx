@@ -1,32 +1,29 @@
-import { AlertCircle, CheckCircle2, FileImage, FileUp, Landmark, ReceiptText, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, FileImage, FileUp, Landmark, ReceiptText, RefreshCw } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import {
   cargarEvidenciaConsignacionBancaria,
   cargarEvidenciaGastoCaja,
   cargarEvidenciaPagoServicio,
-  cargarEvidenciaPagoVenta,
+  descargarEvidencia,
   listarEvidenciasConsignacionBancaria,
   listarEvidenciasGastoCaja,
   listarEvidenciasPagoServicio,
-  listarEvidenciasPagoVenta,
 } from "../services/evidenciasService";
 import {
   consultarGastosConEvidencia,
   consultarMovimientosDepositoConEvidencia,
-  consultarTransferenciasConEvidencia,
   type FiltroEvidencias,
 } from "../services/evidenciasConsultaService";
 import type {
   ArchivoEvidenciaResponse,
   ConsultaGastoCajaEvidencia,
   ConsultaMovimientoDepositoEvidencia,
-  ConsultaTransferenciaEvidencia,
 } from "../types";
 
 type LoadState = "loading" | "success" | "error";
-type SourceTab = "transferencias" | "gastos" | "deposito";
-type EvidenceSource = "transferencia" | "gasto" | "consignacion" | "servicio";
+type SourceTab = "gastos" | "deposito";
+type EvidenceSource = "gasto" | "consignacion" | "servicio";
 
 type EvidenceTarget = {
   fecha: string;
@@ -87,8 +84,6 @@ function messageFor(error: unknown) {
 
 function sourceLabel(source: EvidenceSource) {
   switch (source) {
-    case "transferencia":
-      return "Transferencia";
     case "gasto":
       return "Gasto de caja";
     case "consignacion":
@@ -96,18 +91,6 @@ function sourceLabel(source: EvidenceSource) {
     case "servicio":
       return "Pago de servicio";
   }
-}
-
-function transferTarget(item: ConsultaTransferenciaEvidencia): EvidenceTarget {
-  return {
-    fecha: item.fechaRegistro,
-    id: item.idPagoVenta,
-    label: `Venta #${item.numeroVenta}`,
-    source: "transferencia",
-    status: item.estadoValidacion,
-    subtitle: `${item.nombreUsuarioVendedor} · ${item.cantidadEvidencias} evidencia(s)`,
-    value: item.valorPago,
-  };
 }
 
 function gastoTarget(item: ConsultaGastoCajaEvidencia): EvidenceTarget {
@@ -155,10 +138,9 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
   const [fechaFin, setFechaFin] = useState(() => formatDateInput(new Date()));
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [transferencias, setTransferencias] = useState<ConsultaTransferenciaEvidencia[]>([]);
   const [gastos, setGastos] = useState<ConsultaGastoCajaEvidencia[]>([]);
   const [movimientosDeposito, setMovimientosDeposito] = useState<ConsultaMovimientoDepositoEvidencia[]>([]);
-  const [activeTab, setActiveTab] = useState<SourceTab>("transferencias");
+  const [activeTab, setActiveTab] = useState<SourceTab>("gastos");
   const [selectedTarget, setSelectedTarget] = useState<EvidenceTarget | null>(null);
   const [evidencias, setEvidencias] = useState<ArchivoEvidenciaResponse[]>([]);
   const [evidenceState, setEvidenceState] = useState<LoadState>("success");
@@ -166,6 +148,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [downloadingEvidenceId, setDownloadingEvidenceId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtro = useMemo<FiltroEvidencias>(
@@ -178,17 +161,14 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
     setErrorMessage(null);
 
     try {
-      const [transferenciasResponse, gastosResponse, movimientosResponse] = await Promise.all([
-        consultarTransferenciasConEvidencia(token, filtro),
+      const [gastosResponse, movimientosResponse] = await Promise.all([
         consultarGastosConEvidencia(token, filtro),
         consultarMovimientosDepositoConEvidencia(token, filtro),
       ]);
-      setTransferencias(transferenciasResponse);
       setGastos(gastosResponse);
       setMovimientosDeposito(movimientosResponse);
       setLoadState("success");
     } catch (error) {
-      setTransferencias([]);
       setGastos([]);
       setMovimientosDeposito([]);
       setLoadState("error");
@@ -203,24 +183,21 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
   const destinos = useMemo<Record<SourceTab, EvidenceTarget[]>>(() => ({
     deposito: depositoTargets(movimientosDeposito),
     gastos: gastos.map(gastoTarget),
-    transferencias: transferencias.map(transferTarget),
-  }), [gastos, movimientosDeposito, transferencias]);
+  }), [gastos, movimientosDeposito]);
 
   const registrosActivos = destinos[activeTab];
-  const totalDestinos = destinos.transferencias.length + destinos.gastos.length + destinos.deposito.length;
+  const totalDestinos = destinos.gastos.length + destinos.deposito.length;
 
   async function cargarEvidencias(target: EvidenceTarget) {
     setEvidenceState("loading");
     setEvidenceError(null);
 
     try {
-      const response = target.source === "transferencia"
-        ? await listarEvidenciasPagoVenta(token, target.id)
-        : target.source === "gasto"
-          ? await listarEvidenciasGastoCaja(token, target.id)
-          : target.source === "consignacion"
-            ? await listarEvidenciasConsignacionBancaria(token, target.id)
-            : await listarEvidenciasPagoServicio(token, target.id);
+      const response = target.source === "gasto"
+        ? await listarEvidenciasGastoCaja(token, target.id)
+        : target.source === "consignacion"
+          ? await listarEvidenciasConsignacionBancaria(token, target.id)
+          : await listarEvidenciasPagoServicio(token, target.id);
       setEvidencias(response);
       setEvidenceState("success");
     } catch (error) {
@@ -266,9 +243,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
     setUploadMessage(null);
 
     try {
-      if (selectedTarget.source === "transferencia") {
-        await cargarEvidenciaPagoVenta(token, selectedTarget.id, archivoSeleccionado);
-      } else if (selectedTarget.source === "gasto") {
+      if (selectedTarget.source === "gasto") {
         await cargarEvidenciaGastoCaja(token, selectedTarget.id, archivoSeleccionado);
       } else if (selectedTarget.source === "consignacion") {
         await cargarEvidenciaConsignacionBancaria(token, selectedTarget.id, archivoSeleccionado);
@@ -276,7 +251,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
         await cargarEvidenciaPagoServicio(token, selectedTarget.id, archivoSeleccionado);
       }
 
-      setUploadMessage("Evidencia adjunta correctamente mediante el backend.");
+      setUploadMessage("Evidencia adjunta correctamente.");
       setArchivoSeleccionado(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -289,22 +264,38 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
     }
   }
 
+  async function descargarArchivo(evidencia: ArchivoEvidenciaResponse) {
+    setDownloadingEvidenceId(evidencia.idArchivoEvidencia);
+    setEvidenceError(null);
+
+    try {
+      const archivo = await descargarEvidencia(token, evidencia.idArchivoEvidencia);
+      const urlArchivo = URL.createObjectURL(archivo);
+      const enlace = document.createElement("a");
+      enlace.href = urlArchivo;
+      enlace.download = evidencia.nombreArchivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(urlArchivo);
+    } catch (error) {
+      setEvidenceError(messageFor(error));
+    } finally {
+      setDownloadingEvidenceId(null);
+    }
+  }
+
   return (
     <section className="evidencias-panel" aria-label="Evidencias administrativas">
       <header className="module-header evidencia-header">
         <div>
           <span className="eyebrow">Trazabilidad documental</span>
           <h1>Evidencias</h1>
-          <p>Consulta los soportes asociados a operaciones administrativas y sus metadatos registrados.</p>
+          <p>Consulta los soportes asociados a gastos y deposito, con sus metadatos registrados.</p>
         </div>
       </header>
 
       <div className="evidence-summary-grid" aria-label="Resumen de registros consultados">
-        <article className="evidence-summary-card">
-          <span>Transferencias</span>
-          <strong>{destinos.transferencias.length}</strong>
-          <small>Pagos con evidencia consultable</small>
-        </article>
         <article className="evidence-summary-card">
           <span>Gastos</span>
           <strong>{destinos.gastos.length}</strong>
@@ -345,9 +336,6 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
       ) : null}
 
       <div className="evidence-tabs" role="tablist" aria-label="Tipo de operacion">
-        <button className={activeTab === "transferencias" ? "active" : ""} type="button" role="tab" aria-selected={activeTab === "transferencias"} onClick={() => setActiveTab("transferencias")}>
-          Transferencias
-        </button>
         <button className={activeTab === "gastos" ? "active" : ""} type="button" role="tab" aria-selected={activeTab === "gastos"} onClick={() => setActiveTab("gastos")}>
           Gastos
         </button>
@@ -361,7 +349,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
           <div className="compact-heading">
             <div>
               <span className="eyebrow">Registros</span>
-              <h2 id="evidence-records-title">{activeTab === "transferencias" ? "Transferencias" : activeTab === "gastos" ? "Gastos de caja" : "Movimientos de deposito"}</h2>
+              <h2 id="evidence-records-title">{activeTab === "gastos" ? "Gastos de caja" : "Movimientos de deposito"}</h2>
             </div>
             <span className="count-badge">{registrosActivos.length}</span>
           </div>
@@ -376,7 +364,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
                   type="button"
                   onClick={() => seleccionarDestino(target)}
                 >
-                  {target.source === "gasto" ? <ReceiptText size={20} aria-hidden="true" /> : target.source === "transferencia" ? <FileImage size={20} aria-hidden="true" /> : <Landmark size={20} aria-hidden="true" />}
+                  {target.source === "gasto" ? <ReceiptText size={20} aria-hidden="true" /> : <Landmark size={20} aria-hidden="true" />}
                   <span>
                     <strong>{target.label}</strong>
                     <small>{target.subtitle}</small>
@@ -452,7 +440,19 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
                       <small>{evidencia.formatoArchivo.toUpperCase()} · {formatFileSize(evidencia.tamanoOriginalKb)} · {formatDateTime(evidencia.fechaSubida)}</small>
                       <small>{evidencia.nombreUsuarioSubida}{evidencia.fueComprimido ? ` · Comprimido a ${formatFileSize(evidencia.tamanoComprimidoKb)}` : ""}</small>
                     </div>
-                    <span className="status-badge active">{evidencia.estado}</span>
+                    <div className="evidence-metadata-actions">
+                      <span className="status-badge active">{evidencia.estado}</span>
+                      <button
+                        className="icon-button"
+                        type="button"
+                        aria-label={`Descargar ${evidencia.nombreArchivo}`}
+                        title="Descargar evidencia"
+                        onClick={() => void descargarArchivo(evidencia)}
+                        disabled={downloadingEvidenceId === evidencia.idArchivoEvidencia}
+                      >
+                        <Download size={18} aria-hidden="true" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -1,32 +1,17 @@
 import { AlertCircle, ChevronRight, Clock3, Database, History, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import type { UserRole } from "../../../app/routes/appRoutes";
 import { ApiClientError } from "../../../shared/services/apiClient";
 import { formatDisplayName } from "../../../shared/utils/displayText";
+import { listarUsuarios } from "../../usuarios/services/usuariosService";
+import type { UsuarioGestion } from "../../usuarios/types";
 import { consultarAuditoria } from "../services/auditoriaService";
 import type { ConsultaAuditoria, FiltroAuditoria } from "../types";
 
 type LoadState = "loading" | "success" | "error";
 
 type AuditoriaPanelProps = {
-  role: UserRole | null;
   token: string;
 };
-
-const TABLE_OPTIONS = [
-  { label: "Todas las entidades", value: "" },
-  { label: "Ventas", value: "ventas" },
-  { label: "Pagos de venta", value: "pagos_venta" },
-  { label: "Caja diaria", value: "cajas_diarias" },
-  { label: "Gastos de caja", value: "gastos_caja" },
-  { label: "Cierres de caja", value: "cierres_caja" },
-  { label: "Movimientos de deposito", value: "movimientos_deposito" },
-  { label: "Consignaciones bancarias", value: "consignaciones_bancarias" },
-  { label: "Pagos de servicios", value: "pagos_servicios" },
-  { label: "Ajustes de inventario", value: "ajustes_inventario" },
-] as const;
-
-const SESSION_TABLE_OPTION = { label: "Sesiones de usuario", value: "sesiones_usuario" } as const;
 
 const ACTION_OPTIONS = [
   { label: "Todas las acciones", value: "" },
@@ -87,15 +72,76 @@ function actionTone(value: string) {
   return "info";
 }
 
-function formatSnapshot(value: string | null) {
+const SNAPSHOT_LABELS: Record<string, string> = {
+  fecha_cambio_contrasena: "Fecha de cambio de contrasena",
+  fecha_cierre: "Fecha de cierre",
+  fecha_fin_vigencia: "Fin de vigencia",
+  fecha_inicio: "Fecha de inicio",
+  fecha_inicio_vigencia: "Inicio de vigencia",
+  fecha_movimiento: "Fecha de movimiento",
+  fecha_solicitud: "Fecha de solicitud",
+  fecha_validacion: "Fecha de validacion",
+  id_usuario: "Usuario",
+  id_usuario_anulacion: "Usuario que anulo",
+  id_usuario_apertura: "Usuario que abrio",
+  id_usuario_cierre: "Usuario que cerro",
+  id_usuario_comprador: "Trabajador comprador",
+  id_usuario_validacion: "Usuario que valido",
+  id_usuario_vendedor: "Vendedor",
+  nombre_rol: "Rol",
+  nombre_usuario: "Nombre de usuario",
+  requiere_cambio_contrasena: "Requiere cambio de contrasena",
+};
+
+type SnapshotEntry = {
+  label: string;
+  value: string;
+};
+
+function formatSnapshotValue(key: string, value: unknown, usuariosPorId: Map<string, UsuarioGestion>): string {
+  if (value === null || value === undefined) {
+    return "Sin registro";
+  }
+  if (typeof value === "boolean") {
+    return value ? "Si" : "No";
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => formatSnapshotValue(key, item, usuariosPorId)).join(", ");
+  }
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([nestedKey, nestedValue]) => `${SNAPSHOT_LABELS[nestedKey] ?? formatDisplayName(nestedKey)}: ${formatSnapshotValue(nestedKey, nestedValue, usuariosPorId)}`)
+      .join("; ");
+  }
+  if (typeof value === "string" && key.startsWith("id_usuario")) {
+    const usuario = usuariosPorId.get(value);
+    return usuario ? `${usuario.nombreCompleto} (${usuario.nombreUsuario})` : value;
+  }
+  if (typeof value === "string" && key.startsWith("fecha_") && value.includes("T")) {
+    const parsedDate = Date.parse(value);
+    if (!Number.isNaN(parsedDate)) {
+      return formatDateTime(value);
+    }
+  }
+  return String(value);
+}
+
+function snapshotEntries(value: string | null, usuariosPorId: Map<string, UsuarioGestion>): SnapshotEntry[] {
   if (!value) {
-    return "Sin datos registrados";
+    return [{ label: "Estado", value: "Sin datos registrados" }];
   }
 
   try {
-    return JSON.stringify(JSON.parse(value), null, 2);
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return Object.entries(parsed).map(([key, entryValue]) => ({
+        label: SNAPSHOT_LABELS[key] ?? formatDisplayName(key),
+        value: formatSnapshotValue(key, entryValue, usuariosPorId),
+      }));
+    }
+    return [{ label: "Estado", value: formatSnapshotValue("estado", parsed, usuariosPorId) }];
   } catch {
-    return value;
+    return [{ label: "Contenido", value }];
   }
 }
 
@@ -106,11 +152,9 @@ function shortIdentifier(value: string | null) {
   return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
 }
 
-export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
+export function AuditoriaPanel({ token }: AuditoriaPanelProps) {
   const [fechaInicio, setFechaInicio] = useState(todayLocalDate);
   const [fechaFin, setFechaFin] = useState(todayLocalDate);
-  const [tablaAfectada, setTablaAfectada] = useState("");
-  const [accion, setAccion] = useState("");
   const [filtroAplicado, setFiltroAplicado] = useState<FiltroAuditoria>(() => {
     const fechaActual = todayLocalDate();
     return { fechaFin: fechaActual, fechaInicio: fechaActual };
@@ -118,9 +162,8 @@ export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [registros, setRegistros] = useState<ConsultaAuditoria[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioGestion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const tableOptions = role === "gerente" ? [...TABLE_OPTIONS, SESSION_TABLE_OPTION] : TABLE_OPTIONS;
 
   const cargarAuditoria = useCallback(async () => {
     setLoadState("loading");
@@ -145,9 +188,18 @@ export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
     void cargarAuditoria();
   }, [cargarAuditoria]);
 
+  useEffect(() => {
+    void listarUsuarios(token).then(setUsuarios).catch(() => setUsuarios([]));
+  }, [token]);
+
   const selectedRecord = useMemo(
     () => registros.find((item) => item.idAuditoriaOperacion === selectedId) ?? null,
     [registros, selectedId],
+  );
+
+  const usuariosPorId = useMemo(
+    () => new Map(usuarios.map((usuario) => [usuario.idUsuario, usuario])),
+    [usuarios],
   );
 
   const resumen = useMemo(() => {
@@ -172,10 +224,8 @@ export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
     }
 
     setFiltroAplicado({
-      accion: accion || undefined,
       fechaFin: fechaFin || undefined,
       fechaInicio,
-      tablaAfectada: tablaAfectada || undefined,
     });
   }
 
@@ -185,7 +235,7 @@ export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
         <div>
           <span className="eyebrow">Control interno</span>
           <h1>Auditoria</h1>
-          <p>Consulta los eventos sensibles registrados por la operacion, sin modificar su trazabilidad.</p>
+          <p>Consulta los eventos sensibles registrados por la operacion. El historial diario se consulta en Consultas.</p>
         </div>
       </header>
 
@@ -197,18 +247,6 @@ export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
         <label className="form-field">
           <span>Fecha final</span>
           <input className="field-control plain" type="date" value={fechaFin} onChange={(event) => setFechaFin(event.target.value)} />
-        </label>
-        <label className="form-field">
-          <span>Entidad</span>
-          <select className="field-control plain" value={tablaAfectada} onChange={(event) => setTablaAfectada(event.target.value)}>
-            {tableOptions.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-        <label className="form-field">
-          <span>Accion</span>
-          <select className="field-control plain" value={accion} onChange={(event) => setAccion(event.target.value)}>
-            {ACTION_OPTIONS.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
-          </select>
         </label>
         <button className="primary-button" type="submit" disabled={loadState === "loading"}>
           <RefreshCw size={18} aria-hidden="true" />
@@ -312,11 +350,23 @@ export function AuditoriaPanel({ role, token }: AuditoriaPanelProps) {
               <div className="auditoria-snapshot-grid">
                 <article>
                   <span>Valor anterior</span>
-                  <pre>{formatSnapshot(selectedRecord.valorAnterior)}</pre>
+                  <ul className="auditoria-snapshot-list">
+                    {snapshotEntries(selectedRecord.valorAnterior, usuariosPorId).map((entry) => (
+                      <li key={entry.label}>
+                        <strong>{entry.label}:</strong> {entry.value}
+                      </li>
+                    ))}
+                  </ul>
                 </article>
                 <article>
                   <span>Valor nuevo</span>
-                  <pre>{formatSnapshot(selectedRecord.valorNuevo)}</pre>
+                  <ul className="auditoria-snapshot-list">
+                    {snapshotEntries(selectedRecord.valorNuevo, usuariosPorId).map((entry) => (
+                      <li key={entry.label}>
+                        <strong>{entry.label}:</strong> {entry.value}
+                      </li>
+                    ))}
+                  </ul>
                 </article>
               </div>
             </div>

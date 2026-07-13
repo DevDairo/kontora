@@ -4,6 +4,7 @@ import com.kontora.pos.common.security.PrincipalUsuario;
 import com.kontora.pos.usuarios.dto.ActualizarEstadoUsuarioRequest;
 import com.kontora.pos.usuarios.dto.ActualizarUsuarioRequest;
 import com.kontora.pos.usuarios.dto.CrearUsuarioRequest;
+import com.kontora.pos.usuarios.dto.RestablecerContrasenaUsuarioRequest;
 import com.kontora.pos.usuarios.dto.RolGestionResponse;
 import com.kontora.pos.usuarios.dto.UsuarioGestionResponse;
 import com.kontora.pos.usuarios.service.GestionUsuariosService;
@@ -64,6 +65,15 @@ public class GestionUsuariosController {
             @Valid @RequestBody ActualizarEstadoUsuarioRequest request,
             Authentication authentication) {
         return gestionUsuariosService.actualizarEstado(idUsuario, request, principal(authentication));
+    }
+
+    @PutMapping("/{idUsuario}/contrasena")
+    public ResponseEntity<Void> restablecerContrasena(
+            @PathVariable UUID idUsuario,
+            @Valid @RequestBody RestablecerContrasenaUsuarioRequest request,
+            Authentication authentication) {
+        gestionUsuariosService.restablecerContrasena(idUsuario, request, principal(authentication));
+        return ResponseEntity.noContent().build();
     }
 
     private PrincipalUsuario principal(Authentication authentication) {

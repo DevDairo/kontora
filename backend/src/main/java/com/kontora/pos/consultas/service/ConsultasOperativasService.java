@@ -115,15 +115,16 @@ public class ConsultasOperativasService {
             String tablaAfectada,
             String accion,
             PrincipalUsuario principalUsuario) {
-        validarRolAdministrativo(principalUsuario, "Solo administrador o gerente puede consultar auditoria");
+        if (!esGerente(principalUsuario)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo el gerente puede consultar auditoria");
+        }
         Periodo periodo = normalizarPeriodoRequerido(fechaInicio, fechaFin);
-        boolean incluirSeguridad = esGerente(principalUsuario);
         return consultasRepository.consultarAuditoria(
                 periodo.fechaInicio(),
                 periodo.fechaFin(),
                 normalizarTexto(tablaAfectada),
                 normalizarTexto(accion),
-                incluirSeguridad);
+                true);
     }
 
     private Periodo normalizarPeriodoRequerido(LocalDate fechaInicio, LocalDate fechaFin) {

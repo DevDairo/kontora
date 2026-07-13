@@ -76,7 +76,7 @@ public class PagosVentaService {
             String estadoNuevo,
             String accionAuditoria,
             String descripcionAuditoria) {
-        validarRolAdministrativo(principalUsuario);
+        validarRolGerente(principalUsuario);
         PagoVenta pagoVenta = pagoVentaRepository.findByIdPagoVenta(idPagoVenta)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Pago de venta no encontrado"));
         validarTransferenciaPendiente(pagoVenta);
@@ -101,10 +101,10 @@ public class PagosVentaService {
         return toResponse(pagoGuardado);
     }
 
-    private void validarRolAdministrativo(PrincipalUsuario principalUsuario) {
+    private void validarRolGerente(PrincipalUsuario principalUsuario) {
         String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
-        if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede validar transferencias");
+        if (!"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo gerente puede validar transferencias");
         }
     }
 
