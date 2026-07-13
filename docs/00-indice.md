@@ -24,6 +24,7 @@
 | 11 | [Consultas](./11-consultas.md) | `/consultas` | Segun rol |
 | 12 | [Usuarios](./12-usuarios.md) | `/usuarios` | Gerente |
 | 13 | [Auditoria](./13-auditoria.md) | `/auditoria` | Gerente |
+| 14 | [Credenciales del gerente inicial](./14-credenciales-gerente-inicial.md) | Configuracion | Responsable de despliegue |
 
 ## Convenciones
 

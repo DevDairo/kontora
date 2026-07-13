@@ -72,6 +72,106 @@ npm run dev -- --host 127.0.0.1
 
 Abrir `http://127.0.0.1:5173`.
 
+## CORS local y produccion
+
+### Entorno local
+
+No requiere configuracion adicional si el frontend Vite se ejecuta en cualquiera de estas direcciones:
+
+```text
+http://localhost:5173
+http://127.0.0.1:5173
+```
+
+Ambas ya estan definidas por defecto en `application.yml` y en `infra/.env.example`:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Solo cambia esta variable si Vite usa otro puerto u origen. Por ejemplo, para el puerto `4173`:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173
+```
+
+Despues de editar `infra/.env`, recrear el contenedor backend para que lea las variables nuevas:
+
+```powershell
+docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend up -d --force-recreate backend
+```
+
+### Entorno de produccion
+
+En produccion `CORS_ALLOWED_ORIGINS` debe contener el origen publico exacto del frontend, sin la ruta `/api` ni barra final:
+
+```env
+CORS_ALLOWED_ORIGINS=https://app.ejemplo.com
+```
+
+El valor debe corresponder con la URL configurada en el frontend:
+
+```env
+VITE_API_URL=https://api.ejemplo.com/api
+```
+
+Para varios origenes autorizados, separarlos por comas. No usar `*` ni exponer origenes de desarrollo en produccion:
+
+```env
+CORS_ALLOWED_ORIGINS=https://app.ejemplo.com,https://admin.ejemplo.com
+```
+
+### Paso a paso con un dominio propio
+
+Ejemplo: frontend publicado en `https://pos.midominio.com` y backend publicado en `https://api.midominio.com`.
+
+1. Confirmar el dominio HTTPS final del frontend. Solo se usa el origen: protocolo y dominio. No agregar `/api`, rutas ni barra final.
+
+```text
+Correcto: https://pos.midominio.com
+Incorrecto: https://pos.midominio.com/
+Incorrecto: https://pos.midominio.com/api
+```
+
+2. En el servidor backend, abrir `infra/.env` y asignar el origen del frontend:
+
+```env
+CORS_ALLOWED_ORIGINS=https://pos.midominio.com
+```
+
+3. Configurar la URL publica del backend en `frontend/.env` antes de construir el frontend:
+
+```env
+VITE_API_URL=https://api.midominio.com/api
+```
+
+4. Recrear el contenedor backend para que cargue el nuevo valor de CORS:
+
+```bash
+docker rm -f kontora-pos-backend
+docker run -d --name kontora-pos-backend --restart unless-stopped --env-file infra/.env -p 8080:8080 kontora-pos-backend:latest
+```
+
+5. Generar y publicar un nuevo build del frontend:
+
+```bash
+cd frontend
+npm ci
+npm run build
+```
+
+En Vercel, definir `VITE_API_URL=https://api.midominio.com/api` en las variables de produccion y redeplegar. En cualquier hosting estatico, publicar de nuevo `frontend/dist`.
+
+6. Verificar desde una terminal que el backend responde al origen correcto:
+
+```bash
+curl -i -X OPTIONS https://api.midominio.com/api/health \
+  -H "Origin: https://pos.midominio.com" \
+  -H "Access-Control-Request-Method: GET"
+```
+
+La respuesta debe incluir `Access-Control-Allow-Origin: https://pos.midominio.com`. Si se usa otro subdominio para una vista administrativa, agregarlo separado por coma en `CORS_ALLOWED_ORIGINS` y volver a recrear el backend.
+
 Detener servicios locales:
 
 ```powershell
@@ -136,6 +236,8 @@ BOOTSTRAP_MANAGER_PASSWORD=<contrasena-segura-de-8-a-72-caracteres>
 ```
 
 El backend crea el gerente solo cuando `usuarios` esta vacia. Esta regla se valido con una base y backend Docker aislados: se creo `gerenteLocal` activo con credencial activa y su login fue exitoso. Despues del primer inicio, cambiar `BOOTSTRAP_MANAGER_ENABLED=false`.
+
+El procedimiento completo, incluidos los casos de una cuenta existente y el reinicio seguro de una instalacion local de prueba, esta en [docs/14-credenciales-gerente-inicial.md](docs/14-credenciales-gerente-inicial.md).
 
 ## Despliegue del backend en servidor
 
