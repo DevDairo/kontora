@@ -124,7 +124,7 @@ class ConsultasOperativasIntegrationTest {
     }
 
     @Test
-    void administradorConsultaCierreDepositoYAuditoriaOperativa() throws Exception {
+    void administradorConsultaCierreYDepositoPeroNoAuditoria() throws Exception {
         UUID idCajaDiaria = crearCajaAbierta();
         crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("9000.00"), "pendiente");
         crearPrerequisitosCierre(idCajaDiaria);
@@ -152,9 +152,8 @@ class ConsultasOperativasIntegrationTest {
         mockMvc.perform(get("/api/consultas/auditoria")
                         .param("fechaInicio", FECHA_CAJA.toString())
                         .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].tablaAfectada", hasItem("ventas")))
-                .andExpect(jsonPath("$[*].tablaAfectada", not(hasItem("sesiones_usuario"))));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo el gerente puede consultar auditoria"));
     }
 
     @Test

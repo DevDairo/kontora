@@ -1,19 +1,9 @@
 # Infraestructura local
 
-La Fase 1 deja preparado Docker Compose sin crear todavia backend funcional.
+`compose.local.yml` levanta PostgreSQL local y el backend para desarrollo. Copiar `infra/.env.example` a `infra/.env` antes de ejecutar el stack.
 
-## Servicios
-
-- `postgres`: PostgreSQL local para desarrollo y validacion del SQL canonico.
-- `backend`: perfil preparado para Fase 2, cuando exista `backend/Dockerfile`.
-
-## Uso
-
-```bash
-cp infra/.env.example infra/.env
-docker compose -f infra/compose.local.yml config
-docker compose -f infra/compose.local.yml up -d postgres
+```powershell
+docker compose --env-file infra\.env -f infra\compose.local.yml --profile backend up -d --build
 ```
 
-El script montado al iniciar PostgreSQL local es `database/schema/kontora_pos_schema_v1_1.sql`.
-
+La configuracion de Supabase, bootstrap del gerente y despliegue en servidor se describe en el [README principal](../README.md).

@@ -24,3 +24,7 @@ export type CrearUsuarioRequest = {
 };
 
 export type ActualizarUsuarioRequest = Omit<CrearUsuarioRequest, "contrasena">;
+
+export type RestablecerContrasenaUsuarioRequest = {
+  nuevaContrasena: string;
+};

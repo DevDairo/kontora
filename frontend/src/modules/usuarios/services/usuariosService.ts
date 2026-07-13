@@ -4,6 +4,7 @@ import type {
   CrearUsuarioRequest,
   EstadoUsuario,
   RolGestion,
+  RestablecerContrasenaUsuarioRequest,
   UsuarioGestion,
 } from "../types";
 
@@ -25,4 +26,12 @@ export function actualizarUsuario(token: string, idUsuario: string, request: Act
 
 export function actualizarEstadoUsuario(token: string, idUsuario: string, estado: EstadoUsuario) {
   return apiClient.put<UsuarioGestion>(`/usuarios/${idUsuario}/estado`, JSON.stringify({ estado }), { token });
+}
+
+export function restablecerContrasenaUsuario(
+  token: string,
+  idUsuario: string,
+  request: RestablecerContrasenaUsuarioRequest,
+) {
+  return apiClient.put<void>(`/usuarios/${idUsuario}/contrasena`, JSON.stringify(request), { token });
 }

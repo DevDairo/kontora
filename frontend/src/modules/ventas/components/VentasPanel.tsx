@@ -1,13 +1,12 @@
 import { BadgeDollarSign, Minus, Paperclip, Plus, ReceiptText, RefreshCw, Trash2 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import type { UsuarioAutenticado } from "../../auth";
 import { obtenerCatalogosFormulario } from "../../catalogos/services/catalogosService";
 import type { CatalogosFormulario, Promocion } from "../../catalogos/types";
 import { cargarEvidenciaPagoVenta } from "../../evidencias/services/evidenciasService";
 import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import { ApiClientError } from "../../../shared/services/apiClient";
-import { registrarVenta } from "../services/ventasService";
-import type { RegistrarPagoVentaRequest, TipoComprador, VentaResponse } from "../types";
+import { listarTrabajadoresVenta, registrarVenta } from "../services/ventasService";
+import type { RegistrarPagoVentaRequest, TipoComprador, TrabajadorVenta, VentaResponse } from "../types";
 import { AdicionesDiariasPanel } from "./AdicionesDiariasPanel";
 
 type PaymentMode = "efectivo" | "transferencia" | "mixto";
@@ -33,7 +32,6 @@ type LineaCalculada = VentaLinea & {
 
 type VentasPanelProps = {
   token: string;
-  usuario: UsuarioAutenticado;
 };
 
 const dayNames = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
@@ -147,7 +145,7 @@ function calculateLine(
   };
 }
 
-export function VentasPanel({ token, usuario }: VentasPanelProps) {
+export function VentasPanel({ token }: VentasPanelProps) {
   const [catalogos, setCatalogos] = useState<CatalogosFormulario | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -159,7 +157,8 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
   const [lastEvidence, setLastEvidence] = useState<ArchivoEvidenciaResponse | null>(null);
   const [lastChangeEstimate, setLastChangeEstimate] = useState(0);
   const [tipoComprador, setTipoComprador] = useState<TipoComprador>("cliente");
-  const [idUsuarioComprador, setIdUsuarioComprador] = useState(usuario.idUsuario);
+  const [idUsuarioComprador, setIdUsuarioComprador] = useState("");
+  const [trabajadores, setTrabajadores] = useState<TrabajadorVenta[]>([]);
   const [idTipoGranizado, setIdTipoGranizado] = useState("");
   const [idTamanoVaso, setIdTamanoVaso] = useState("");
   const [cantidad, setCantidad] = useState("1");
@@ -177,8 +176,12 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
     setErrorMessage(null);
 
     try {
-      const response = await obtenerCatalogosFormulario(token, fechaCatalogos);
+      const [response, trabajadoresResponse] = await Promise.all([
+        obtenerCatalogosFormulario(token, fechaCatalogos),
+        listarTrabajadoresVenta(token),
+      ]);
       setCatalogos(response);
+      setTrabajadores(trabajadoresResponse);
       setLoadState("success");
       setIdTipoGranizado((current) => current || (response.tiposGranizado[0]?.id ?? ""));
       setIdTamanoVaso((current) => current || (response.tamanosVaso[0]?.idTamanoVaso ?? ""));
@@ -191,12 +194,6 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
   useEffect(() => {
     void loadCatalogos();
   }, [loadCatalogos]);
-
-  useEffect(() => {
-    if (tipoComprador === "trabajador" && !idUsuarioComprador) {
-      setIdUsuarioComprador(usuario.idUsuario);
-    }
-  }, [idUsuarioComprador, tipoComprador, usuario.idUsuario]);
 
   useEffect(() => {
     if (paymentMode === "efectivo") {
@@ -383,7 +380,7 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
     try {
       const evidencia = await cargarEvidenciaPagoVenta(token, pagoTransferencia.idPagoVenta, archivo);
       setLastEvidence(evidencia);
-      setEvidenceMessage("Evidencia adjunta correctamente mediante el backend.");
+      setEvidenceMessage("Comprobante de transferencia adjunto correctamente.");
       setEvidenciaTransferencia(null);
     } catch (error) {
       setEvidenceMessage(`Venta registrada; evidencia pendiente: ${messageFor(error)}`);
@@ -413,8 +410,8 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
       return;
     }
 
-    if (tipoComprador === "trabajador" && !idUsuarioComprador.trim()) {
-      setSubmitMessage("idUsuarioComprador es obligatorio para trabajador.");
+    if (tipoComprador === "trabajador" && !idUsuarioComprador) {
+      setSubmitMessage("Selecciona el usuario beneficiario que realiza la compra.");
       return;
     }
 
@@ -496,7 +493,10 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
             <label className="field-label">
               Comprador
               <div className="field-control plain">
-                <select value={tipoComprador} onChange={(event) => setTipoComprador(event.target.value as TipoComprador)}>
+                <select
+                  value={tipoComprador}
+                  onChange={(event) => setTipoComprador(event.target.value as TipoComprador)}
+                >
                   <option value="cliente">cliente</option>
                   <option value="trabajador">trabajador</option>
                 </select>
@@ -505,13 +505,20 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
 
             {tipoComprador === "trabajador" ? (
               <label className="field-label">
-                idUsuarioComprador
+                Usuario beneficiario
                 <div className="field-control plain">
-                  <input
-                    type="text"
+                  <select
                     value={idUsuarioComprador}
                     onChange={(event) => setIdUsuarioComprador(event.target.value)}
-                  />
+                    disabled={loadState === "loading"}
+                  >
+                    <option value="">Selecciona un usuario activo</option>
+                    {trabajadores.map((trabajador) => (
+                      <option key={trabajador.idUsuario} value={trabajador.idUsuario}>
+                        {trabajador.nombreCompleto} ({trabajador.nombreUsuario})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </label>
             ) : null}
@@ -710,7 +717,7 @@ export function VentasPanel({ token, usuario }: VentasPanelProps) {
                 />
               </div>
               <small className="field-hint">
-                Se envia al backend despues de registrar la venta; Supabase se configura solo en servidor.
+                El comprobante se adjunta despues de registrar la venta.
               </small>
             </label>
           ) : null}

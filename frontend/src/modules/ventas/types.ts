@@ -19,6 +19,12 @@ export type RegistrarVentaRequest = {
   pagos: RegistrarPagoVentaRequest[];
 };
 
+export type TrabajadorVenta = {
+  idUsuario: string;
+  nombreCompleto: string;
+  nombreUsuario: string;
+};
+
 export type DetalleVentaResponse = {
   idDetalleVenta: string;
   idTipoGranizado: string;

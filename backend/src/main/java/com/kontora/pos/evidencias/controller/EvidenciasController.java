@@ -1,10 +1,14 @@
 package com.kontora.pos.evidencias.controller;
 
 import com.kontora.pos.common.security.PrincipalUsuario;
+import com.kontora.pos.evidencias.dto.ArchivoEvidenciaDescargada;
 import com.kontora.pos.evidencias.dto.ArchivoEvidenciaResponse;
 import com.kontora.pos.evidencias.service.EvidenciasService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -85,6 +90,34 @@ public class EvidenciasController {
                 (PrincipalUsuario) authentication.getPrincipal());
     }
 
+    @PostMapping(path = "/pagos-venta/{idPagoVenta}/ajustes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ArchivoEvidenciaResponse cargarAjusteEvidenciaPagoVenta(
+            @PathVariable UUID idPagoVenta,
+            @RequestPart("archivo") MultipartFile archivo,
+            Authentication authentication) {
+        return evidenciasService.cargarAjusteEvidenciaPagoVenta(
+                idPagoVenta,
+                archivo,
+                (PrincipalUsuario) authentication.getPrincipal());
+    }
+
+    @GetMapping("/{idArchivoEvidencia}/descargar")
+    public ResponseEntity<byte[]> descargarEvidencia(
+            @PathVariable UUID idArchivoEvidencia,
+            Authentication authentication) {
+        ArchivoEvidenciaDescargada evidencia = evidenciasService.descargarEvidencia(
+                idArchivoEvidencia,
+                (PrincipalUsuario) authentication.getPrincipal());
+        MediaType contentType = mediaTypeSeguro(evidencia.contentType());
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(contentType);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(evidencia.nombreArchivo(), StandardCharsets.UTF_8)
+                .build());
+        return new ResponseEntity<>(evidencia.contenido(), headers, HttpStatus.OK);
+    }
+
     @GetMapping("/pagos-venta/{idPagoVenta}")
     public List<ArchivoEvidenciaResponse> listarPorPagoVenta(
             @PathVariable UUID idPagoVenta,
@@ -119,5 +152,13 @@ public class EvidenciasController {
         return evidenciasService.listarPorPagoServicio(
                 idPagoServicio,
                 (PrincipalUsuario) authentication.getPrincipal());
+    }
+
+    private MediaType mediaTypeSeguro(String contentType) {
+        try {
+            return MediaType.parseMediaType(contentType);
+        } catch (IllegalArgumentException exception) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 }

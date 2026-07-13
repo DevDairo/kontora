@@ -66,6 +66,34 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return payload as T;
 }
 
+async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const { token, headers, body, ...init } = options;
+  const requestHeaders = new Headers(headers);
+
+  requestHeaders.set("Accept", "application/octet-stream, application/pdf, image/*");
+
+  if (token) {
+    requestHeaders.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(resolveUrl(path), {
+    ...init,
+    body,
+    headers: requestHeaders,
+  });
+
+  if (!response.ok) {
+    const payload = await parseResponse(response);
+    const message =
+      typeof payload === "object" && payload && "mensaje" in payload
+        ? String(payload.mensaje)
+        : `Error HTTP ${response.status}`;
+    throw new ApiClientError(message, response.status, payload);
+  }
+
+  return response.blob();
+}
+
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) =>
     request<T>(path, { ...options, method: "GET" }),
@@ -73,4 +101,6 @@ export const apiClient = {
     request<T>(path, { ...options, body, method: "POST" }),
   put: <T>(path: string, body?: BodyInit, options?: RequestOptions) =>
     request<T>(path, { ...options, body, method: "PUT" }),
+  getBlob: (path: string, options?: RequestOptions) =>
+    requestBlob(path, { ...options, method: "GET" }),
 };

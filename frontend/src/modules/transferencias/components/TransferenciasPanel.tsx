@@ -1,9 +1,13 @@
-import { AlertCircle, BadgeCheck, CheckCircle2, FileImage, RefreshCw, XCircle } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, BadgeCheck, CheckCircle2, Download, FileImage, FileUp, RefreshCw, XCircle } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UserRole } from "../../../app/routes/appRoutes";
 import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
 import { ApiClientError } from "../../../shared/services/apiClient";
-import { listarEvidenciasPagoVenta } from "../../evidencias/services/evidenciasService";
+import {
+  cargarAjusteEvidenciaPagoVenta,
+  descargarEvidencia,
+  listarEvidenciasPagoVenta,
+} from "../../evidencias/services/evidenciasService";
 import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import {
   consultarTransferencias,
@@ -82,8 +86,14 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
   const [observacion, setObservacion] = useState("");
   const [pendingDecision, setPendingDecision] = useState<Decision>(null);
   const [isDeciding, setIsDeciding] = useState(false);
+  const [downloadingEvidenceId, setDownloadingEvidenceId] = useState<string | null>(null);
+  const [archivoAjuste, setArchivoAjuste] = useState<File | null>(null);
+  const [isUploadingAdjustment, setIsUploadingAdjustment] = useState(false);
+  const adjustmentInputRef = useRef<HTMLInputElement>(null);
 
-  const canDecide = role === "administrador" || role === "gerente";
+  const canDownloadEvidence = role === "administrador" || role === "gerente";
+  const canDecide = role === "gerente";
+  const canAdjustEvidence = role === "gerente";
 
   const filtroBase = useMemo(
     () => ({ fechaFin: fechaFin || undefined, fechaInicio: fechaInicio || undefined }),
@@ -136,6 +146,10 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
   function seleccionarTransferencia(transferencia: ConsultaTransferencia) {
     setSelectedTransferencia(transferencia);
     setObservacion(transferencia.observacionValidacion ?? "");
+    setArchivoAjuste(null);
+    if (adjustmentInputRef.current) {
+      adjustmentInputRef.current.value = "";
+    }
     setActionMessage(null);
     void cargarEvidencias(transferencia);
   }
@@ -150,6 +164,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
     setSelectedTransferencia(null);
     setEvidencias([]);
     setEvidenceError(null);
+    setArchivoAjuste(null);
     setActionMessage(null);
     void cargarTransferencias();
   }
@@ -159,7 +174,58 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
     setSelectedTransferencia(null);
     setEvidencias([]);
     setEvidenceError(null);
+    setArchivoAjuste(null);
     setActionMessage(null);
+  }
+
+  async function descargarArchivoEvidencia(evidencia: ArchivoEvidenciaResponse) {
+    setDownloadingEvidenceId(evidencia.idArchivoEvidencia);
+    setEvidenceError(null);
+
+    try {
+      const archivo = await descargarEvidencia(token, evidencia.idArchivoEvidencia);
+      const urlArchivo = URL.createObjectURL(archivo);
+      const enlace = document.createElement("a");
+      enlace.href = urlArchivo;
+      enlace.download = evidencia.nombreArchivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(urlArchivo);
+    } catch (error) {
+      setEvidenceError(messageFor(error));
+    } finally {
+      setDownloadingEvidenceId(null);
+    }
+  }
+
+  function seleccionarArchivoAjuste(event: ChangeEvent<HTMLInputElement>) {
+    setArchivoAjuste(event.target.files?.[0] ?? null);
+    setEvidenceError(null);
+  }
+
+  async function adjuntarAjusteEvidencia() {
+    if (!selectedTransferencia || !archivoAjuste) {
+      return;
+    }
+
+    setIsUploadingAdjustment(true);
+    setEvidenceError(null);
+    setActionMessage(null);
+
+    try {
+      await cargarAjusteEvidenciaPagoVenta(token, selectedTransferencia.idPagoVenta, archivoAjuste);
+      setArchivoAjuste(null);
+      if (adjustmentInputRef.current) {
+        adjustmentInputRef.current.value = "";
+      }
+      setActionMessage("Evidencia de ajuste adjunta. El soporte anterior se conserva para trazabilidad.");
+      await cargarEvidencias(selectedTransferencia);
+    } catch (error) {
+      setEvidenceError(messageFor(error));
+    } finally {
+      setIsUploadingAdjustment(false);
+    }
   }
 
   async function confirmarDecision() {
@@ -180,7 +246,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
       setPendingDecision(null);
       setSelectedTransferencia(null);
       setEvidencias([]);
-      setActionMessage(`Transferencia ${label} por backend. La decision quedo registrada en auditoria.`);
+      setActionMessage(`Transferencia ${label}. La decision quedo registrada en auditoria.`);
       await cargarTransferencias();
     } catch (error) {
       setActionMessage(messageFor(error));
@@ -219,7 +285,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
         <article className="transferencias-summary-card">
           <span>Soportes</span>
           <strong>{[...pendientes, ...rechazadas].reduce((total, item) => total + item.cantidadEvidencias, 0)}</strong>
-          <small>Metadata disponible</small>
+          <small>Adjuntos en el periodo</small>
         </article>
         <article className="transferencias-summary-card">
           <span>Periodo</span>
@@ -250,8 +316,8 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
         </div>
       ) : null}
       {actionMessage ? (
-        <div className={actionMessage.startsWith("Transferencia") ? "success-alert transferencias-alert" : "error-alert transferencias-alert"} role="status">
-          {actionMessage.startsWith("Transferencia") ? <CheckCircle2 size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}
+        <div className={actionMessage.startsWith("Transferencia") || actionMessage.startsWith("Evidencia") ? "success-alert transferencias-alert" : "error-alert transferencias-alert"} role="status">
+          {actionMessage.startsWith("Transferencia") || actionMessage.startsWith("Evidencia") ? <CheckCircle2 size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}
           <span>{actionMessage}</span>
         </div>
       ) : null}
@@ -331,7 +397,6 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
                 <FileImage size={18} aria-hidden="true" />
                 <div>
                   <strong>Soportes asociados</strong>
-                  <small>Metadata administrada por backend</small>
                 </div>
               </div>
               {evidenceState === "loading" ? <p className="loading-copy">Consultando soportes...</p> : null}
@@ -351,10 +416,55 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
                       <small>{evidencia.formatoArchivo.toUpperCase()} · {formatFileSize(evidencia.tamanoOriginalKb)} · {formatDateTime(evidencia.fechaSubida)}</small>
                       <small>{evidencia.nombreUsuarioSubida}{evidencia.fueComprimido ? ` · Comprimido a ${formatFileSize(evidencia.tamanoComprimidoKb)}` : ""}</small>
                     </div>
-                    <span className="status-badge active">{evidencia.estado}</span>
+                    <div className="transferencias-evidence-actions">
+                      <span className="status-badge active">{evidencia.estado}</span>
+                      {canDownloadEvidence ? (
+                        <button
+                          className="icon-button"
+                          type="button"
+                          aria-label={`Descargar ${evidencia.nombreArchivo}`}
+                          title="Descargar evidencia"
+                          onClick={() => void descargarArchivoEvidencia(evidencia)}
+                          disabled={downloadingEvidenceId === evidencia.idArchivoEvidencia}
+                        >
+                          <Download size={18} aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
+
+              {canAdjustEvidence ? (
+                <div className="transferencias-evidence-adjustment">
+                  <div>
+                    <strong>Adjuntar evidencia de ajuste</strong>
+                    <small>El nuevo soporte se conserva junto con los anteriores y queda registrado en auditoria.</small>
+                  </div>
+                  <div className="transferencias-evidence-adjustment-actions">
+                    <label className="file-picker-control">
+                      <FileUp size={18} aria-hidden="true" />
+                      <span>{archivoAjuste ? archivoAjuste.name : "Seleccionar archivo"}</span>
+                      <input
+                        ref={adjustmentInputRef}
+                        accept="image/png,image/jpeg,image/webp,application/pdf"
+                        type="file"
+                        onChange={seleccionarArchivoAjuste}
+                        disabled={isUploadingAdjustment}
+                      />
+                    </label>
+                    <button
+                      className="primary-button"
+                      type="button"
+                      onClick={() => void adjuntarAjusteEvidencia()}
+                      disabled={!archivoAjuste || isUploadingAdjustment}
+                    >
+                      <FileUp size={18} aria-hidden="true" />
+                      {isUploadingAdjustment ? "Adjuntando" : "Adjuntar ajuste"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {canDecide && selectedTransferencia.estadoValidacion === "pendiente" ? (
                 <div className="transferencias-decision-form">

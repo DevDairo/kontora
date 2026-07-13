@@ -54,6 +54,40 @@ public class SupabaseStorageClient implements EvidenciaStorageClient {
         }
     }
 
+    @Override
+    public ArchivoDescargado descargar(String urlArchivo) {
+        validarConfiguracion();
+        String bucket = properties.getBucket().trim();
+        String rutaArchivo = extraerRutaArchivo(urlArchivo, bucket);
+        String serviceRoleKey = properties.getServiceRoleKey().trim();
+        URI uri = URI.create(storageApiBaseUrl() + "/object/" + encode(bucket) + "/" + encodePath(rutaArchivo));
+
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .header("Authorization", "Bearer " + serviceRoleKey)
+                .header("apikey", serviceRoleKey)
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() == HttpStatus.NOT_FOUND.value()) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "Archivo de evidencia no encontrado en Storage");
+            }
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new ApiException(HttpStatus.BAD_GATEWAY, "Supabase Storage rechazo la descarga de evidencia");
+            }
+            String contentType = response.headers()
+                    .firstValue("Content-Type")
+                    .orElse("application/octet-stream");
+            return new ArchivoDescargado(response.body(), contentType);
+        } catch (IOException exception) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "No fue posible conectar con Supabase Storage");
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Descarga de evidencia interrumpida");
+        }
+    }
+
     private void validarConfiguracion() {
         if (isBlank(properties.getUrl()) || isBlank(properties.getServiceRoleKey()) || isBlank(properties.getBucket())) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Supabase Storage no esta configurado");
@@ -79,6 +113,14 @@ public class SupabaseStorageClient implements EvidenciaStorageClient {
         return Arrays.stream(path.split("/"))
                 .map(this::encode)
                 .collect(Collectors.joining("/"));
+    }
+
+    private String extraerRutaArchivo(String urlArchivo, String bucket) {
+        String prefijo = "supabase://" + bucket + "/";
+        if (urlArchivo == null || !urlArchivo.startsWith(prefijo) || urlArchivo.length() == prefijo.length()) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "La ruta de evidencia almacenada no es valida");
+        }
+        return urlArchivo.substring(prefijo.length());
     }
 
     private String encode(String value) {
