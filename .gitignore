@@ -31,3 +31,6 @@ logs/
 
 # Docker local
 *.pid
+
+# Documento de trabajo local
+/docs/Manual_Tecnico_Despliegue_y_Configuracion_Kontora_POS.docx

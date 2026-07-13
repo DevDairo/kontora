@@ -334,6 +334,35 @@ docker compose --env-file infra/.env -f infra/compose.prod.yml ps
 curl http://127.0.0.1:8080/api/health
 ```
 
+### Recuperacion despues de reiniciar la VM
+
+El servicio `backend` usa la politica Docker `restart: unless-stopped`. Si Docker inicia al arrancar la VM, el contenedor debe recuperarse automaticamente. Si el backend o el Tunnel no responden, ejecutar desde `~/apps/kontora`:
+
+```bash
+sudo systemctl enable --now docker
+
+docker compose --env-file infra/.env -f infra/compose.prod.yml ps
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d backend
+docker compose --env-file infra/.env -f infra/compose.prod.yml logs --tail=200 backend
+curl -i http://127.0.0.1:8080/api/health
+```
+
+El health local debe responder `HTTP/1.1 200` y un JSON con `"status":"ok"`. No ejecutar `docker compose down` como paso de recuperacion.
+
+Cloudflare Tunnel es un servicio independiente de Docker. Restablecerlo y validar la API publica con:
+
+```bash
+sudo systemctl enable --now cloudflared
+sudo systemctl status cloudflared --no-pager -l
+curl -i https://api.kontora-pos.store/api/health
+```
+
+Si el contenedor no existe o requiere una nueva imagen, reconstruir solamente el backend:
+
+```bash
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --build backend
+```
+
 ### Publicacion de dominios
 
 Una zona DNS sin registros, como `kontora-pos.store` antes de este despliegue, es el estado inicial esperado. Las variables de CORS no crean DNS: solo autorizan al navegador cuando el frontend ya este publicado. Completar los servicios en este orden:
