@@ -309,6 +309,8 @@ Completar en `infra/.env` los valores reales de produccion:
 
 ```env
 APP_PORT=8080
+TZ=America/Bogota
+JAVA_TOOL_OPTIONS=-Duser.timezone=America/Bogota
 DB_HOST=<host-del-session-pooler>
 DB_PORT=<puerto-del-session-pooler>
 DB_NAME=postgres
@@ -333,6 +335,35 @@ docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --build
 docker compose --env-file infra/.env -f infra/compose.prod.yml ps
 curl http://127.0.0.1:8080/api/health
 ```
+
+### Fecha operativa y zona horaria
+
+Ventas, precios vigentes y promociones se calculan en el backend con la fecha de la JVM. La VM debe usar `America/Bogota`, igual que la jornada operativa. Si la VM queda en UTC, desde las 19:00 de Colombia el backend puede usar el dia siguiente mientras el navegador mantiene el dia actual. Esto puede rechazar una venta con `HTTP 400` y el mensaje `La suma de pagos debe coincidir con total_venta`, aunque el efectivo digitado sea igual al total mostrado.
+
+Antes del primer arranque, o para corregir una VM ya instalada, configurar la zona del sistema:
+
+```bash
+sudo timedatectl set-timezone America/Bogota
+timedatectl status
+```
+
+En `infra/.env` deben mantenerse estas dos variables:
+
+```env
+TZ=America/Bogota
+JAVA_TOOL_OPTIONS=-Duser.timezone=America/Bogota
+```
+
+`TZ` alinea el entorno del contenedor y `JAVA_TOOL_OPTIONS` fija la zona de la JVM. Tras cambiar el archivo, recrear solamente el backend y comprobar su zona efectiva:
+
+```bash
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --force-recreate backend
+docker compose --env-file infra/.env -f infra/compose.prod.yml logs --tail=120 backend
+docker exec kontora_pos_backend sh -c 'echo "TZ=$TZ"; java -XshowSettings:properties -version 2>&1 | grep user.timezone'
+curl -i http://127.0.0.1:8080/api/health
+```
+
+La salida esperada incluye `TZ=America/Bogota`, `user.timezone = America/Bogota` y el health con `HTTP/1.1 200`. El encabezado HTTP `Date` puede seguir apareciendo en GMT/UTC porque es el formato estandar de HTTP; no cambia la fecha operativa de Java. Esta recreacion produce una indisponibilidad breve de la API, pero no cierra, liquida ni altera la caja diaria abierta. Una solicitud de venta rechazada con `400` no se persiste y puede registrarse de nuevo despues de la correccion.
 
 ### Recuperacion despues de reiniciar la VM
 
