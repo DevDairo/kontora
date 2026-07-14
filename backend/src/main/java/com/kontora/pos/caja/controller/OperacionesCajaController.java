@@ -12,6 +12,7 @@ import com.kontora.pos.caja.service.OperacionesCajaService;
 import com.kontora.pos.common.security.PrincipalUsuario;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,8 +46,10 @@ public class OperacionesCajaController {
     }
 
     @GetMapping("/adiciones-diarias/abierta")
-    public AdicionDiariaResponse obtenerAdicionDiariaCajaAbierta() {
-        return operacionesCajaService.obtenerAdicionDiariaCajaAbierta();
+    public ResponseEntity<AdicionDiariaResponse> obtenerAdicionDiariaCajaAbierta() {
+        return operacionesCajaService.obtenerAdicionDiariaCajaAbierta()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/pagos-trabajadores-diarios")

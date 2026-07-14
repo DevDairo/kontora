@@ -17,7 +17,7 @@ function jsonBody<T>(payload: T) {
 }
 
 export function obtenerAdicionDiariaCajaAbierta(token: string) {
-  return apiClient.get<AdicionDiaria>("/operaciones-caja/adiciones-diarias/abierta", { token });
+  return apiClient.get<AdicionDiaria | null>("/operaciones-caja/adiciones-diarias/abierta", { token });
 }
 
 export function registrarAdicionDiaria(token: string, request: RegistrarAdicionDiariaRequest) {
@@ -88,7 +88,7 @@ export async function obtenerGastosSnapshot(token: string, includeAdministrative
   }
 
   const [adicion, pagoTrabajadores, resumenCaja] = await Promise.all([
-    optionalRecord(() => obtenerAdicionDiariaCajaAbierta(token)),
+    obtenerAdicionDiariaCajaAbierta(token),
     optionalRecord(() => obtenerPagoTrabajadoresCajaAbierta(token)),
     obtenerResumenCajaAbierta(token),
   ]);

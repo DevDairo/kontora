@@ -44,16 +44,13 @@ export function AdicionesDiariasPanel({ token }: AdicionesDiariasPanelProps) {
     try {
       await obtenerCajaAbierta(token);
 
-      try {
-        const response = await obtenerAdicionDiariaCajaAbierta(token);
+      const response = await obtenerAdicionDiariaCajaAbierta(token);
+
+      if (response) {
         setAdicion(response);
         setCantidad(String(response.cantidadAdiciones));
         setValorUnitario(String(response.valorUnitario));
-      } catch (error) {
-        if (!(error instanceof ApiClientError && error.status === 404)) {
-          throw error;
-        }
-
+      } else {
         setAdicion(null);
       }
 

@@ -32,6 +32,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.kontora.pos.common.audit.AuditoriaValores.valores;
@@ -93,11 +94,10 @@ public class OperacionesCajaService {
     }
 
     @Transactional(readOnly = true)
-    public AdicionDiariaResponse obtenerAdicionDiariaCajaAbierta() {
+    public Optional<AdicionDiariaResponse> obtenerAdicionDiariaCajaAbierta() {
         CajaDiaria cajaDiaria = obtenerCajaAbierta();
         return adicionDiariaRepository.findByCajaDiaria_IdCajaDiaria(cajaDiaria.getIdCajaDiaria())
-                .map(this::toResponse)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe registro de adiciones para la caja abierta"));
+                .map(this::toResponse);
     }
 
     @Transactional
