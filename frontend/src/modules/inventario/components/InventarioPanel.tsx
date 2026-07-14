@@ -659,7 +659,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
             <h2>Gestion reservada</h2>
             <p>
               El acceso operativo a inventario queda reservado para administrador o gerente, con validacion final del
-              backend.
+              sistema.
             </p>
           </div>
         </article>

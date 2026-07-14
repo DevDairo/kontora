@@ -30,7 +30,7 @@ export function HealthCheckPanel({ health }: HealthCheckPanelProps) {
             <ServerCog size={26} strokeWidth={2.2} />
           </div>
           <div>
-            <strong>{health.data?.service ?? "kontora-pos-backend"}</strong>
+            <strong>Servicio del sistema</strong>
             <span>{API_BASE_URL}/health</span>
           </div>
         </div>

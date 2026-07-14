@@ -163,7 +163,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
         : await cargarEvidenciaPagoServicio(token, pending.idRegistro, pending.archivo);
       setLastEvidence(evidencia);
       setPendingEvidence(null);
-      setEvidenceMessage("Evidencia adjunta correctamente mediante el backend.");
+      setEvidenceMessage("Evidencia adjunta correctamente mediante el sistema.");
       return true;
     } catch (error) {
       setPendingEvidence(pending);
@@ -247,8 +247,8 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
   const isSubmitting = submittingAction !== null || isUploadingEvidence;
   const confirmationDescription = pendingAction
     ? pendingAction.kind === "consignacion"
-      ? `Registraras una consignacion de ${formatCurrency(pendingAction.valor)}. El backend descontara este valor del saldo actual de deposito.`
-      : `Registraras un pago de servicio por ${formatCurrency(pendingAction.valor)}. El backend descontara este valor del saldo actual de deposito.`
+      ? `Registraras una consignacion de ${formatCurrency(pendingAction.valor)}. El sistema descontara este valor del saldo actual de deposito.`
+      : `Registraras un pago de servicio por ${formatCurrency(pendingAction.valor)}. El sistema descontara este valor del saldo actual de deposito.`
     : "Confirmaras una salida de deposito.";
 
   return (
@@ -276,7 +276,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
         <article className="deposito-summary-card balance">
           <span>Saldo actual</span>
           <strong>{formatCurrency(saldo?.saldoActual)}</strong>
-          <small>Devuelto por backend</small>
+          <small>Devuelto por el sistema</small>
         </article>
       </section>
 
@@ -331,7 +331,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
                 required
               />
             </div>
-            <small className="field-hint">Requerida por RF-50; se envia al backend despues de registrar la salida.</small>
+            <small className="field-hint">Requerida por RF-50; se envia al sistema despues de registrar la salida.</small>
           </label>
 
           <button className="primary-button full" type="submit" disabled={isSubmitting || loadState !== "success"}>
@@ -404,7 +404,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
                 required
               />
             </div>
-            <small className="field-hint">Requerida por RF-51 y RF-53; se conserva mediante el backend.</small>
+            <small className="field-hint">Requerida por RF-51 y RF-53; se conserva mediante el sistema.</small>
           </label>
 
           <button className="primary-button full" type="submit" disabled={isSubmitting || loadState !== "success"}>

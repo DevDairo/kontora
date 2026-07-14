@@ -51,7 +51,7 @@ export const appRoutes: AppRoute[] = [
     label: "Inicio",
     path: "/",
     status: "base",
-    description: "Panel principal construido con la sesion confirmada por backend.",
+    description: "Panel principal construido con la sesion confirmada por el sistema.",
     endpoints: ["GET /api/auth/me", "GET /api/health"],
     roles: allRoles,
     icon: LayoutDashboard,
@@ -71,7 +71,7 @@ export const appRoutes: AppRoute[] = [
     label: "Caja",
     path: "/caja",
     status: "base",
-    description: "Apertura, control de efectivo y operaciones de la caja diaria autorizadas por backend.",
+    description: "Apertura, control de efectivo y operaciones de la caja diaria autorizadas por el sistema.",
     endpoints: [
       "GET /api/cajas-diarias/abierta",
       "POST /api/cajas-diarias",
@@ -82,8 +82,8 @@ export const appRoutes: AppRoute[] = [
     ],
     roleDescriptions: {
       vendedor: "Consulta de la caja abierta para la operacion diaria.",
-      administrador: "Consulta, apertura y control financiero de caja diaria validado por backend.",
-      gerente: "Consulta, apertura y control financiero de caja diaria validado por backend.",
+      administrador: "Consulta, apertura y control financiero de caja diaria validado por el sistema.",
+      gerente: "Consulta, apertura y control financiero de caja diaria validado por el sistema.",
     },
     roleEndpoints: {
       vendedor: ["GET /api/cajas-diarias/abierta"],
@@ -96,7 +96,7 @@ export const appRoutes: AppRoute[] = [
     label: "Inventario",
     path: "/inventario",
     status: "base",
-    description: "Operacion diaria de vasos, consumos y ajustes de inventario autorizados por backend.",
+    description: "Operacion diaria de vasos, consumos y ajustes de inventario autorizados por el sistema.",
     endpoints: [
       "GET /api/inventario/existencias/general",
       "GET /api/inventario/existencias/diarias/abierta",
@@ -235,8 +235,8 @@ export const appRoutes: AppRoute[] = [
       "POST /api/evidencias/...",
     ],
     roleDescriptions: {
-      administrador: "Consulta y adjunta soportes administrativos segun las validaciones reales del backend.",
-      gerente: "Consulta y adjunta soportes administrativos segun las validaciones reales del backend.",
+      administrador: "Consulta y adjunta soportes administrativos segun las validaciones reales del sistema.",
+      gerente: "Consulta y adjunta soportes administrativos segun las validaciones reales del sistema.",
     },
     roleEndpoints: {
       administrador: [
@@ -288,7 +288,7 @@ export const appRoutes: AppRoute[] = [
     label: "Cierre",
     path: "/cierre",
     status: "base",
-    description: "Arqueo de caja, diferencia y deposito automatico calculados por backend.",
+    description: "Arqueo de caja, diferencia y deposito automatico calculados por el sistema.",
     endpoints: [
       "GET /api/cajas-diarias/abierta",
       "GET /api/cajas-diarias/abierta/resumen",
@@ -304,7 +304,7 @@ export const appRoutes: AppRoute[] = [
     label: "Deposito",
     path: "/deposito",
     status: "base",
-    description: "Saldo real, consignaciones bancarias y pagos de servicios descontados por backend.",
+    description: "Saldo real, consignaciones bancarias y pagos de servicios descontados por el sistema.",
     endpoints: [
       "GET /api/deposito/saldo",
       "POST /api/deposito/consignaciones-bancarias",
@@ -362,7 +362,7 @@ export const appRoutes: AppRoute[] = [
     label: "Auditoria",
     path: "/auditoria",
     status: "base",
-    description: "Consulta gerencial de trazabilidad y eventos sensibles registrados por backend.",
+    description: "Consulta gerencial de trazabilidad y eventos sensibles registrados por el sistema.",
     endpoints: ["GET /api/consultas/auditoria"],
     roles: managerRoles,
     icon: ShieldCheck,

@@ -247,7 +247,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
       window.sessionStorage.setItem(LAST_CLOSURE_DATE_KEY, caja.fechaOperacion);
       setLoadState("closed");
       setIsCloseConfirmationVisible(false);
-      setActionMessage("Caja cerrada y resultado registrado por backend.");
+      setActionMessage("Caja cerrada y resultado registrado por el sistema.");
     } catch (error) {
       setActionMessage(messageFor(error));
       setIsCloseConfirmationVisible(false);
@@ -361,7 +361,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
             <p className="lead">
               {cierreSource === "history"
                 ? "Consulta persistente del cierre de la fecha seleccionada."
-                : "El backend consolidó el arqueo y registró el resultado de depósito que corresponde."}
+                : "El sistema consolidó el arqueo y registró el resultado de depósito que corresponde."}
             </p>
           </div>
           <div className="cierre-heading-actions">
@@ -416,7 +416,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
                   ? `Saldo: ${formatCurrency(cierre.movimientoDeposito.saldoAnterior)} a ${formatCurrency(cierre.movimientoDeposito.saldoPosterior)}.`
                   : cierreSource === "history"
                     ? "Consulta el movimiento asociado en el modulo Deposito."
-                    : "El efectivo contado fue cero, por lo que backend no crea un movimiento de deposito."}
+                    : "El efectivo contado fue cero, por lo que el sistema no crea un movimiento de deposito."}
               </span>
             </div>
           </div>
@@ -492,7 +492,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
           <section className="cierre-breakdown" aria-labelledby="cierre-breakdown-title">
             <div className="cierre-breakdown-heading">
               <div>
-                <p className="eyebrow">Consolidado backend</p>
+                <p className="eyebrow">Consolidado del sistema</p>
                 <h2 id="cierre-breakdown-title">Efectivo esperado sin base</h2>
               </div>
               <span className="badge">Caja {formatDate(caja.fechaOperacion)}</span>
@@ -625,7 +625,7 @@ export function CierreCajaPanel({ token }: CierreCajaPanelProps) {
               <div className="panel-title">
                 <div>
                   <h2>Requisitos de cierre</h2>
-                  <p>El backend valida estas condiciones antes de registrar el cierre.</p>
+                  <p>El sistema valida estas condiciones antes de registrar el cierre.</p>
                 </div>
                 <ClipboardList size={22} strokeWidth={2.2} />
               </div>

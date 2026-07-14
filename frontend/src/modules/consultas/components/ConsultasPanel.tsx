@@ -223,7 +223,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
         { detail: "Fecha consultada", label: "Cierre", value: "Sin cierre" },
         { detail: "Consulta de lectura", label: "Jornada", value: filtroAplicado.fechaFin ?? filtroAplicado.fechaInicio },
         { detail: "Sin cambio operativo", label: "Estado", value: "Disponible" },
-        { detail: "El backend informa la existencia", label: "Fuente", value: "API" },
+        { detail: "El sistema informa la existencia", label: "Fuente", value: "API" },
       ];
     }
 
