@@ -9,6 +9,7 @@ import { cargarEvidenciaPagoVenta } from "../../evidencias/services/evidenciasSe
 import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
 import { ApiClientError } from "../../../shared/services/apiClient";
+import { obtenerCajaAbierta } from "../../caja/services/cajaService";
 import { anularVenta, listarTrabajadoresVenta, registrarVenta } from "../services/ventasService";
 import type { RegistrarPagoVentaRequest, TipoComprador, TrabajadorVenta, VentaResponse } from "../types";
 import { AdicionesDiariasPanel } from "./AdicionesDiariasPanel";
@@ -210,7 +211,11 @@ export function VentasPanel({ role, token }: VentasPanelProps) {
     setCancellationError(null);
 
     try {
-      const response = await consultarVentas(token, { fechaFin: fechaCatalogos, fechaInicio: fechaCatalogos });
+      const cajaAbierta = await obtenerCajaAbierta(token);
+      const response = await consultarVentas(token, {
+        fechaFin: cajaAbierta.fechaOperacion,
+        fechaInicio: cajaAbierta.fechaOperacion,
+      });
       const registradas = response.filter((venta) => venta.estadoVenta === "registrada");
       setVentasJornada(registradas);
       setIdVentaAnulacion((current) => (registradas.some((venta) => venta.idVenta === current) ? current : ""));
@@ -219,7 +224,7 @@ export function VentasPanel({ role, token }: VentasPanelProps) {
     } finally {
       setIsLoadingSales(false);
     }
-  }, [fechaCatalogos, token]);
+  }, [token]);
 
   useEffect(() => {
     void loadCatalogos();
