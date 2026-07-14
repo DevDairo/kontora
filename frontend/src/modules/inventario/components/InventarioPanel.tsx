@@ -44,6 +44,8 @@ type LastAction =
   | { type: "ajuste-aprobado"; response: AjusteInventario }
   | { type: "ajuste-rechazado"; response: AjusteInventario };
 
+const DEFAULT_STOCK_ENTRY_REASON = "Reabastecimiento";
+
 function messageFor(error: unknown) {
   if (error instanceof ApiClientError) {
     return error.message;
@@ -193,7 +195,9 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
   const [idItemAjuste, setIdItemAjuste] = useState("");
   const [cantidadAjuste, setCantidadAjuste] = useState("1");
   const [sentidoAjuste, setSentidoAjuste] = useState<"entrada" | "salida">("entrada");
-  const [motivoAjuste, setMotivoAjuste] = useState("");
+  const [motivoAjuste, setMotivoAjuste] = useState(() =>
+    role === "gerente" ? DEFAULT_STOCK_ENTRY_REASON : "",
+  );
   const [adjustmentNotes, setAdjustmentNotes] = useState<Record<string, string>>({});
   const [resolvingAdjustmentId, setResolvingAdjustmentId] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
@@ -363,7 +367,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
       });
       setLastAction({ response, type: "ajuste" });
       setCantidadAjuste("1");
-      setMotivoAjuste("");
+      setMotivoAjuste(isManager ? DEFAULT_STOCK_ENTRY_REASON : "");
       setSentidoAjuste("entrada");
       await loadInventory();
     } catch (error) {
