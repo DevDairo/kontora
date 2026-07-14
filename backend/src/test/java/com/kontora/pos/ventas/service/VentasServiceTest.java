@@ -9,6 +9,7 @@ import com.kontora.pos.common.exception.ApiException;
 import com.kontora.pos.common.security.PrincipalUsuario;
 import com.kontora.pos.inventario.service.InventarioService;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
+import com.kontora.pos.ventas.dto.AnularVentaRequest;
 import com.kontora.pos.ventas.repository.DetalleVentaRepository;
 import com.kontora.pos.ventas.repository.PagoVentaRepository;
 import com.kontora.pos.ventas.repository.VentaRepository;
@@ -53,6 +54,34 @@ class VentasServiceTest {
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(exception.getMessage()).isEqualTo("No existe caja diaria abierta para registrar venta");
+                });
+    }
+
+    @Test
+    void vendedorNoPuedeAnularVenta() {
+        VentasService service = new VentasService(
+                mock(CajaDiariaRepository.class),
+                mock(UsuarioRepository.class),
+                mock(MetodoPagoRepository.class),
+                mock(PrecioGranizadoRepository.class),
+                mock(PromocionRepository.class),
+                mock(VentaRepository.class),
+                mock(DetalleVentaRepository.class),
+                mock(PagoVentaRepository.class),
+                mock(InventarioService.class),
+                mock(EntityManager.class),
+                mock(AuditoriaService.class));
+        PrincipalUsuario principalUsuario = new PrincipalUsuario(
+                UUID.randomUUID(),
+                "test_vendedor",
+                "Vendedor de prueba",
+                "vendedor",
+                "token-prueba");
+
+        assertThatThrownBy(() -> service.anularVenta(UUID.randomUUID(), new AnularVentaRequest("Registro duplicado"), principalUsuario))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(exception.getMessage()).isEqualTo("Solo administrador o gerente puede anular ventas");
                 });
     }
 }

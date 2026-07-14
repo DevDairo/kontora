@@ -19,6 +19,10 @@ export type RegistrarVentaRequest = {
   pagos: RegistrarPagoVentaRequest[];
 };
 
+export type AnularVentaRequest = {
+  motivoAnulacion: string;
+};
+
 export type TrabajadorVenta = {
   idUsuario: string;
   nombreCompleto: string;

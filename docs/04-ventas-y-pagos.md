@@ -17,7 +17,8 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 - Pagos en efectivo, transferencia o mixtos.
 - Registro de valor recibido y cambio para pagos en efectivo.
 - Carga inicial de evidencia cuando el pago incluye transferencia.
-- Anulacion autorizada de venta abierta, con motivo y restauracion del stock diario de vasos.
+- Panel de anulacion para seleccionar una venta registrada de la jornada, indicar el motivo y confirmar la operacion.
+- Anulacion autorizada de venta abierta, con motivo, trazabilidad y restauracion del stock diario de vasos.
 
 ## Permisos
 
@@ -32,6 +33,8 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 - Toda venta exige una caja diaria abierta.
 - La suma de pagos debe coincidir con el total de la venta.
 - Cada venta descuenta vasos segun el tamano; la anulacion los devuelve.
+- Solo administrador y gerente pueden anular; vendedor no visualiza la accion y el sistema tambien protege el endpoint.
+- Solo se anulan ventas en estado `registrada` de una caja abierta; el registro permanece como `anulada` para consulta y auditoria.
 - Las transferencias se crean como pendientes hasta su decision posterior.
 - El beneficio de trabajador esta disponible para usuarios activos, incluidos administrador y gerente, bajo la regla vigente de promociones.
 

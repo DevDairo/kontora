@@ -57,6 +57,8 @@ public class VentasService {
     private static final String TIPO_CLIENTE = "cliente";
     private static final String TIPO_TRABAJADOR = "trabajador";
     private static final String ESTADO_USUARIO_ACTIVO = "activo";
+    private static final String ROL_ADMINISTRADOR = "administrador";
+    private static final String ROL_GERENTE = "gerente";
 
     private final CajaDiariaRepository cajaDiariaRepository;
     private final UsuarioRepository usuarioRepository;
@@ -151,6 +153,7 @@ public class VentasService {
 
     @Transactional
     public VentaResponse anularVenta(UUID idVenta, AnularVentaRequest request, PrincipalUsuario principalUsuario) {
+        validarPermisoAnulacion(principalUsuario);
         Venta venta = ventaRepository.findByIdVenta(idVenta)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
         if (!ESTADO_VENTA_REGISTRADA.equals(venta.getEstadoVenta())) {
@@ -181,6 +184,13 @@ public class VentasService {
                 "Anulacion de venta");
 
         return toResponse(ventaGuardada, detalles, pagos);
+    }
+
+    private void validarPermisoAnulacion(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().trim().toLowerCase(Locale.ROOT);
+        if (!ROL_ADMINISTRADOR.equals(rol) && !ROL_GERENTE.equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede anular ventas");
+        }
     }
 
     private CajaDiaria obtenerCajaAbierta() {

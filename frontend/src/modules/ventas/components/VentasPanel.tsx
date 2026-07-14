@@ -1,11 +1,15 @@
-import { BadgeDollarSign, Minus, Paperclip, Plus, ReceiptText, RefreshCw, Trash2 } from "lucide-react";
+import { BadgeDollarSign, Minus, Paperclip, Plus, ReceiptText, RefreshCw, Trash2, XCircle } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import type { UserRole } from "../../../app/routes/appRoutes";
+import { consultarVentas } from "../../consultas/services/consultasService";
+import type { ConsultaVenta } from "../../consultas/types";
 import { obtenerCatalogosFormulario } from "../../catalogos/services/catalogosService";
 import type { CatalogosFormulario, Promocion } from "../../catalogos/types";
 import { cargarEvidenciaPagoVenta } from "../../evidencias/services/evidenciasService";
 import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
+import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
 import { ApiClientError } from "../../../shared/services/apiClient";
-import { listarTrabajadoresVenta, registrarVenta } from "../services/ventasService";
+import { anularVenta, listarTrabajadoresVenta, registrarVenta } from "../services/ventasService";
 import type { RegistrarPagoVentaRequest, TipoComprador, TrabajadorVenta, VentaResponse } from "../types";
 import { AdicionesDiariasPanel } from "./AdicionesDiariasPanel";
 
@@ -32,6 +36,7 @@ type LineaCalculada = VentaLinea & {
 
 type VentasPanelProps = {
   token: string;
+  role: UserRole | null;
 };
 
 const dayNames = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
@@ -145,7 +150,7 @@ function calculateLine(
   };
 }
 
-export function VentasPanel({ token }: VentasPanelProps) {
+export function VentasPanel({ role, token }: VentasPanelProps) {
   const [catalogos, setCatalogos] = useState<CatalogosFormulario | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -170,6 +175,15 @@ export function VentasPanel({ token }: VentasPanelProps) {
   const [valorRecibido, setValorRecibido] = useState("");
   const [evidenciaTransferencia, setEvidenciaTransferencia] = useState<File | null>(null);
   const fechaCatalogos = useMemo(() => todayLocalDate(), []);
+  const canCancelSales = role === "administrador" || role === "gerente";
+  const [ventasJornada, setVentasJornada] = useState<ConsultaVenta[]>([]);
+  const [isLoadingSales, setIsLoadingSales] = useState(false);
+  const [idVentaAnulacion, setIdVentaAnulacion] = useState("");
+  const [motivoAnulacion, setMotivoAnulacion] = useState("");
+  const [cancellationError, setCancellationError] = useState<string | null>(null);
+  const [cancellationMessage, setCancellationMessage] = useState<string | null>(null);
+  const [pendingCancellation, setPendingCancellation] = useState<ConsultaVenta | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const loadCatalogos = useCallback(async () => {
     setLoadState("loading");
@@ -191,9 +205,31 @@ export function VentasPanel({ token }: VentasPanelProps) {
     }
   }, [fechaCatalogos, token]);
 
+  const loadVentasAnulables = useCallback(async () => {
+    setIsLoadingSales(true);
+    setCancellationError(null);
+
+    try {
+      const response = await consultarVentas(token, { fechaFin: fechaCatalogos, fechaInicio: fechaCatalogos });
+      const registradas = response.filter((venta) => venta.estadoVenta === "registrada");
+      setVentasJornada(registradas);
+      setIdVentaAnulacion((current) => (registradas.some((venta) => venta.idVenta === current) ? current : ""));
+    } catch (error) {
+      setCancellationError(`No fue posible cargar las ventas de la jornada: ${messageFor(error)}`);
+    } finally {
+      setIsLoadingSales(false);
+    }
+  }, [fechaCatalogos, token]);
+
   useEffect(() => {
     void loadCatalogos();
   }, [loadCatalogos]);
+
+  useEffect(() => {
+    if (canCancelSales) {
+      void loadVentasAnulables();
+    }
+  }, [canCancelSales, loadVentasAnulables]);
 
   useEffect(() => {
     if (paymentMode === "efectivo") {
@@ -321,6 +357,10 @@ export function VentasPanel({ token }: VentasPanelProps) {
     [lastSale?.pagos],
   );
   const pagoTransferenciaRegistrado = lastSale?.pagos.find((pago) => pago.nombreMetodo === "transferencia");
+  const ventaSeleccionada = useMemo(
+    () => ventasJornada.find((venta) => venta.idVenta === idVentaAnulacion) ?? null,
+    [idVentaAnulacion, ventasJornada],
+  );
 
   function addLine() {
     const parsedQuantity = Number(cantidad);
@@ -448,6 +488,10 @@ export function VentasPanel({ token }: VentasPanelProps) {
       setValorRecibido("");
       setSubmitMessage(null);
 
+      if (canCancelSales) {
+        void loadVentasAnulables();
+      }
+
       if (evidenciaTransferencia) {
         await uploadEvidenceForSale(response, evidenciaTransferencia);
       }
@@ -455,6 +499,50 @@ export function VentasPanel({ token }: VentasPanelProps) {
       setSubmitMessage(messageFor(error));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function solicitarAnulacion() {
+    setCancellationError(null);
+    setCancellationMessage(null);
+
+    if (!ventaSeleccionada) {
+      setCancellationError("Selecciona una venta registrada de la jornada.");
+      return;
+    }
+    if (!motivoAnulacion.trim()) {
+      setCancellationError("Indica el motivo de la anulacion.");
+      return;
+    }
+
+    setPendingCancellation(ventaSeleccionada);
+  }
+
+  async function confirmarAnulacion() {
+    if (!pendingCancellation) {
+      return;
+    }
+
+    setIsCancelling(true);
+    setCancellationError(null);
+
+    try {
+      const response = await anularVenta(token, pendingCancellation.idVenta, {
+        motivoAnulacion: motivoAnulacion.trim(),
+      });
+      setLastSale(response);
+      setLastEvidence(null);
+      setEvidenceMessage(null);
+      setLastChangeEstimate(0);
+      setCancellationMessage(`Venta #${response.numeroVenta} anulada. Los vasos se devolvieron al stock diario.`);
+      setIdVentaAnulacion("");
+      setMotivoAnulacion("");
+      await loadVentasAnulables();
+    } catch (error) {
+      setCancellationError(messageFor(error));
+    } finally {
+      setIsCancelling(false);
+      setPendingCancellation(null);
     }
   }
 
@@ -466,7 +554,17 @@ export function VentasPanel({ token }: VentasPanelProps) {
           <h1 id="ventas-title">Registro de venta</h1>
           <p className="lead">Registra productos, pagos y adiciones de la jornada.</p>
         </div>
-        <button className="ghost-button" type="button" onClick={loadCatalogos} disabled={loadState === "loading"}>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => {
+            void loadCatalogos();
+            if (canCancelSales) {
+              void loadVentasAnulables();
+            }
+          }}
+          disabled={loadState === "loading"}
+        >
           <RefreshCw size={17} strokeWidth={2.2} />
           Reintentar
         </button>
@@ -765,16 +863,111 @@ export function VentasPanel({ token }: VentasPanelProps) {
         </section>
       </form>
 
+      {canCancelSales ? (
+        <section className="panel venta-cancellation-panel" aria-labelledby="venta-cancellation-title">
+          <div className="panel-title">
+            <div>
+              <h2 id="venta-cancellation-title">Anular venta de la jornada</h2>
+              <p>Disponible mientras la caja diaria permanezca abierta.</p>
+            </div>
+            <XCircle size={22} strokeWidth={2.2} />
+          </div>
+
+          {cancellationError ? (
+            <div className="form-alert" role="status">
+              <ReceiptText size={18} strokeWidth={2.2} />
+              <span>{cancellationError}</span>
+            </div>
+          ) : null}
+          {cancellationMessage ? (
+            <div className="success-alert" role="status">
+              <ReceiptText size={18} strokeWidth={2.2} />
+              <span>{cancellationMessage}</span>
+            </div>
+          ) : null}
+
+          {ventasJornada.length === 0 && !isLoadingSales ? (
+            <p className="empty-state">No hay ventas registradas disponibles para anular en esta jornada.</p>
+          ) : (
+            <div className="ventas-controls venta-cancellation-fields">
+              <label className="field-label">
+                Venta registrada
+                <div className="field-control plain">
+                  <select
+                    value={idVentaAnulacion}
+                    onChange={(event) => setIdVentaAnulacion(event.target.value)}
+                    disabled={isLoadingSales || isCancelling}
+                  >
+                    <option value="">Selecciona una venta</option>
+                    {ventasJornada.map((venta) => (
+                      <option key={venta.idVenta} value={venta.idVenta}>
+                        #{venta.numeroVenta} · {venta.nombreUsuarioVendedor} · {formatCurrency(venta.totalVenta)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+              <label className="field-label">
+                Motivo de anulacion
+                <div className="field-control plain">
+                  <input
+                    maxLength={300}
+                    value={motivoAnulacion}
+                    onChange={(event) => setMotivoAnulacion(event.target.value)}
+                    placeholder="Ej. Venta duplicada"
+                    disabled={isCancelling}
+                  />
+                </div>
+              </label>
+            </div>
+          )}
+
+          {ventaSeleccionada ? (
+            <div className="venta-result-grid venta-cancellation-summary">
+              <div>
+                <span>Vendedor</span>
+                <strong>{ventaSeleccionada.nombreUsuarioVendedor}</strong>
+              </div>
+              <div>
+                <span>Total de venta</span>
+                <strong>{formatCurrency(ventaSeleccionada.totalVenta)}</strong>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="venta-cancellation-actions">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => void loadVentasAnulables()}
+              disabled={isLoadingSales || isCancelling}
+            >
+              <RefreshCw size={17} strokeWidth={2.2} />
+              {isLoadingSales ? "Actualizando" : "Actualizar ventas"}
+            </button>
+            <button
+              className="danger-button"
+              type="button"
+              onClick={solicitarAnulacion}
+              disabled={isLoadingSales || isCancelling || ventasJornada.length === 0}
+            >
+              <XCircle size={17} strokeWidth={2.2} />
+              Anular venta
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <AdicionesDiariasPanel token={token} />
 
       {lastSale ? (
         <section className="panel venta-result" aria-labelledby="venta-result-title">
           <div className="panel-title">
             <div>
-              <h2 id="venta-result-title">Venta registrada #{lastSale.numeroVenta}</h2>
+              <h2 id="venta-result-title">Venta {lastSale.estadoVenta === "anulada" ? "anulada" : "registrada"} #{lastSale.numeroVenta}</h2>
               <p>{lastSale.estadoVenta}</p>
             </div>
-            <span className="badge success">{formatCurrency(lastSale.totalVenta)}</span>
+            <span className={`badge ${lastSale.estadoVenta === "anulada" ? "danger" : "success"}`}>{formatCurrency(lastSale.totalVenta)}</span>
           </div>
           <div className="venta-result-grid">
             <div>
@@ -835,6 +1028,20 @@ export function VentasPanel({ token }: VentasPanelProps) {
           ) : null}
         </section>
       ) : null}
+
+      <ConfirmationDialog
+        confirmLabel="Anular venta"
+        description={
+          pendingCancellation
+            ? `Anularas la venta #${pendingCancellation.numeroVenta} por ${formatCurrency(pendingCancellation.totalVenta)}. El sistema restaurara los vasos de esta venta al stock diario.`
+            : ""
+        }
+        isConfirming={isCancelling}
+        onCancel={() => setPendingCancellation(null)}
+        onConfirm={() => void confirmarAnulacion()}
+        open={pendingCancellation !== null}
+        title="Confirmar anulacion de venta"
+      />
     </>
   );
 }

@@ -111,7 +111,7 @@ function AppContent() {
       ) : activeRoute.id === "caja" ? (
         <CajaAbiertaPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "ventas" ? (
-        <VentasPanel token={auth.token ?? ""} />
+        <VentasPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "inventario" ? (
         <InventarioPanel token={auth.token ?? ""} role={role} />
       ) : activeRoute.id === "gastos" ? (

@@ -62,7 +62,32 @@ export const appRoutes: AppRoute[] = [
     path: "/ventas",
     status: "base",
     description: "Registro de ventas y consulta operativa segun visibilidad del usuario autenticado.",
-    endpoints: ["GET /api/ventas/trabajadores", "POST /api/ventas", "GET /api/consultas/ventas"],
+    endpoints: [
+      "GET /api/ventas/trabajadores",
+      "POST /api/ventas",
+      "POST /api/ventas/{idVenta}/anular",
+      "GET /api/consultas/ventas",
+    ],
+    roleDescriptions: {
+      vendedor: "Registra ventas y consulta sus operaciones de la jornada.",
+      administrador: "Registra ventas, consulta la jornada y puede anular ventas mientras la caja este abierta.",
+      gerente: "Registra ventas, consulta la jornada y puede anular ventas mientras la caja este abierta.",
+    },
+    roleEndpoints: {
+      vendedor: ["GET /api/ventas/trabajadores", "POST /api/ventas", "GET /api/consultas/ventas"],
+      administrador: [
+        "GET /api/ventas/trabajadores",
+        "POST /api/ventas",
+        "POST /api/ventas/{idVenta}/anular",
+        "GET /api/consultas/ventas",
+      ],
+      gerente: [
+        "GET /api/ventas/trabajadores",
+        "POST /api/ventas",
+        "POST /api/ventas/{idVenta}/anular",
+        "GET /api/consultas/ventas",
+      ],
+    },
     roles: allRoles,
     icon: BadgeDollarSign,
   },

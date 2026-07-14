@@ -179,11 +179,17 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
 
   const resumen = useMemo(() => {
     if (activeView === "ventas") {
+      const ventasRegistradas = ventas.filter((venta) => venta.estadoVenta === "registrada");
+      const ventasAnuladas = ventas.length - ventasRegistradas.length;
       return [
-        { detail: "Ventas registradas", label: "Registros", value: String(ventas.length) },
-        { detail: "Total de ventas", label: "Ventas", value: formatCurrency(ventas.reduce((total, item) => total + item.totalVenta, 0)) },
-        { detail: "Pagos en efectivo", label: "Efectivo", value: formatCurrency(ventas.reduce((total, item) => total + item.totalEfectivo, 0)) },
-        { detail: "Pagos por transferencia", label: "Transferencias", value: formatCurrency(ventas.reduce((total, item) => total + item.totalTransferencia, 0)) },
+        {
+          detail: ventasAnuladas > 0 ? `${ventasAnuladas} anulada(s) fuera del total` : "Ventas vigentes del periodo",
+          label: "Registros",
+          value: String(ventasRegistradas.length),
+        },
+        { detail: "Total de ventas vigentes", label: "Ventas", value: formatCurrency(ventasRegistradas.reduce((total, item) => total + item.totalVenta, 0)) },
+        { detail: "Pagos vigentes en efectivo", label: "Efectivo", value: formatCurrency(ventasRegistradas.reduce((total, item) => total + item.totalEfectivo, 0)) },
+        { detail: "Pagos vigentes por transferencia", label: "Transferencias", value: formatCurrency(ventasRegistradas.reduce((total, item) => total + item.totalTransferencia, 0)) },
       ];
     }
 
@@ -311,7 +317,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
                   <strong>{formatCurrency(venta.totalVenta)}</strong>
                   <small>Efectivo {formatCurrency(venta.totalEfectivo)} · Transferencia {formatCurrency(venta.totalTransferencia)}</small>
                 </span>
-                <span className="status-badge active">{venta.estadoVenta}</span>
+                <span className={`consultas-status ${venta.estadoVenta === "anulada" ? "anulado" : "activo"}`}>{venta.estadoVenta}</span>
               </li>
             ))}
           </ul>

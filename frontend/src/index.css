@@ -1718,6 +1718,41 @@ h3 {
   margin-top: 18px;
 }
 
+.venta-cancellation-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.venta-cancellation-fields {
+  align-items: end;
+}
+
+.venta-cancellation-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.venta-cancellation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .venta-cancellation-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .venta-cancellation-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .venta-cancellation-actions button {
+    width: 100%;
+  }
+}
+
 .venta-evidence-alert {
   margin-top: 0;
 }
