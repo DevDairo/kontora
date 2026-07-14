@@ -18,7 +18,7 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 - Registro de valor recibido y cambio para pagos en efectivo.
 - Carga inicial de evidencia cuando el pago incluye transferencia.
 - Panel de anulacion para seleccionar una venta registrada de la jornada, indicar el motivo y confirmar la operacion.
-- Anulacion autorizada de venta abierta, con motivo, trazabilidad y restauracion del stock diario de vasos.
+- Anulacion autorizada de venta abierta, con motivo, trazabilidad y restauracion del stock diario de vasos, sin depender de si el pago fue en efectivo, transferencia o mixto.
 
 ## Permisos
 
@@ -32,9 +32,11 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 
 - Toda venta exige una caja diaria abierta.
 - La suma de pagos debe coincidir con el total de la venta.
-- Cada venta descuenta vasos segun el tamano; la anulacion los devuelve.
+- Cada venta descuenta vasos segun el tamano; la anulacion devuelve al stock diario todos los vasos de sus lineas, para efectivo, transferencia y pago mixto.
 - Solo administrador y gerente pueden anular; vendedor no visualiza la accion y el sistema tambien protege el endpoint.
-- Solo se anulan ventas en estado `registrada` de una caja abierta; el registro permanece como `anulada` para consulta y auditoria.
+- Solo se anulan ventas en estado `registrada` de una caja abierta; el registro permanece como `anulada` para consulta y auditoria. Sus pagos y evidencias no se eliminan, pues conservan la trazabilidad de la operacion.
+- Una venta anulada deja de aportar al total vendido, al efectivo, a las transferencias y a los valores calculados para el cierre de caja.
+- El panel de anulacion consulta la fecha operativa de la caja abierta. Por ello sigue mostrando las ventas de la jornada aunque esta termine despues de medianoche.
 - Las transferencias se crean como pendientes hasta su decision posterior.
 - El beneficio de trabajador esta disponible para usuarios activos, incluidos administrador y gerente, bajo la regla vigente de promociones.
 

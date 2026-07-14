@@ -11,7 +11,7 @@ Centralizar las consultas de solo lectura por periodo para no repetir historiale
 ## Funcionalidades
 
 - Consulta de ventas y gastos por periodo.
-- Las ventas anuladas se conservan en el listado de ventas con su estado para trazabilidad, pero se excluyen de registros vigentes, total vendido, efectivo y transferencias.
+- Las ventas anuladas se conservan en el listado de ventas con su estado para trazabilidad, pero se excluyen de registros vigentes, total vendido, efectivo y transferencias, sin importar si el pago original fue en efectivo, transferencia o mixto.
 - Consulta de inventario actual y movimientos por item o caja.
 - Consulta de cierres por fecha.
 - Consulta de historial de deposito y sus movimientos.
@@ -28,7 +28,7 @@ Centralizar las consultas de solo lectura por periodo para no repetir historiale
 ## Reglas clave
 
 - Consultas no modifica informacion.
-- Una venta anulada no se elimina del historial: se muestra como evidencia de la operacion, sin afectar los indicadores financieros vigentes.
+- Una venta anulada no se elimina del historial: se muestra como evidencia de la operacion, sin afectar los indicadores financieros vigentes ni los valores del cierre de caja. Sus pagos y evidencias permanecen disponibles como trazabilidad.
 - Inventario y deposito muestran su historial aqui, no en las pantallas de registro.
 - Auditoria es una ruta gerencial separada: registra acciones sensibles, no reemplaza los historiales de ventas o movimientos.
 
