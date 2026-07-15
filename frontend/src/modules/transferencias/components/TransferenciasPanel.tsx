@@ -470,7 +470,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
                       <span>{archivoAjuste ? archivoAjuste.name : "Seleccionar archivo"}</span>
                       <input
                         ref={adjustmentInputRef}
-                        accept="image/png,image/jpeg,image/webp,application/pdf"
+                        accept="image/*,.pdf"
                         type="file"
                         onChange={seleccionarArchivoAjuste}
                         disabled={isUploadingAdjustment}

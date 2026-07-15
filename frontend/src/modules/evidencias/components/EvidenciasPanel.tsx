@@ -40,7 +40,7 @@ type EvidenciasPanelProps = {
   token: string;
 };
 
-const FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf";
+const FILE_ACCEPT = "image/*,.pdf";
 
 function formatDateInput(date: Date) {
   const year = date.getFullYear();

@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: kontora-pos-backend
+  servlet:
+    multipart:
+      # La compresion ocurre despues de recibir el archivo; una foto de celular debe poder llegar al servicio.
+      max-file-size: 12MB
+      max-request-size: 13MB
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kontora_pos}?sslmode=${DB_SSLMODE:disable}
     username: ${DB_USER:kontora_pos}

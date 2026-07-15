@@ -873,7 +873,7 @@ export function VentasPanel({ role, token }: VentasPanelProps) {
               <div className="file-control">
                 <Paperclip size={18} strokeWidth={2.2} />
                 <input
-                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  accept="image/*,.pdf"
                   type="file"
                   onChange={(event) => setEvidenciaTransferencia(event.target.files?.[0] ?? null)}
                 />

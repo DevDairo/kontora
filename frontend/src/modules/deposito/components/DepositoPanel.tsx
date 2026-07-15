@@ -323,7 +323,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
             <div className="file-control">
               <FileUp size={18} strokeWidth={2.2} />
               <input
-                accept="image/png,image/jpeg,image/webp,application/pdf"
+                accept="image/*,.pdf"
                 type="file"
                 ref={evidenciaConsignacionRef}
                 onChange={(event) => setEvidenciaConsignacion(event.target.files?.[0] ?? null)}
@@ -396,7 +396,7 @@ export function DepositoPanel({ token }: DepositoPanelProps) {
             <div className="file-control">
               <FileUp size={18} strokeWidth={2.2} />
               <input
-                accept="image/png,image/jpeg,image/webp,application/pdf"
+                accept="image/*,.pdf"
                 type="file"
                 ref={evidenciaServicioRef}
                 onChange={(event) => setEvidenciaServicio(event.target.files?.[0] ?? null)}
