@@ -6,6 +6,7 @@ import type {
   ConsultaMovimientoDeposito,
   ConsultaMovimientoInventario,
   ConsultaVenta,
+  ConsultaVentasVasos,
   FiltroPeriodo,
 } from "../types";
 
@@ -48,6 +49,13 @@ export function consultarInventarioActual(token: string) {
 export function consultarMovimientosInventario(token: string, filtro: Partial<FiltroPeriodo>) {
   return apiClient.get<ConsultaMovimientoInventario[]>(
     `/consultas/inventario/movimientos${queryPeriodoOpcional(filtro)}`,
+    { token },
+  );
+}
+
+export function consultarVentasVasos(token: string, filtro: FiltroPeriodo) {
+  return apiClient.get<ConsultaVentasVasos[]>(
+    `/consultas/inventario/ventas-vasos${queryPeriodo(filtro)}`,
     { token },
   );
 }

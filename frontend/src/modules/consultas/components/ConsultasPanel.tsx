@@ -10,6 +10,7 @@ import {
   consultarMovimientosDeposito,
   consultarMovimientosInventario,
   consultarVentas,
+  consultarVentasVasos,
 } from "../services/consultasService";
 import type {
   ConsultaCierreDiario,
@@ -18,6 +19,7 @@ import type {
   ConsultaMovimientoDeposito,
   ConsultaMovimientoInventario,
   ConsultaVenta,
+  ConsultaVentasVasos,
   FiltroPeriodo,
 } from "../types";
 
@@ -31,6 +33,7 @@ type ConsultasPanelProps = {
 
 const ADMIN_VIEWS: ConsultaVista[] = ["ventas", "gastos", "inventario", "cierre", "deposito"];
 const VENDEDOR_VIEWS: ConsultaVista[] = ["ventas", "gastos"];
+const UNIDADES_POR_PAQUETE = 20;
 
 function todayLocalDate() {
   const date = new Date();
@@ -57,6 +60,23 @@ function formatDateTime(value: string | null | undefined) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatOperationalDate(value: string) {
+  return new Intl.DateTimeFormat("es-CO", { dateStyle: "medium" }).format(new Date(`${value}T12:00:00`));
+}
+
+function equivalenciaPaquetes(vasosVendidos: number) {
+  const paquetes = Math.floor(vasosVendidos / UNIDADES_POR_PAQUETE);
+  const vasosRestantes = vasosVendidos % UNIDADES_POR_PAQUETE;
+  const vasosLabel = `${vasosRestantes} ${vasosRestantes === 1 ? "vaso" : "vasos"}`;
+
+  if (paquetes === 0) {
+    return vasosLabel;
+  }
+
+  const paquetesLabel = `${paquetes} ${paquetes === 1 ? "paquete" : "paquetes"}`;
+  return vasosRestantes === 0 ? paquetesLabel : `${paquetesLabel} + ${vasosLabel}`;
 }
 
 function messageFor(error: unknown) {
@@ -113,6 +133,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
   const [gastos, setGastos] = useState<ConsultaGastoCaja[]>([]);
   const [inventario, setInventario] = useState<ConsultaInventarioActual[]>([]);
   const [movimientosInventario, setMovimientosInventario] = useState<ConsultaMovimientoInventario[]>([]);
+  const [ventasVasos, setVentasVasos] = useState<ConsultaVentasVasos[]>([]);
   const [cierre, setCierre] = useState<ConsultaCierreDiario | null>(null);
   const [movimientosDeposito, setMovimientosDeposito] = useState<ConsultaMovimientoDeposito[]>([]);
 
@@ -129,12 +150,14 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
       } else if (vista === "gastos") {
         setGastos(await consultarGastos(token, filtroAplicado));
       } else if (vista === "inventario") {
-        const [inventarioResponse, movimientosResponse] = await Promise.all([
+        const [inventarioResponse, movimientosResponse, ventasVasosResponse] = await Promise.all([
           consultarInventarioActual(token),
           consultarMovimientosInventario(token, filtroAplicado),
+          consultarVentasVasos(token, filtroAplicado),
         ]);
         setInventario(inventarioResponse);
         setMovimientosInventario(movimientosResponse);
+        setVentasVasos(ventasVasosResponse);
       } else if (vista === "cierre") {
         try {
           setCierre(await consultarCierrePorFecha(token, filtroAplicado.fechaFin ?? filtroAplicado.fechaInicio));
@@ -215,7 +238,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
         { detail: "Items inventariables", label: "Items", value: String(inventario.length) },
         { detail: "Unidades en stock general", label: "Stock general", value: String(inventario.reduce((total, item) => total + (item.cantidadActualGeneral ?? 0), 0)) },
         { detail: "Vasos en jornada abierta", label: "Stock diario", value: String(conStockDiario.reduce((total, item) => total + (item.cantidadFinalTeoricaDiaria ?? 0), 0)) },
-        { detail: "Movimientos del periodo", label: "Movimientos", value: String(movimientosInventario.length) },
+        { detail: "Desglose por tipo y tamano", label: "Vasos vendidos", value: String(ventasVasos.reduce((total, item) => total + item.vasosVendidos, 0)) },
       ];
     }
 
@@ -242,7 +265,7 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
       { detail: "Consignaciones y servicios", label: "Salidas", value: formatCurrency(salidas.reduce((total, item) => total + item.valorMovimiento, 0)) },
       { detail: "Movimientos consultados", label: "Registros", value: String(movimientosDeposito.length) },
     ];
-  }, [activeView, cierre, filtroAplicado, gastos, inventario, movimientosDeposito, movimientosInventario, ventas]);
+  }, [activeView, cierre, filtroAplicado, gastos, inventario, movimientosDeposito, movimientosInventario, ventas, ventasVasos]);
 
   return (
     <section className="consultas-panel" aria-label="Consultas operativas">
@@ -376,7 +399,33 @@ export function ConsultasPanel({ role, token }: ConsultasPanelProps) {
             </ul>
           </section>
 
-          <section className="consultas-data-panel" aria-labelledby="consultas-movimientos-title">
+          <section className="consultas-data-panel" aria-labelledby="consultas-ventas-vasos-title">
+            <div className="compact-heading">
+              <div>
+                <span className="eyebrow">Ventas del periodo</span>
+                <h2 id="consultas-ventas-vasos-title">Vasos vendidos por tipo y tamano</h2>
+              </div>
+              <ShoppingBag size={22} aria-hidden="true" />
+            </div>
+            <p className="consultas-panel-note">Referencia informativa: cada paquete equivale a 20 vasos.</p>
+            {loadState === "success" && ventasVasos.length === 0 ? <p className="empty-copy">No hay vasos vendidos para el periodo seleccionado.</p> : null}
+            <ul className="consultas-record-list">
+              {ventasVasos.map((venta) => (
+                <li className="consultas-record-row ventas-vasos" key={`${venta.idCajaDiaria}-${venta.nombreTipo}-${venta.onzas}`}>
+                  <span>
+                    <strong>{formatDisplayName(venta.nombreTipo)} · {venta.onzas} oz</strong>
+                    <small>Jornada {formatOperationalDate(venta.fechaOperacion)}</small>
+                  </span>
+                  <span>
+                    <strong>{venta.vasosVendidos} vasos vendidos</strong>
+                    <small>{equivalenciaPaquetes(venta.vasosVendidos)}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="consultas-data-panel consultas-inventario-wide" aria-labelledby="consultas-movimientos-title">
             <div className="compact-heading">
               <div>
                 <span className="eyebrow">Trazabilidad</span>

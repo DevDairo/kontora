@@ -9,6 +9,7 @@ import com.kontora.pos.consultas.dto.ConsultaMovimientoDepositoResponse;
 import com.kontora.pos.consultas.dto.ConsultaMovimientoInventarioResponse;
 import com.kontora.pos.consultas.dto.ConsultaTransferenciaResponse;
 import com.kontora.pos.consultas.dto.ConsultaVentaResponse;
+import com.kontora.pos.consultas.dto.ConsultaVentasVasosResponse;
 import com.kontora.pos.consultas.service.ConsultasOperativasService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
@@ -78,6 +79,17 @@ public class ConsultasOperativasController {
                 fechaFin,
                 idCajaDiaria,
                 idItemInventario);
+    }
+
+    @GetMapping("/inventario/ventas-vasos")
+    public List<ConsultaVentasVasosResponse> consultarVentasVasos(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            Authentication authentication) {
+        return consultasService.consultarVentasVasos(
+                fechaInicio,
+                fechaFin,
+                (PrincipalUsuario) authentication.getPrincipal());
     }
 
     @GetMapping("/deposito/movimientos")

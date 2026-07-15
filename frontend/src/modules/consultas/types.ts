@@ -78,6 +78,14 @@ export type ConsultaMovimientoInventario = {
   fechaMovimiento: string;
 };
 
+export type ConsultaVentasVasos = {
+  idCajaDiaria: string;
+  fechaOperacion: string;
+  nombreTipo: string;
+  onzas: number;
+  vasosVendidos: number;
+};
+
 export type ConsultaCierreDiario = {
   idCajaDiaria: string;
   fechaOperacion: string;

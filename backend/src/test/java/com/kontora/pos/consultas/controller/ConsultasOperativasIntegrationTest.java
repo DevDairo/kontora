@@ -252,6 +252,49 @@ class ConsultasOperativasIntegrationTest {
                 .andExpect(jsonPath("$[0].tipoMovimiento").value("apertura_paquete"));
     }
 
+    @Test
+    void administradorConsultaVentasDeVasosPorTipoTamanoYExcluyeAnuladas() throws Exception {
+        UUID idCajaDiaria = crearCajaAbierta();
+        UUID ventaConLicor8 = crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("33000.00"), "pendiente");
+        UUID ventaSinLicor8 = crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("8000.00"), "pendiente");
+        UUID ventaConLicor12 = crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("56000.00"), "pendiente");
+        UUID ventaAnulada = crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("4000.00"), "pendiente");
+        crearDetalleVenta(ventaConLicor8, "con_licor", 8, 33);
+        crearDetalleVenta(ventaSinLicor8, "sin_licor", 8, 8);
+        crearDetalleVenta(ventaConLicor12, "con_licor", 12, 56);
+        crearDetalleVenta(ventaAnulada, "con_licor", 8, 4);
+        jdbcTemplate.update("""
+                UPDATE ventas
+                SET estado_venta = 'anulada'::estado_venta_enum,
+                    motivo_anulacion = 'Anulacion de prueba',
+                    fecha_anulacion = ?,
+                    id_usuario_anulacion = ?
+                WHERE id_venta = ?
+                """, fechaPrueba(), idUsuarioAdmin, ventaAnulada);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+
+        mockMvc.perform(get("/api/consultas/inventario/ventas-vasos")
+                        .param("fechaInicio", FECHA_CAJA.toString())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[0].fechaOperacion").value(FECHA_CAJA.toString()))
+                .andExpect(jsonPath("$[0].nombreTipo").value("con_licor"))
+                .andExpect(jsonPath("$[0].onzas").value(8))
+                .andExpect(jsonPath("$[0].vasosVendidos").value(33))
+                .andExpect(jsonPath("$[1].nombreTipo").value("sin_licor"))
+                .andExpect(jsonPath("$[1].vasosVendidos").value(8))
+                .andExpect(jsonPath("$[2].nombreTipo").value("con_licor"))
+                .andExpect(jsonPath("$[2].onzas").value(12))
+                .andExpect(jsonPath("$[2].vasosVendidos").value(56));
+
+        mockMvc.perform(get("/api/consultas/inventario/ventas-vasos")
+                        .param("fechaInicio", FECHA_CAJA.toString())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden());
+    }
+
     private UUID crearCajaAbierta() {
         return jdbcTemplate.queryForObject("""
                 INSERT INTO cajas_diarias (
@@ -326,6 +369,32 @@ class ConsultasOperativasIntegrationTest {
                 )
                 VALUES (?, ?, ?, 'registrado'::estado_gasto_enum, ?, ?)
                 """, idCajaDiaria, valorGasto, descripcion, idUsuarioRegistro, fechaPrueba());
+    }
+
+    private void crearDetalleVenta(UUID idVenta, String nombreTipo, int onzas, int cantidad) {
+        UUID idTipoGranizado = jdbcTemplate.queryForObject(
+                "SELECT id_tipo_granizado FROM tipos_granizado WHERE nombre_tipo = ?",
+                UUID.class,
+                nombreTipo);
+        UUID idTamanoVaso = jdbcTemplate.queryForObject(
+                "SELECT id_tamano_vaso FROM tamanos_vaso WHERE onzas = ?",
+                UUID.class,
+                onzas);
+        jdbcTemplate.update("""
+                INSERT INTO detalles_venta (
+                    id_venta,
+                    id_tipo_granizado,
+                    id_tamano_vaso,
+                    cantidad,
+                    precio_unitario_normal,
+                    cantidad_con_promocion,
+                    cantidad_sin_promocion,
+                    subtotal_linea,
+                    total_linea
+                )
+                VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?)
+                """, idVenta, idTipoGranizado, idTamanoVaso, cantidad,
+                cantidad, BigDecimal.valueOf(cantidad), BigDecimal.valueOf(cantidad));
     }
 
     private void crearPrerequisitosCierre(UUID idCajaDiaria) {

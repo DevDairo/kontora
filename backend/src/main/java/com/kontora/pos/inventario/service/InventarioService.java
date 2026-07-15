@@ -24,12 +24,14 @@ import com.kontora.pos.inventario.dto.RegistrarConsumoDiarioInventarioRequest;
 import com.kontora.pos.inventario.dto.RegistrarPaqueteVasosRequest;
 import com.kontora.pos.inventario.dto.ResolverAjusteInventarioRequest;
 import com.kontora.pos.inventario.dto.SolicitarAjusteInventarioRequest;
+import com.kontora.pos.inventario.dto.VentasVasosDiariasResponse;
 import com.kontora.pos.inventario.repository.AjusteInventarioRepository;
 import com.kontora.pos.inventario.repository.ConsumoDiarioInventarioRepository;
 import com.kontora.pos.inventario.repository.ExistenciaInventarioDiarioRepository;
 import com.kontora.pos.inventario.repository.ExistenciaInventarioGeneralRepository;
 import com.kontora.pos.inventario.repository.MovimientoInventarioRepository;
 import com.kontora.pos.inventario.repository.PaqueteVasosAbiertoRepository;
+import com.kontora.pos.inventario.repository.VentasVasosDiariasRepository;
 import com.kontora.pos.usuarios.domain.Usuario;
 import com.kontora.pos.usuarios.repository.UsuarioRepository;
 import com.kontora.pos.ventas.domain.DetalleVenta;
@@ -80,6 +82,7 @@ public class InventarioService {
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final PaqueteVasosAbiertoRepository paqueteVasosAbiertoRepository;
     private final ConsumoDiarioInventarioRepository consumoDiarioInventarioRepository;
+    private final VentasVasosDiariasRepository ventasVasosDiariasRepository;
     private final EntityManager entityManager;
     private final AuditoriaService auditoriaService;
 
@@ -93,6 +96,7 @@ public class InventarioService {
             MovimientoInventarioRepository movimientoInventarioRepository,
             PaqueteVasosAbiertoRepository paqueteVasosAbiertoRepository,
             ConsumoDiarioInventarioRepository consumoDiarioInventarioRepository,
+            VentasVasosDiariasRepository ventasVasosDiariasRepository,
             EntityManager entityManager,
             AuditoriaService auditoriaService) {
         this.cajaDiariaRepository = cajaDiariaRepository;
@@ -104,6 +108,7 @@ public class InventarioService {
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.paqueteVasosAbiertoRepository = paqueteVasosAbiertoRepository;
         this.consumoDiarioInventarioRepository = consumoDiarioInventarioRepository;
+        this.ventasVasosDiariasRepository = ventasVasosDiariasRepository;
         this.entityManager = entityManager;
         this.auditoriaService = auditoriaService;
     }
@@ -127,6 +132,15 @@ public class InventarioService {
         return existenciaDiarioRepository.findByCaja(idCajaDiaria).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<VentasVasosDiariasResponse> consultarVentasVasosDiariaAbierta(
+            PrincipalUsuario principalUsuario) {
+        validarRolConsultaInventario(principalUsuario);
+        return cajaDiariaRepository.findPrimeraPorEstadoCaja(ESTADO_CAJA_ABIERTA)
+                .map(cajaDiaria -> ventasVasosDiariasRepository.consultarPorCajaAbierta(cajaDiaria.getIdCajaDiaria()))
+                .orElseGet(List::of);
     }
 
     @Transactional(readOnly = true)
@@ -562,6 +576,13 @@ public class InventarioService {
         String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
         if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede consultar ajustes de inventario");
+        }
+    }
+
+    private void validarRolConsultaInventario(PrincipalUsuario principalUsuario) {
+        String rol = principalUsuario.nombreRol().toLowerCase(Locale.ROOT);
+        if (!"administrador".equals(rol) && !"gerente".equals(rol)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Solo administrador o gerente puede consultar inventario");
         }
     }
 

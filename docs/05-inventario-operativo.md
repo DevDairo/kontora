@@ -11,6 +11,7 @@ Gestionar stock general, stock diario de vasos, consumos manuales, perdidas y aj
 ## Funcionalidades
 
 - Consulta del stock diario de vasos de la caja abierta.
+- Desglose informativo de vasos vendidos en la caja abierta por tipo de granizado y tamano de vaso.
 - Orden visual de vasos por capacidad ascendente: 8, 12, 16, 20 y 24 onzas en apertura de paquetes, ingreso de stock general y stock diario.
 - Registro de paquetes de vasos abiertos, con 20 unidades por paquete y perdidas por dano.
 - Descuento automatico de vasos por ventas y restauracion por anulaciones.
@@ -34,6 +35,8 @@ Gestionar stock general, stock diario de vasos, consumos manuales, perdidas y aj
 - La caja abierta solo condiciona operaciones diarias: paquetes, consumos y conteos de vasos.
 - El stock diario de vasos no queda vacio por cambio de jornada cuando existe remanente.
 - El orden visual de los vasos no modifica existencias, movimientos ni calculos; solo facilita la operacion por tamano.
+- El desglose de ventas de vasos de Inventario considera solo ventas registradas de la caja abierta; las ventas anuladas no se incluyen.
+- La equivalencia de 20 vasos por paquete se presenta como referencia para el conteo fisico y no modifica existencias, movimientos ni la cantidad teorica.
 - Un ajuste aprobado no puede dejar el stock general negativo.
 - Solicitud, aprobacion y rechazo de ajustes generan auditoria.
 
@@ -41,6 +44,7 @@ Gestionar stock general, stock diario de vasos, consumos manuales, perdidas y aj
 
 - `GET /api/inventario/existencias/general`
 - `GET /api/inventario/existencias/diarias/abierta`
+- `GET /api/inventario/ventas-vasos/diaria-abierta`
 - `POST /api/inventario/paquetes-vasos`
 - `POST /api/inventario/consumos-diarios`
 - `POST /api/inventario/ajustes`

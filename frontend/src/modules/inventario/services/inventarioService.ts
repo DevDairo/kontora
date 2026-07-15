@@ -10,6 +10,7 @@ import type {
   RegistrarPaqueteVasosRequest,
   ResolverAjusteInventarioRequest,
   SolicitarAjusteInventarioRequest,
+  VentasVasosDiarias,
 } from "../types";
 
 function jsonBody<T>(payload: T) {
@@ -35,6 +36,10 @@ export function obtenerExistenciasGenerales(token: string) {
 
 export function obtenerExistenciasDiariasAbierta(token: string) {
   return apiClient.get<ExistenciaInventarioDiario[]>("/inventario/existencias/diarias/abierta", { token });
+}
+
+export function obtenerVentasVasosDiariaAbierta(token: string) {
+  return apiClient.get<VentasVasosDiarias[]>("/inventario/ventas-vasos/diaria-abierta", { token });
 }
 
 async function obtenerExistenciasDiariasAbiertaOpcional(token: string) {
@@ -108,15 +113,17 @@ export function rechazarAjusteInventario(
 }
 
 export async function obtenerInventarioSnapshot(token: string): Promise<InventarioSnapshot> {
-  const [existenciasGenerales, existenciasDiarias, ajustes] = await Promise.all([
+  const [existenciasGenerales, existenciasDiarias, ajustes, ventasVasosDiarias] = await Promise.all([
     obtenerExistenciasGenerales(token),
     obtenerExistenciasDiariasAbiertaOpcional(token),
     obtenerAjustesInventario(token),
+    obtenerVentasVasosDiariaAbierta(token),
   ]);
 
   return {
     ajustes,
     existenciasDiarias,
     existenciasGenerales,
+    ventasVasosDiarias,
   };
 }

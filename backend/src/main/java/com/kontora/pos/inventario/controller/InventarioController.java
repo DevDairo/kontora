@@ -11,6 +11,7 @@ import com.kontora.pos.inventario.dto.RegistrarConsumoDiarioInventarioRequest;
 import com.kontora.pos.inventario.dto.RegistrarPaqueteVasosRequest;
 import com.kontora.pos.inventario.dto.ResolverAjusteInventarioRequest;
 import com.kontora.pos.inventario.dto.SolicitarAjusteInventarioRequest;
+import com.kontora.pos.inventario.dto.VentasVasosDiariasResponse;
 import com.kontora.pos.inventario.service.InventarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -45,6 +46,12 @@ public class InventarioController {
     @GetMapping("/existencias/diarias/abierta")
     public List<ExistenciaInventarioDiarioResponse> consultarExistenciasDiariasCajaAbierta() {
         return inventarioService.consultarExistenciasDiariasCajaAbierta();
+    }
+
+    @GetMapping("/ventas-vasos/diaria-abierta")
+    public List<VentasVasosDiariasResponse> consultarVentasVasosDiariaAbierta(Authentication authentication) {
+        return inventarioService.consultarVentasVasosDiariaAbierta(
+                (PrincipalUsuario) authentication.getPrincipal());
     }
 
     @GetMapping("/existencias/diarias/caja/{idCajaDiaria}")

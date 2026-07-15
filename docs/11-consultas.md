@@ -14,6 +14,7 @@ Centralizar las consultas de solo lectura por periodo para no repetir historiale
 - Las ventas anuladas se conservan en el listado de ventas con su estado para trazabilidad, pero se excluyen de registros vigentes, total vendido, efectivo y transferencias, sin importar si el pago original fue en efectivo, transferencia o mixto.
 - Las consultas operativas de transferencias solo consideran pagos de ventas registradas; una venta anulada conserva su evidencia, pero no permanece disponible para decision de transferencia.
 - Consulta de inventario actual y movimientos por item o caja.
+- Consulta historica de vasos vendidos por jornada, tipo de granizado y tamano de vaso, usando el periodo seleccionado.
 - Consulta de cierres por fecha.
 - Consulta de historial de deposito y sus movimientos.
 - Consulta de datos operativos y financieros sin modificar registros.
@@ -31,6 +32,9 @@ Centralizar las consultas de solo lectura por periodo para no repetir historiale
 - Consultas no modifica informacion.
 - Una venta anulada no se elimina del historial: se muestra como evidencia de la operacion, sin afectar los indicadores financieros vigentes ni los valores del cierre de caja. Sus pagos y evidencias permanecen disponibles como trazabilidad.
 - Inventario y deposito muestran su historial aqui, no en las pantallas de registro.
+- La consulta historica de vasos se agrupa por `fecha_operacion` de la caja; cada jornada conserva sus propios totales aunque se consulte un rango de fechas.
+- El desglose de vasos considera solo ventas registradas. Las anuladas no se incluyen porque ya no representan consumo vigente de vasos ni venta efectiva.
+- La equivalencia de 20 vasos por paquete es informativa para facilitar el conteo fisico; no altera stock, movimientos ni reglas de negocio.
 - Auditoria es una ruta gerencial separada: registra acciones sensibles, no reemplaza los historiales de ventas o movimientos.
 
 ## Endpoints principales
@@ -39,5 +43,6 @@ Centralizar las consultas de solo lectura por periodo para no repetir historiale
 - `GET /api/consultas/gastos`
 - `GET /api/consultas/inventario/actual`
 - `GET /api/consultas/inventario/movimientos`
+- `GET /api/consultas/inventario/ventas-vasos`
 - `GET /api/consultas/cierre`
 - `GET /api/consultas/deposito/movimientos`

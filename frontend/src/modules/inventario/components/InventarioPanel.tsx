@@ -28,6 +28,7 @@ import type {
   ExistenciaInventarioGeneral,
   InventarioSnapshot,
   PaqueteVasosAbiertoResponse,
+  VentasVasosDiarias,
 } from "../types";
 
 type LoadState = "loading" | "success" | "error";
@@ -45,6 +46,7 @@ type LastAction =
   | { type: "ajuste-rechazado"; response: AjusteInventario };
 
 const DEFAULT_STOCK_ENTRY_REASON = "Reabastecimiento";
+const UNIDADES_POR_PAQUETE = 20;
 
 function messageFor(error: unknown) {
   if (error instanceof ApiClientError) {
@@ -67,6 +69,22 @@ function formatDateTime(value: string | null | undefined) {
 
 function itemLabel(item: { nombreItem: string; onzas: number | null }) {
   return `${formatDisplayName(item.nombreItem)}${item.onzas ? ` · ${item.onzas} oz` : ""}`;
+}
+
+function equivalenciaPaquetes(vasosVendidos: number) {
+  const paquetes = Math.floor(vasosVendidos / UNIDADES_POR_PAQUETE);
+  const vasosRestantes = vasosVendidos % UNIDADES_POR_PAQUETE;
+
+  if (paquetes === 0) {
+    return `${vasosRestantes} ${vasosRestantes === 1 ? "vaso" : "vasos"}`;
+  }
+
+  const etiquetaPaquetes = `${paquetes} ${paquetes === 1 ? "paquete" : "paquetes"}`;
+  if (vasosRestantes === 0) {
+    return etiquetaPaquetes;
+  }
+
+  return `${etiquetaPaquetes} + ${vasosRestantes} ${vasosRestantes === 1 ? "vaso" : "vasos"}`;
 }
 
 function orderInventoryItemsForDisplay<T extends { nombreItem: string; onzas: number | null }>(items: T[]) {
@@ -97,6 +115,7 @@ function emptySnapshot(): InventarioSnapshot {
     ajustes: [],
     existenciasDiarias: [],
     existenciasGenerales: [],
+    ventasVasosDiarias: [],
   };
 }
 
@@ -139,6 +158,18 @@ function DailyRow({ item }: { item: ExistenciaInventarioDiario }) {
           <dd>{item.cantidadFinalTeorica}</dd>
         </div>
       </dl>
+    </li>
+  );
+}
+
+function DailySalesRow({ sale }: { sale: VentasVasosDiarias }) {
+  return (
+    <li className="daily-sales-row">
+      <span>
+        <strong>{formatDisplayName(sale.nombreTipo)} · {sale.onzas} oz</strong>
+        <small>{sale.vasosVendidos} {sale.vasosVendidos === 1 ? "vaso vendido" : "vasos vendidos"}</small>
+      </span>
+      <b>{equivalenciaPaquetes(sale.vasosVendidos)}</b>
     </li>
   );
 }
@@ -717,6 +748,25 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
               <li className="inventory-empty">Sin stock diario cargado para la caja abierta.</li>
             )}
           </ul>
+          {hasOpenCashBox ? (
+            <section className="daily-sales-breakdown" aria-labelledby="ventas-vasos-title">
+              <div className="daily-sales-heading">
+                <div>
+                  <h3 id="ventas-vasos-title">Ventas por tipo y tamano</h3>
+                  <p>Referencia informativa: cada paquete equivale a {UNIDADES_POR_PAQUETE} vasos.</p>
+                </div>
+              </div>
+              {snapshot.ventasVasosDiarias.length > 0 ? (
+                <ul className="daily-sales-list">
+                  {snapshot.ventasVasosDiarias.map((sale) => (
+                    <DailySalesRow key={`${sale.nombreTipo}-${sale.onzas}`} sale={sale} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="daily-sales-empty">No hay granizados vendidos en esta jornada.</p>
+              )}
+            </section>
+          ) : null}
         </article>
 
         <article className="panel">

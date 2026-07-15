@@ -10,6 +10,7 @@ import com.kontora.pos.consultas.dto.ConsultaMovimientoDepositoResponse;
 import com.kontora.pos.consultas.dto.ConsultaMovimientoInventarioResponse;
 import com.kontora.pos.consultas.dto.ConsultaTransferenciaResponse;
 import com.kontora.pos.consultas.dto.ConsultaVentaResponse;
+import com.kontora.pos.consultas.dto.ConsultaVentasVasosResponse;
 import com.kontora.pos.consultas.repository.ConsultasOperativasRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -82,6 +83,16 @@ public class ConsultasOperativasService {
                 periodo.fechaFin(),
                 idCajaDiaria,
                 idItemInventario);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ConsultaVentasVasosResponse> consultarVentasVasos(
+            LocalDate fechaInicio,
+            LocalDate fechaFin,
+            PrincipalUsuario principalUsuario) {
+        validarRolAdministrativo(principalUsuario, "Solo administrador o gerente puede consultar ventas de vasos");
+        Periodo periodo = normalizarPeriodoRequerido(fechaInicio, fechaFin);
+        return consultasRepository.consultarVentasVasos(periodo.fechaInicio(), periodo.fechaFin());
     }
 
     @Transactional(readOnly = true)

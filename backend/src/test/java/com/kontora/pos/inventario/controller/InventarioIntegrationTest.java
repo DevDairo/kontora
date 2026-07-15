@@ -70,6 +70,41 @@ class InventarioIntegrationTest {
     }
 
     @Test
+    void consultaVentasDeVasosDeLaCajaAbiertaPorTipoYTamano() throws Exception {
+        crearCajaAbierta();
+        registrarVentaParaResumen("con_licor", 8, 33, false);
+        registrarVentaParaResumen("sin_licor", 8, 8, false);
+        registrarVentaParaResumen("con_licor", 12, 56, false);
+        registrarVentaParaResumen("con_licor", 8, 4, true);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        mockMvc.perform(get("/api/inventario/ventas-vasos/diaria-abierta")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].idCajaDiaria").value(idCajaDiaria.toString()))
+                .andExpect(jsonPath("$[0].nombreTipo").value("con_licor"))
+                .andExpect(jsonPath("$[0].onzas").value(8))
+                .andExpect(jsonPath("$[0].vasosVendidos").value(33))
+                .andExpect(jsonPath("$[1].nombreTipo").value("sin_licor"))
+                .andExpect(jsonPath("$[1].onzas").value(8))
+                .andExpect(jsonPath("$[1].vasosVendidos").value(8))
+                .andExpect(jsonPath("$[2].nombreTipo").value("con_licor"))
+                .andExpect(jsonPath("$[2].onzas").value(12))
+                .andExpect(jsonPath("$[2].vasosVendidos").value(56));
+    }
+
+    @Test
+    void vendedorNoPuedeConsultarVentasDeVasosDeInventario() throws Exception {
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+
+        mockMvc.perform(get("/api/inventario/ventas-vasos/diaria-abierta")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede consultar inventario"));
+    }
+
+    @Test
     void registraPaqueteVasosYMovimientos() throws Exception {
         crearCajaAbierta();
         UUID idVaso = idItemInventario("vaso_8oz");
@@ -369,7 +404,7 @@ class InventarioIntegrationTest {
         assertThat(existenciaDespuesVenta.get("cantidad_final_teorica")).isEqualTo(19);
 
         mockMvc.perform(post("/api/ventas/{idVenta}/anular", idVenta)
-                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("motivoAnulacion", "Error de prueba"))))
                 .andExpect(status().isOk())
@@ -400,7 +435,62 @@ class InventarioIntegrationTest {
                 "pagos", List.of(Map.of(
                         "idMetodoPago", idMetodoPago("efectivo").toString(),
                         "valorPago", total,
-                        "valorRecibidoEfectivo", total)));
+                "valorRecibidoEfectivo", total)));
+    }
+
+    private void registrarVentaParaResumen(String nombreTipo, int onzas, int cantidad, boolean anulada) {
+        UUID idVenta;
+        if (anulada) {
+            idVenta = jdbcTemplate.queryForObject("""
+                    INSERT INTO ventas (
+                        id_caja_diaria,
+                        id_usuario_vendedor,
+                        tipo_comprador,
+                        estado_venta,
+                        subtotal_venta,
+                        descuento_promocion,
+                        total_venta,
+                        motivo_anulacion,
+                        fecha_anulacion,
+                        id_usuario_anulacion
+                    )
+                    VALUES (?, ?, 'cliente'::tipo_comprador_enum, 'anulada'::estado_venta_enum, ?, 0, ?,
+                            'Anulacion de prueba', NOW(), ?)
+                    RETURNING id_venta
+                    """, UUID.class, idCajaDiaria, idUsuarioAdmin,
+                    BigDecimal.valueOf(cantidad), BigDecimal.valueOf(cantidad), idUsuarioAdmin);
+        } else {
+            idVenta = jdbcTemplate.queryForObject("""
+                    INSERT INTO ventas (
+                        id_caja_diaria,
+                        id_usuario_vendedor,
+                        tipo_comprador,
+                        estado_venta,
+                        subtotal_venta,
+                        descuento_promocion,
+                        total_venta
+                    )
+                    VALUES (?, ?, 'cliente'::tipo_comprador_enum, 'registrada'::estado_venta_enum, ?, 0, ?)
+                    RETURNING id_venta
+                    """, UUID.class, idCajaDiaria, idUsuarioAdmin,
+                    BigDecimal.valueOf(cantidad), BigDecimal.valueOf(cantidad));
+        }
+
+        jdbcTemplate.update("""
+                INSERT INTO detalles_venta (
+                    id_venta,
+                    id_tipo_granizado,
+                    id_tamano_vaso,
+                    cantidad,
+                    precio_unitario_normal,
+                    cantidad_con_promocion,
+                    cantidad_sin_promocion,
+                    subtotal_linea,
+                    total_linea
+                )
+                VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?)
+                """, idVenta, idTipoGranizado(nombreTipo), idTamanoVaso(onzas), cantidad,
+                cantidad, BigDecimal.valueOf(cantidad), BigDecimal.valueOf(cantidad));
     }
 
     private UUID solicitarAjuste(

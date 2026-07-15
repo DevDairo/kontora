@@ -96,8 +96,16 @@ export type ConsumoDiarioInventarioResponse = {
   observacion: string | null;
 };
 
+export type VentasVasosDiarias = {
+  idCajaDiaria: string;
+  nombreTipo: string;
+  onzas: number;
+  vasosVendidos: number;
+};
+
 export type InventarioSnapshot = {
   ajustes: AjusteInventario[];
   existenciasGenerales: ExistenciaInventarioGeneral[];
   existenciasDiarias: ExistenciaInventarioDiario[];
+  ventasVasosDiarias: VentasVasosDiarias[];
 };

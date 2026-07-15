@@ -8,6 +8,7 @@ import com.kontora.pos.consultas.dto.ConsultaMovimientoDepositoResponse;
 import com.kontora.pos.consultas.dto.ConsultaMovimientoInventarioResponse;
 import com.kontora.pos.consultas.dto.ConsultaTransferenciaResponse;
 import com.kontora.pos.consultas.dto.ConsultaVentaResponse;
+import com.kontora.pos.consultas.dto.ConsultaVentasVasosResponse;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -247,6 +248,30 @@ public class ConsultasOperativasRepository {
                 ORDER BY mi.fecha_movimiento DESC
                 """.formatted(filtros);
         return jdbcTemplate.query(sql, params, movimientoInventarioMapper());
+    }
+
+    public List<ConsultaVentasVasosResponse> consultarVentasVasos(
+            LocalDate fechaInicio,
+            LocalDate fechaFin) {
+        MapSqlParameterSource params = parametrosPeriodo(fechaInicio, fechaFin);
+        String sql = """
+                SELECT
+                    v.id_caja_diaria,
+                    cd.fecha_operacion,
+                    tg.nombre_tipo,
+                    tv.onzas,
+                    SUM(dv.cantidad) AS vasos_vendidos
+                FROM ventas v
+                JOIN cajas_diarias cd ON cd.id_caja_diaria = v.id_caja_diaria
+                JOIN detalles_venta dv ON dv.id_venta = v.id_venta
+                JOIN tipos_granizado tg ON tg.id_tipo_granizado = dv.id_tipo_granizado
+                JOIN tamanos_vaso tv ON tv.id_tamano_vaso = dv.id_tamano_vaso
+                WHERE cd.fecha_operacion BETWEEN :fechaInicio AND :fechaFin
+                AND v.estado_venta = 'registrada'::estado_venta_enum
+                GROUP BY v.id_caja_diaria, cd.fecha_operacion, tg.nombre_tipo, tv.onzas
+                ORDER BY cd.fecha_operacion DESC, tv.onzas ASC, tg.nombre_tipo ASC
+                """;
+        return jdbcTemplate.query(sql, params, ventasVasosMapper());
     }
 
     public List<ConsultaMovimientoDepositoResponse> consultarMovimientosDeposito(
@@ -504,6 +529,15 @@ public class ConsultasOperativasRepository {
                 uuid(rs, "id_usuario_registro"),
                 rs.getString("nombre_usuario_registro"),
                 offsetDateTime(rs, "fecha_movimiento"));
+    }
+
+    private RowMapper<ConsultaVentasVasosResponse> ventasVasosMapper() {
+        return (rs, rowNum) -> new ConsultaVentasVasosResponse(
+                uuid(rs, "id_caja_diaria"),
+                localDate(rs, "fecha_operacion"),
+                rs.getString("nombre_tipo"),
+                integer(rs, "onzas"),
+                longValue(rs, "vasos_vendidos"));
     }
 
     private RowMapper<ConsultaMovimientoDepositoResponse> movimientoDepositoMapper() {

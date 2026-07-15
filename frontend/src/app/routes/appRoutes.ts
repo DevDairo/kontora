@@ -125,6 +125,7 @@ export const appRoutes: AppRoute[] = [
     endpoints: [
       "GET /api/inventario/existencias/general",
       "GET /api/inventario/existencias/diarias/abierta",
+      "GET /api/inventario/ventas-vasos/diaria-abierta",
       "POST /api/inventario/paquetes-vasos",
       "POST /api/inventario/consumos-diarios",
       "GET /api/inventario/ajustes",
@@ -140,6 +141,7 @@ export const appRoutes: AppRoute[] = [
       administrador: [
         "GET /api/inventario/existencias/general",
         "GET /api/inventario/existencias/diarias/abierta",
+        "GET /api/inventario/ventas-vasos/diaria-abierta",
         "POST /api/inventario/paquetes-vasos",
         "POST /api/inventario/consumos-diarios",
         "GET /api/inventario/ajustes",
@@ -351,6 +353,7 @@ export const appRoutes: AppRoute[] = [
       "GET /api/consultas/gastos",
       "GET /api/consultas/inventario/actual",
       "GET /api/consultas/inventario/movimientos",
+      "GET /api/consultas/inventario/ventas-vasos",
       "GET /api/consultas/cierre",
       "GET /api/consultas/deposito/movimientos",
     ],

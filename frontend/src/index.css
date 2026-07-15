@@ -1964,6 +1964,63 @@ h3 {
   padding: 14px;
 }
 
+.daily-sales-breakdown {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.daily-sales-heading h3 {
+  margin: 0;
+  color: #273354;
+  font-size: 0.95rem;
+}
+
+.daily-sales-heading p,
+.daily-sales-empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.daily-sales-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-sales-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.daily-sales-row:first-child {
+  border-top: 0;
+}
+
+.daily-sales-row strong,
+.daily-sales-row small {
+  display: block;
+}
+
+.daily-sales-row small {
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.daily-sales-row b {
+  color: #273354;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
 .adjustment-row {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto minmax(150px, auto);
@@ -3065,6 +3122,7 @@ h3 {
   .gastos-field-row,
   .inventory-form-row,
   .inventory-row dl,
+  .daily-sales-row,
   .adjustment-row,
   .gasto-row,
   .adjustment-actions {
@@ -3081,6 +3139,10 @@ h3 {
   }
 
   .adjustment-row time {
+    text-align: left;
+  }
+
+  .daily-sales-row b {
     text-align: left;
   }
 
@@ -3971,6 +4033,21 @@ h3 {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.consultas-record-row.ventas-vasos {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.consultas-inventario-wide {
+  grid-column: 1 / -1;
+}
+
+.consultas-panel-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: -4px 0 0;
+}
+
 .consultas-record-row strong,
 .consultas-record-row small {
   display: block;
@@ -4672,7 +4749,8 @@ h3 {
   .consultas-record-row.gastos,
   .consultas-record-row.movimientos,
   .consultas-record-row.deposito,
-  .consultas-record-row.inventario {
+  .consultas-record-row.inventario,
+  .consultas-record-row.ventas-vasos {
     grid-template-columns: 1fr;
   }
 
