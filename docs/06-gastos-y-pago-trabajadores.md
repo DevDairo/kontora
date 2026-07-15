@@ -13,6 +13,7 @@ Registrar salidas tomadas de la caja diaria y confirmar el pago diario total a t
 - Registro de gastos de caja con valor, descripcion y evidencia opcional.
 - Edicion y anulacion de gastos con motivo y trazabilidad.
 - Consulta y carga de evidencias de gastos.
+- Descarga de soportes con mensaje uniforme cuando la evidencia solicitada no esta disponible.
 - Registro de un unico pago diario total a trabajadores.
 - Confirmacion explicita del pago, incluso cuando su valor es cero.
 - Proyeccion de efectivo que descuenta gastos y pagos a trabajadores.

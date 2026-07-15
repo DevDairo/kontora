@@ -27,6 +27,7 @@ public class ConsultasOperativasService {
     private static final String ROL_ADMINISTRADOR = "administrador";
     private static final String ROL_GERENTE = "gerente";
     private static final String TRANSFERENCIA_PENDIENTE = "pendiente";
+    private static final String TRANSFERENCIA_VALIDADA = "validada";
     private static final String TRANSFERENCIA_RECHAZADA = "rechazada";
 
     private final ConsultasOperativasRepository consultasRepository;
@@ -157,8 +158,10 @@ public class ConsultasOperativasService {
         if (estado == null) {
             return List.of(TRANSFERENCIA_PENDIENTE, TRANSFERENCIA_RECHAZADA);
         }
-        if (!TRANSFERENCIA_PENDIENTE.equals(estado) && !TRANSFERENCIA_RECHAZADA.equals(estado)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "estadoValidacion solo permite pendiente o rechazada");
+        if (!TRANSFERENCIA_PENDIENTE.equals(estado)
+                && !TRANSFERENCIA_VALIDADA.equals(estado)
+                && !TRANSFERENCIA_RECHAZADA.equals(estado)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "estadoValidacion solo permite pendiente, validada o rechazada");
         }
         return List.of(estado);
     }

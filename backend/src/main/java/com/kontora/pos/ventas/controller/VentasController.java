@@ -43,6 +43,15 @@ public class VentasController {
         return ventasService.listarTrabajadores();
     }
 
+    @GetMapping("/{idVenta}/anulacion")
+    public VentaResponse consultarVentaParaAnulacion(
+            @PathVariable UUID idVenta,
+            Authentication authentication) {
+        return ventasService.consultarVentaParaAnulacion(
+                idVenta,
+                (PrincipalUsuario) authentication.getPrincipal());
+    }
+
     @PostMapping("/{idVenta}/anular")
     public VentaResponse anularVenta(
             @PathVariable UUID idVenta,

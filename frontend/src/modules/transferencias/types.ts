@@ -1,4 +1,4 @@
-export type EstadoTransferencia = "pendiente" | "rechazada";
+export type EstadoTransferencia = "pendiente" | "validada" | "rechazada";
 
 export type FiltroTransferencias = {
   fechaFin?: string;

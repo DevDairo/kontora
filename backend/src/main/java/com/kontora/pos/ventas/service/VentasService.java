@@ -151,17 +151,19 @@ public class VentasService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public VentaResponse consultarVentaParaAnulacion(UUID idVenta, PrincipalUsuario principalUsuario) {
+        validarPermisoAnulacion(principalUsuario);
+        Venta venta = obtenerVentaAnulable(idVenta);
+        List<DetalleVenta> detalles = detalleVentaRepository.findByVenta_IdVenta(idVenta);
+        List<PagoVenta> pagos = pagoVentaRepository.findByVenta_IdVenta(idVenta);
+        return toResponse(venta, detalles, pagos);
+    }
+
     @Transactional
     public VentaResponse anularVenta(UUID idVenta, AnularVentaRequest request, PrincipalUsuario principalUsuario) {
         validarPermisoAnulacion(principalUsuario);
-        Venta venta = ventaRepository.findByIdVenta(idVenta)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
-        if (!ESTADO_VENTA_REGISTRADA.equals(venta.getEstadoVenta())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Solo se pueden anular ventas registradas");
-        }
-        if (!ESTADO_CAJA_ABIERTA.equals(venta.getCajaDiaria().getEstadoCaja())) {
-            throw new ApiException(HttpStatus.CONFLICT, "No se puede anular una venta con caja diaria cerrada");
-        }
+        Venta venta = obtenerVentaAnulable(idVenta);
 
         Usuario usuarioAnulacion = obtenerUsuario(principalUsuario.idUsuario(), "Usuario anulacion no encontrado");
         Map<String, Object> valorAnterior = snapshotVenta(venta);
@@ -184,6 +186,18 @@ public class VentasService {
                 "Anulacion de venta");
 
         return toResponse(ventaGuardada, detalles, pagos);
+    }
+
+    private Venta obtenerVentaAnulable(UUID idVenta) {
+        Venta venta = ventaRepository.findByIdVenta(idVenta)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
+        if (!ESTADO_VENTA_REGISTRADA.equals(venta.getEstadoVenta())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Solo se pueden anular ventas registradas");
+        }
+        if (!ESTADO_CAJA_ABIERTA.equals(venta.getCajaDiaria().getEstadoCaja())) {
+            throw new ApiException(HttpStatus.CONFLICT, "No se puede anular una venta con caja diaria cerrada");
+        }
+        return venta;
     }
 
     private void validarPermisoAnulacion(PrincipalUsuario principalUsuario) {

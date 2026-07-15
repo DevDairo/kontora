@@ -12,6 +12,7 @@ Centralizar las consultas de solo lectura por periodo para no repetir historiale
 
 - Consulta de ventas y gastos por periodo.
 - Las ventas anuladas se conservan en el listado de ventas con su estado para trazabilidad, pero se excluyen de registros vigentes, total vendido, efectivo y transferencias, sin importar si el pago original fue en efectivo, transferencia o mixto.
+- Las consultas operativas de transferencias solo consideran pagos de ventas registradas; una venta anulada conserva su evidencia, pero no permanece disponible para decision de transferencia.
 - Consulta de inventario actual y movimientos por item o caja.
 - Consulta de cierres por fecha.
 - Consulta de historial de deposito y sus movimientos.

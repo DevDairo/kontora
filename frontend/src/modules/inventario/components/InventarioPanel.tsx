@@ -69,6 +69,29 @@ function itemLabel(item: { nombreItem: string; onzas: number | null }) {
   return `${formatDisplayName(item.nombreItem)}${item.onzas ? ` · ${item.onzas} oz` : ""}`;
 }
 
+function orderInventoryItemsForDisplay<T extends { nombreItem: string; onzas: number | null }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const leftOunces = left.onzas;
+    const rightOunces = right.onzas;
+    const leftIsCup = leftOunces !== null;
+    const rightIsCup = rightOunces !== null;
+
+    if (leftIsCup && rightIsCup) {
+      return leftOunces - rightOunces;
+    }
+
+    if (leftIsCup) {
+      return -1;
+    }
+
+    if (rightIsCup) {
+      return 1;
+    }
+
+    return left.nombreItem.localeCompare(right.nombreItem, "es");
+  });
+}
+
 function emptySnapshot(): InventarioSnapshot {
   return {
     ajustes: [],
@@ -223,11 +246,12 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
 
     try {
       const response = await obtenerInventarioSnapshot(token);
+      const orderedGeneralItems = orderInventoryItemsForDisplay(response.existenciasGenerales);
       setSnapshot(response);
       setLoadState("success");
-      setIdItemPaquete((current) => current || (firstPackageItem(response.existenciasGenerales)?.idItemInventario ?? ""));
+      setIdItemPaquete((current) => current || (firstPackageItem(orderedGeneralItems)?.idItemInventario ?? ""));
       setIdItemConsumo((current) => current || (firstManualItem(response.existenciasGenerales)?.idItemInventario ?? ""));
-      setIdItemAjuste((current) => current || (response.existenciasGenerales[0]?.idItemInventario ?? ""));
+      setIdItemAjuste((current) => current || (orderedGeneralItems[0]?.idItemInventario ?? ""));
     } catch (error) {
       setLoadState("error");
       setErrorMessage(messageFor(error));
@@ -238,12 +262,16 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
     void loadInventory();
   }, [loadInventory]);
 
+  const generalItems = useMemo(
+    () => orderInventoryItemsForDisplay(snapshot.existenciasGenerales),
+    [snapshot.existenciasGenerales],
+  );
   const packageItems = useMemo(
     () =>
-      snapshot.existenciasGenerales.filter(
+      generalItems.filter(
         (item) => item.tipoControl === "automatico_por_venta" && Boolean(item.idTamanoVaso),
       ),
-    [snapshot.existenciasGenerales],
+    [generalItems],
   );
   const manualItems = useMemo(
     () => snapshot.existenciasGenerales.filter((item) => item.tipoControl === "manual_por_consumo"),
@@ -257,6 +285,10 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
 
   const totalDiario = useMemo(
     () => snapshot.existenciasDiarias.reduce((total, item) => total + item.cantidadFinalTeorica, 0),
+    [snapshot.existenciasDiarias],
+  );
+  const dailyItems = useMemo(
+    () => orderInventoryItemsForDisplay(snapshot.existenciasDiarias),
     [snapshot.existenciasDiarias],
   );
 
@@ -596,7 +628,7 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
                 Item
                 <div className="field-control plain">
                   <select value={idItemAjuste} onChange={(event) => setIdItemAjuste(event.target.value)}>
-                    {snapshot.existenciasGenerales.map((item) => (
+                    {generalItems.map((item) => (
                       <option key={item.idItemInventario} value={item.idItemInventario}>
                         {itemLabel(item)} · stock general {item.cantidadActual}
                       </option>
@@ -679,8 +711,8 @@ export function InventarioPanel({ token, role }: InventarioPanelProps) {
             <span className="badge">{loadState === "loading" ? "Cargando" : `${snapshot.existenciasDiarias.length}`}</span>
           </div>
           <ul className="inventory-list">
-            {snapshot.existenciasDiarias.length > 0 ? (
-              snapshot.existenciasDiarias.map((item) => <DailyRow key={item.idExistenciaDiaria} item={item} />)
+            {dailyItems.length > 0 ? (
+              dailyItems.map((item) => <DailyRow key={item.idExistenciaDiaria} item={item} />)
             ) : (
               <li className="inventory-empty">Sin stock diario cargado para la caja abierta.</li>
             )}

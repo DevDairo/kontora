@@ -16,8 +16,11 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 - Venta a cliente o a trabajador seleccionado desde usuarios activos.
 - Pagos en efectivo, transferencia o mixtos.
 - Registro de valor recibido y cambio para pagos en efectivo.
+- En transferencia unica, el valor se completa automaticamente con el total de la venta.
+- En pago mixto, se validan el aporte de transferencia y el efectivo restante antes de habilitar el registro.
 - Carga inicial de evidencia cuando el pago incluye transferencia.
-- Panel de anulacion para seleccionar una venta registrada de la jornada, indicar el motivo y confirmar la operacion.
+- El comprobante de la venta registrada se muestra inmediatamente despues del formulario de venta, antes de anulaciones y adiciones diarias.
+- Panel de anulacion para seleccionar una venta registrada de la jornada, consultar vasos, cantidades y metodos de pago, indicar el motivo y confirmar la operacion.
 - Anulacion autorizada de venta abierta, con motivo, trazabilidad y restauracion del stock diario de vasos, sin depender de si el pago fue en efectivo, transferencia o mixto.
 
 ## Permisos
@@ -32,6 +35,7 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 
 - Toda venta exige una caja diaria abierta.
 - La suma de pagos debe coincidir con el total de la venta.
+- El pago mixto requiere una transferencia mayor que cero y menor que el total; el efectivo recibido debe cubrir el saldo restante. Si la transferencia cubre el total, se usa el metodo Transferencia.
 - Cada venta descuenta vasos segun el tamano; la anulacion devuelve al stock diario todos los vasos de sus lineas, para efectivo, transferencia y pago mixto.
 - Solo administrador y gerente pueden anular; vendedor no visualiza la accion y el sistema tambien protege el endpoint.
 - Solo se anulan ventas en estado `registrada` de una caja abierta; el registro permanece como `anulada` para consulta y auditoria. Sus pagos y evidencias no se eliminan, pues conservan la trazabilidad de la operacion.
@@ -43,6 +47,7 @@ Registrar ventas de granizados, aplicar precios y promociones vigentes, distribu
 ## Endpoints principales
 
 - `POST /api/ventas`
+- `GET /api/ventas/{idVenta}/anulacion`
 - `POST /api/ventas/{idVenta}/anular`
 - `GET /api/ventas/trabajadores`
 - `GET /api/consultas/ventas`

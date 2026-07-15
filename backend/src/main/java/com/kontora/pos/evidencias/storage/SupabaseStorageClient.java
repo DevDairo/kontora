@@ -12,6 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Component
@@ -70,7 +71,7 @@ public class SupabaseStorageClient implements EvidenciaStorageClient {
 
         try {
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() == HttpStatus.NOT_FOUND.value()) {
+            if (objetoNoEncontrado(response)) {
                 throw new ApiException(HttpStatus.NOT_FOUND, "Archivo de evidencia no encontrado en Storage");
             }
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
@@ -121,6 +122,18 @@ public class SupabaseStorageClient implements EvidenciaStorageClient {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "La ruta de evidencia almacenada no es valida");
         }
         return urlArchivo.substring(prefijo.length());
+    }
+
+    private boolean objetoNoEncontrado(HttpResponse<byte[]> response) {
+        if (response.statusCode() == HttpStatus.NOT_FOUND.value()) {
+            return true;
+        }
+        if (response.statusCode() != HttpStatus.BAD_REQUEST.value()) {
+            return false;
+        }
+
+        String body = new String(response.body(), StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+        return body.contains("\"statuscode\":\"404\"") || body.contains("\"statuscode\":404") || body.contains("\"error\":\"not_found\"");
     }
 
     private String encode(String value) {

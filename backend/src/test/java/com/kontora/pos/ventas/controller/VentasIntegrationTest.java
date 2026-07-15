@@ -137,6 +137,80 @@ class VentasIntegrationTest {
     }
 
     @Test
+    void consultaDetalleParaAnulacionMuestraVasosYPagosSoloParaRolesAutorizados() throws Exception {
+        crearCajaAbierta();
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+
+        String response = mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestVentaHibridaTrabajador())))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        UUID idVenta = UUID.fromString(objectMapper.readValue(response, Map.class).get("idVenta").toString());
+
+        mockMvc.perform(get("/api/ventas/{idVenta}/anulacion", idVenta)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estadoVenta").value("registrada"))
+                .andExpect(jsonPath("$.detalles[0].nombreTipo").value("con_licor"))
+                .andExpect(jsonPath("$.detalles[0].onzas").value(8))
+                .andExpect(jsonPath("$.detalles[0].cantidad").value(3))
+                .andExpect(jsonPath("$.pagos[0].nombreMetodo").value("efectivo"))
+                .andExpect(jsonPath("$.pagos[0].valorPago").value(5000.00))
+                .andExpect(jsonPath("$.pagos[1].nombreMetodo").value("transferencia"))
+                .andExpect(jsonPath("$.pagos[1].valorPago").value(15000.00));
+
+        mockMvc.perform(get("/api/ventas/{idVenta}/anulacion", idVenta)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo administrador o gerente puede anular ventas"));
+    }
+
+    @Test
+    void gerenteNoValidaTransferenciaDeUnaVentaAnulada() throws Exception {
+        crearCajaAbierta();
+        String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
+        String tokenAdmin = iniciarSesion(USUARIO_ADMIN);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        String response = mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenVendedor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestVentaHibridaTrabajador())))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        UUID idVenta = UUID.fromString(objectMapper.readValue(response, Map.class).get("idVenta").toString());
+        UUID idPagoTransferencia = jdbcTemplate.queryForObject("""
+                SELECT pv.id_pago_venta
+                FROM pagos_venta pv
+                JOIN metodos_pago mp ON mp.id_metodo_pago = pv.id_metodo_pago
+                WHERE pv.id_venta = ?
+                AND mp.nombre_metodo = 'transferencia'
+                """, UUID.class, idVenta);
+
+        mockMvc.perform(post("/api/ventas/{idVenta}/anular", idVenta)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("motivoAnulacion", "Prueba de anulacion"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estadoVenta").value("anulada"));
+
+        mockMvc.perform(post("/api/pagos-venta/{idPagoVenta}/validar", idPagoTransferencia)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje")
+                        .value("No se puede validar ni rechazar una transferencia de una venta anulada"));
+    }
+
+    @Test
     void listaBeneficiariosActivosYRegistraPromocionParaGerente() throws Exception {
         String token = iniciarSesion(USUARIO_VENDEDOR);
 

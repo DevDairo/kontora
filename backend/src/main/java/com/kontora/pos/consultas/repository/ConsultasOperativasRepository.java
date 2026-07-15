@@ -330,6 +330,7 @@ public class ConsultasOperativasRepository {
                     ON ae.id_pago_venta = pv.id_pago_venta
                     AND ae.estado = 'activo'
                 WHERE mp.nombre_metodo = 'transferencia'
+                AND v.estado_venta = 'registrada'
                 AND pv.estado_validacion::text IN (:estadosValidacion)
                 %s
                 GROUP BY

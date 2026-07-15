@@ -11,6 +11,7 @@ Gestionar stock general, stock diario de vasos, consumos manuales, perdidas y aj
 ## Funcionalidades
 
 - Consulta del stock diario de vasos de la caja abierta.
+- Orden visual de vasos por capacidad ascendente: 8, 12, 16, 20 y 24 onzas en apertura de paquetes, ingreso de stock general y stock diario.
 - Registro de paquetes de vasos abiertos, con 20 unidades por paquete y perdidas por dano.
 - Descuento automatico de vasos por ventas y restauracion por anulaciones.
 - Registro de conteo fisico final, diferencia y cantidad teorica.
@@ -32,6 +33,7 @@ Gestionar stock general, stock diario de vasos, consumos manuales, perdidas y aj
 - El stock general no requiere caja abierta para su administracion gerencial.
 - La caja abierta solo condiciona operaciones diarias: paquetes, consumos y conteos de vasos.
 - El stock diario de vasos no queda vacio por cambio de jornada cuando existe remanente.
+- El orden visual de los vasos no modifica existencias, movimientos ni calculos; solo facilita la operacion por tamano.
 - Un ajuste aprobado no puede dejar el stock general negativo.
 - Solicitud, aprobacion y rechazo de ajustes generan auditoria.
 

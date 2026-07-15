@@ -27,6 +27,7 @@ public class PagosVentaService {
     private static final String ESTADO_PENDIENTE = "pendiente";
     private static final String ESTADO_VALIDADA = "validada";
     private static final String ESTADO_RECHAZADA = "rechazada";
+    private static final String ESTADO_VENTA_REGISTRADA = "registrada";
 
     private final PagoVentaRepository pagoVentaRepository;
     private final UsuarioRepository usuarioRepository;
@@ -109,6 +110,11 @@ public class PagosVentaService {
     }
 
     private void validarTransferenciaPendiente(PagoVenta pagoVenta) {
+        if (!ESTADO_VENTA_REGISTRADA.equals(pagoVenta.getVenta().getEstadoVenta())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "No se puede validar ni rechazar una transferencia de una venta anulada");
+        }
         if (!METODO_TRANSFERENCIA.equals(pagoVenta.getMetodoPago().getNombreMetodo())) {
             throw new ApiException(HttpStatus.CONFLICT, "Solo pagos por transferencia pueden validarse o rechazarse");
         }

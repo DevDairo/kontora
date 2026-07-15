@@ -9,6 +9,7 @@ import {
   listarEvidenciasConsignacionBancaria,
   listarEvidenciasGastoCaja,
   listarEvidenciasPagoServicio,
+  messageForEvidenceDownload,
 } from "../services/evidenciasService";
 import {
   consultarGastosConEvidencia,
@@ -279,7 +280,7 @@ export function EvidenciasPanel({ token }: EvidenciasPanelProps) {
       enlace.remove();
       URL.revokeObjectURL(urlArchivo);
     } catch (error) {
-      setEvidenceError(messageFor(error));
+      setEvidenceError(messageForEvidenceDownload(error));
     } finally {
       setDownloadingEvidenceId(null);
     }

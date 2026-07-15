@@ -2,6 +2,7 @@ import { AlertCircle, ArchiveRestore, Ban, ClipboardPlus, History, Pencil, Plus,
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog";
 import { ApiClientError } from "../../../shared/services/apiClient";
+import { formatDisplayName } from "../../../shared/utils/displayText";
 import {
   actualizarEstadoItemInventario,
   actualizarItemInventario,
@@ -420,7 +421,7 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
               <div className="field-control plain">
                 <select value={priceForm.idTipoGranizado} onChange={(event) => setPriceForm((current) => ({ ...current, idTipoGranizado: event.target.value }))} required>
                   <option value="" disabled>Selecciona tipo</option>
-                  {tiposGranizado.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}
+                  {tiposGranizado.map((tipo) => <option key={tipo.id} value={tipo.id}>{formatDisplayName(tipo.nombre)}</option>)}
                 </select>
               </div>
             </label>
@@ -478,7 +479,7 @@ export function CatalogosGestionPanel({ catalogos, onCatalogosChanged, token }: 
             {filteredPrices.map((precio) => (
               <li className="catalog-price-history-row" key={precio.idPrecioGranizado}>
                 <span>
-                  <strong>{precio.nombreTipo} · {precio.onzas} oz</strong>
+                  <strong>{formatDisplayName(precio.nombreTipo)} · {precio.onzas} oz</strong>
                   <small>Desde {formatDate(precio.fechaInicioVigencia)} · Hasta {formatDate(precio.fechaFinVigencia)}</small>
                 </span>
                 <b>{formatCurrency(precio.valorPrecio)}</b>

@@ -7,6 +7,7 @@ import {
   cargarEvidenciaGastoCaja,
   descargarEvidencia,
   listarEvidenciasGastoCaja,
+  messageForEvidenceDownload,
 } from "../../evidencias/services/evidenciasService";
 import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import {
@@ -242,7 +243,7 @@ export function GastosPanel({ token, role }: GastosPanelProps) {
       enlace.remove();
       URL.revokeObjectURL(urlArchivo);
     } catch (error) {
-      setEvidenceError(messageFor(error));
+      setEvidenceError(messageForEvidenceDownload(error));
     } finally {
       setDownloadingEvidenceId(null);
     }

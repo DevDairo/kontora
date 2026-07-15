@@ -9,6 +9,10 @@ export function registrarVenta(token: string, request: RegistrarVentaRequest) {
   return apiClient.post<VentaResponse>("/ventas", JSON.stringify(request), { token });
 }
 
+export function consultarVentaParaAnulacion(token: string, idVenta: string) {
+  return apiClient.get<VentaResponse>(`/ventas/${idVenta}/anulacion`, { token });
+}
+
 export function anularVenta(token: string, idVenta: string, request: AnularVentaRequest) {
   return apiClient.post<VentaResponse>(`/ventas/${idVenta}/anular`, JSON.stringify(request), { token });
 }

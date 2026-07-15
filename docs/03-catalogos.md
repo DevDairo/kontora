@@ -19,6 +19,7 @@ Administrar los datos maestros que habilitan la operacion: items de inventario, 
 - Configuracion de cantidades minimas para alertas de inventario.
 - Registro de nuevas vigencias de precio por tipo de granizado y tamano de vaso, sin alterar ventas historicas.
 - Los vasos disponibles mantienen tamanos fijos; se modifican precios, no se crean tamanos desde el flujo de precios.
+- Los tipos de granizado se presentan con nombres legibles en selectores e historiales, sin alterar el valor tecnico almacenado.
 
 ## Permisos
 

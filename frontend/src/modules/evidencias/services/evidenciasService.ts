@@ -1,5 +1,17 @@
-import { apiClient } from "../../../shared/services/apiClient";
+import { ApiClientError, apiClient } from "../../../shared/services/apiClient";
 import type { ArchivoEvidenciaResponse } from "../types";
+
+export function messageForEvidenceDownload(error: unknown) {
+  if (error instanceof ApiClientError && (error.status === 401 || error.status === 404)) {
+    return "La evidencia solicitada no esta disponible para descargar.";
+  }
+
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+
+  return error instanceof Error ? error.message : "No fue posible descargar la evidencia.";
+}
 
 export function cargarEvidenciaPagoVenta(token: string, idPagoVenta: string, archivo: File) {
   const formData = new FormData();

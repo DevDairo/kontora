@@ -7,6 +7,7 @@ import {
   cargarAjusteEvidenciaPagoVenta,
   descargarEvidencia,
   listarEvidenciasPagoVenta,
+  messageForEvidenceDownload,
 } from "../../evidencias/services/evidenciasService";
 import type { ArchivoEvidenciaResponse } from "../../evidencias/types";
 import {
@@ -67,7 +68,11 @@ function messageFor(error: unknown) {
 }
 
 function statusLabel(status: EstadoTransferencia) {
-  return status === "pendiente" ? "Pendiente" : "Rechazada";
+  if (status === "pendiente") {
+    return "Pendiente";
+  }
+
+  return status === "validada" ? "Validada" : "Rechazada";
 }
 
 export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
@@ -75,6 +80,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
   const [fechaFin, setFechaFin] = useState(() => formatDateInput(new Date()));
   const [activeStatus, setActiveStatus] = useState<EstadoTransferencia>("pendiente");
   const [pendientes, setPendientes] = useState<ConsultaTransferencia[]>([]);
+  const [validadas, setValidadas] = useState<ConsultaTransferencia[]>([]);
   const [rechazadas, setRechazadas] = useState<ConsultaTransferencia[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -105,15 +111,18 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
     setErrorMessage(null);
 
     try {
-      const [pendientesResponse, rechazadasResponse] = await Promise.all([
+      const [pendientesResponse, validadasResponse, rechazadasResponse] = await Promise.all([
         consultarTransferencias(token, { ...filtroBase, estadoValidacion: "pendiente" }),
+        consultarTransferencias(token, { ...filtroBase, estadoValidacion: "validada" }),
         consultarTransferencias(token, { ...filtroBase, estadoValidacion: "rechazada" }),
       ]);
       setPendientes(pendientesResponse);
+      setValidadas(validadasResponse);
       setRechazadas(rechazadasResponse);
       setLoadState("success");
     } catch (error) {
       setPendientes([]);
+      setValidadas([]);
       setRechazadas([]);
       setLoadState("error");
       setErrorMessage(messageFor(error));
@@ -124,8 +133,13 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
     void cargarTransferencias();
   }, [cargarTransferencias]);
 
-  const transferenciasActivas = activeStatus === "pendiente" ? pendientes : rechazadas;
+  const transferenciasActivas = activeStatus === "pendiente"
+    ? pendientes
+    : activeStatus === "validada"
+      ? validadas
+      : rechazadas;
   const valorPendiente = pendientes.reduce((total, transferencia) => total + transferencia.valorPago, 0);
+  const valorValidado = validadas.reduce((total, transferencia) => total + transferencia.valorPago, 0);
   const valorRechazado = rechazadas.reduce((total, transferencia) => total + transferencia.valorPago, 0);
 
   async function cargarEvidencias(transferencia: ConsultaTransferencia) {
@@ -193,7 +207,7 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
       enlace.remove();
       URL.revokeObjectURL(urlArchivo);
     } catch (error) {
-      setEvidenceError(messageFor(error));
+      setEvidenceError(messageForEvidenceDownload(error));
     } finally {
       setDownloadingEvidenceId(null);
     }
@@ -278,19 +292,19 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
           <small>{formatCurrency(valorPendiente)}</small>
         </article>
         <article className="transferencias-summary-card">
+          <span>Validadas</span>
+          <strong>{validadas.length}</strong>
+          <small>{formatCurrency(valorValidado)}</small>
+        </article>
+        <article className="transferencias-summary-card">
           <span>Rechazadas</span>
           <strong>{rechazadas.length}</strong>
           <small>{formatCurrency(valorRechazado)}</small>
         </article>
         <article className="transferencias-summary-card">
           <span>Soportes</span>
-          <strong>{[...pendientes, ...rechazadas].reduce((total, item) => total + item.cantidadEvidencias, 0)}</strong>
+          <strong>{[...pendientes, ...validadas, ...rechazadas].reduce((total, item) => total + item.cantidadEvidencias, 0)}</strong>
           <small>Adjuntos en el periodo</small>
-        </article>
-        <article className="transferencias-summary-card">
-          <span>Periodo</span>
-          <strong>{fechaInicio || "Sin inicio"}</strong>
-          <small>{fechaFin || "Sin limite"}</small>
         </article>
       </div>
 
@@ -325,6 +339,9 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
       <div className="transferencias-tabs" role="tablist" aria-label="Estado de transferencia">
         <button className={activeStatus === "pendiente" ? "active" : ""} type="button" role="tab" aria-selected={activeStatus === "pendiente"} onClick={() => cambiarEstado("pendiente")}>
           Pendientes
+        </button>
+        <button className={activeStatus === "validada" ? "active" : ""} type="button" role="tab" aria-selected={activeStatus === "validada"} onClick={() => cambiarEstado("validada")}>
+          Validadas
         </button>
         <button className={activeStatus === "rechazada" ? "active" : ""} type="button" role="tab" aria-selected={activeStatus === "rechazada"} onClick={() => cambiarEstado("rechazada")}>
           Rechazadas
@@ -390,6 +407,12 @@ export function TransferenciasPanel({ role, token }: TransferenciasPanelProps) {
                 <div className="transferencias-decision-summary">
                   <XCircle size={18} aria-hidden="true" />
                   <span>Rechazada por {selectedTransferencia.nombreUsuarioValidacion ?? "usuario no disponible"} el {formatDateTime(selectedTransferencia.fechaValidacion)}{selectedTransferencia.observacionValidacion ? `: ${selectedTransferencia.observacionValidacion}` : "."}</span>
+                </div>
+              ) : null}
+              {selectedTransferencia.estadoValidacion === "validada" ? (
+                <div className="transferencias-decision-summary validated">
+                  <CheckCircle2 size={18} aria-hidden="true" />
+                  <span>Validada por {selectedTransferencia.nombreUsuarioValidacion ?? "usuario no disponible"} el {formatDateTime(selectedTransferencia.fechaValidacion)}{selectedTransferencia.observacionValidacion ? `: ${selectedTransferencia.observacionValidacion}` : "."}</span>
                 </div>
               ) : null}
 

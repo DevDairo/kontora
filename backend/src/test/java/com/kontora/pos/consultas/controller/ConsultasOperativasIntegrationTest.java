@@ -104,6 +104,55 @@ class ConsultasOperativasIntegrationTest {
     }
 
     @Test
+    void consultaTransferenciasValidadasPorPeriodo() throws Exception {
+        UUID idCajaDiaria = crearCajaAbierta();
+        crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("11000.00"), "validada");
+        crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("7000.00"), "pendiente");
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        mockMvc.perform(get("/api/consultas/transferencias")
+                        .param("estadoValidacion", "validada")
+                        .param("fechaInicio", FECHA_CAJA.toString())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].estadoValidacion").value("validada"))
+                .andExpect(jsonPath("$[0].valorPago").value(11000.00));
+    }
+
+    @Test
+    void consultaTransferenciasExcluyeVentasAnuladas() throws Exception {
+        UUID idCajaDiaria = crearCajaAbierta();
+        crearVentaTransferencia(idCajaDiaria, idUsuarioVendedor, new BigDecimal("11000.00"), "pendiente");
+        UUID idVentaAnulada = crearVentaTransferencia(
+                idCajaDiaria,
+                idUsuarioVendedor,
+                new BigDecimal("7000.00"),
+                "pendiente");
+        jdbcTemplate.update(
+                """
+                UPDATE ventas
+                SET estado_venta = 'anulada'::estado_venta_enum,
+                    motivo_anulacion = 'Anulacion de prueba',
+                    fecha_anulacion = ?,
+                    id_usuario_anulacion = ?
+                WHERE id_venta = ?
+                """,
+                fechaPrueba(),
+                idUsuarioAdmin,
+                idVentaAnulada);
+        String tokenGerente = iniciarSesion(USUARIO_GERENTE);
+
+        mockMvc.perform(get("/api/consultas/transferencias")
+                        .param("estadoValidacion", "pendiente")
+                        .param("fechaInicio", FECHA_CAJA.toString())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenGerente)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].valorPago").value(11000.00));
+    }
+
+    @Test
     void vendedorNoConsultaCierreDepositoNiAuditoria() throws Exception {
         String tokenVendedor = iniciarSesion(USUARIO_VENDEDOR);
 

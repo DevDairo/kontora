@@ -11,8 +11,10 @@ Consultar transferencias de ventas, revisar sus soportes y decidir las transfere
 
 ## Funcionalidades
 
-- Consulta de transferencias pendientes o rechazadas por periodo.
+- Consulta por periodo de transferencias pendientes, validadas o rechazadas.
+- Pestanas y totales separados para pendientes, validadas y rechazadas, disponibles tambien durante una caja abierta.
 - Visualizacion y descarga de comprobantes asociados.
+- Mensaje de disponibilidad uniforme cuando un comprobante no puede descargarse.
 - Validacion o rechazo con observacion opcional.
 - Carga de una evidencia correctiva que conserva los soportes anteriores.
 - Auditoria de validaciones, rechazos y ajustes de evidencia.
@@ -29,12 +31,14 @@ Consultar transferencias de ventas, revisar sus soportes y decidir las transfere
 
 - Solo pagos con metodo `transferencia` pueden decidirse.
 - Solo una transferencia pendiente puede pasar a `validada` o `rechazada`.
-- Una transferencia validada conserva su trazabilidad en pagos y auditoria aunque deje de aparecer en la lista operativa.
+- Una transferencia validada deja de requerir decision, pero permanece visible en la pestana `Validadas` para consultar su responsable, fecha, soportes y trazabilidad. Esto tambien permite revisarla durante la jornada con caja abierta.
+- Las transferencias de una venta anulada se excluyen de las pestanas pendiente, validada y rechazada. Tampoco pueden validarse ni rechazarse; la venta y sus evidencias conservan trazabilidad en sus consultas correspondientes.
 - El gerente puede adjuntar un ajuste de evidencia sin restriccion de fecha; el soporte anterior se conserva.
+- Si un comprobante no esta disponible en Storage o la descarga no puede completarse, la interfaz informa que la evidencia solicitada no esta disponible para descargar.
 
 ## Endpoints principales
 
-- `GET /api/consultas/transferencias`
+- `GET /api/consultas/transferencias?estadoValidacion={pendiente|validada|rechazada}`
 - `GET /api/evidencias/pagos-venta/{idPagoVenta}`
 - `POST /api/pagos-venta/{idPagoVenta}/validar`
 - `POST /api/pagos-venta/{idPagoVenta}/rechazar`

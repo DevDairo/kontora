@@ -3666,6 +3666,11 @@ h3 {
   color: #a65b00;
 }
 
+.transferencias-status.validada {
+  background: #e4f8ed;
+  color: #087947;
+}
+
 .transferencias-status.rechazada {
   background: #ffe5e9;
   color: var(--danger);
@@ -3680,6 +3685,12 @@ h3 {
   font-weight: 700;
   line-height: 1.45;
   padding: 12px;
+}
+
+.transferencias-decision-summary.validated {
+  border-color: #a9e2c1;
+  background: #effbf4;
+  color: #087947;
 }
 
 .transferencias-support-heading {
@@ -4689,12 +4700,16 @@ h3 {
     z-index: 20;
     inset: 64px 0 0;
     display: none;
-    grid-template-rows: auto 1fr;
-    gap: 20px;
+    grid-template-rows: 1fr;
+    gap: 0;
     overflow-y: auto;
     border: 0;
     background: var(--surface);
     padding: 20px 18px 32px;
+  }
+
+  .sidebar > .brand {
+    display: none;
   }
 
   .sidebar.mobile-open {
