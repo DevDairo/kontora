@@ -73,6 +73,94 @@ Antes de la primera ejecucion en una base Supabase vacia, definir las mismas var
 
 En produccion no se debe borrar la base para cambiar credenciales. Usar siempre la gestion de usuarios por un gerente activo, conservar respaldos y mantener `BOOTSTRAP_MANAGER_ENABLED=false` despues del primer acceso.
 
+## Caso 4: reiniciar por completo la base Supabase de produccion
+
+Este proceso es destructivo. Usarlo solo si se desea iniciar otra vez con los datos predeterminados del proyecto. Elimina la totalidad de las tablas, tipos y datos de la aplicacion en el esquema `public`: usuarios, catalogos, precios, promociones, existencias, ventas, cajas, movimientos, auditoria y metadatos de evidencias.
+
+Los objetos fisicos del bucket de Supabase Storage no se eliminan con este proceso. Quedaran sin referencia si pertenecian a registros eliminados y se deben limpiar desde Storage solo si ya no se requieren.
+
+1. Hacer una copia de seguridad si existe algun dato que deba conservarse.
+2. En la VM, editar `~/apps/kontora/infra/.env` y preparar el gerente que se creara al finalizar las migraciones:
+
+```env
+BOOTSTRAP_MANAGER_ENABLED=true
+BOOTSTRAP_MANAGER_USERNAME=gerenteLocal
+BOOTSTRAP_MANAGER_FULL_NAME=Gerente Local
+BOOTSTRAP_MANAGER_PASSWORD=<contrasena-segura-de-8-a-72-caracteres>
+```
+
+3. Detener solo el backend. Cloudflare Tunnel no requiere cambios:
+
+```bash
+cd ~/apps/kontora
+docker compose --env-file infra/.env -f infra/compose.prod.yml stop backend
+```
+
+4. En Supabase, abrir **SQL Editor** y ejecutar una unica vez:
+
+```sql
+BEGIN;
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+COMMIT;
+```
+
+5. Iniciar y reconstruir el backend. Flyway aplicara las migraciones desde cero y el bootstrap creara el gerente porque `usuarios` estara vacia:
+
+```bash
+cd ~/apps/kontora
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --build --force-recreate backend
+docker compose --env-file infra/.env -f infra/compose.prod.yml logs --tail=150 backend | grep -Ei "Started Kontora|provision|gerente"
+curl -i http://127.0.0.1:8080/api/health
+```
+
+La salida debe indicar que se provisiono el gerente inicial y mencionar `gerenteLocal`; el health debe responder `HTTP/1.1 200`.
+
+6. En Supabase SQL Editor, verificar usuario, rol y credencial:
+
+```sql
+SELECT
+  u.nombre_usuario,
+  u.nombre_completo,
+  u.estado AS estado_usuario,
+  r.nombre_rol,
+  c.estado AS estado_credencial,
+  c.requiere_cambio_contrasena,
+  u.fecha_creacion
+FROM usuarios u
+JOIN roles r ON r.id_rol = u.id_rol
+JOIN credenciales_usuario c ON c.id_usuario = u.id_usuario
+WHERE u.nombre_usuario = 'gerenteLocal';
+```
+
+7. Iniciar sesion en la aplicacion con las credenciales configuradas. La contrasena no puede consultarse desde Supabase porque se almacena como hash BCrypt.
+8. Desactivar el bootstrap para impedir que un futuro reinicio cree una cuenta nueva si alguna vez se vacia la tabla `usuarios`:
+
+```bash
+cd ~/apps/kontora
+nano infra/.env
+```
+
+Cambiar solamente esta linea y guardar:
+
+```env
+BOOTSTRAP_MANAGER_ENABLED=false
+```
+
+9. Recrear solo el backend para que lea la nueva variable y validar su salud:
+
+```bash
+docker compose --env-file infra/.env -f infra/compose.prod.yml up -d --force-recreate backend
+curl -i http://127.0.0.1:8080/api/health
+```
+
+El bootstrap queda desactivado y el gerente ya creado conserva sus credenciales y permisos. El reinicio no cierra cajas ni modifica datos adicionales.
+
 ## Validacion realizada
 
 El 2026-07-12 se valido el bootstrap en contenedores aislados con una base PostgreSQL vacia. El backend creo un unico usuario `gerenteLocal`, con rol `gerente`, usuario y credencial activos, y el login respondio correctamente.

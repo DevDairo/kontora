@@ -296,6 +296,17 @@ El backend crea el gerente solo cuando `usuarios` esta vacia. Esta regla se vali
 
 El procedimiento completo, incluidos los casos de una cuenta existente y el reinicio seguro de una instalacion local de prueba, esta en [docs/14-credenciales-gerente-inicial.md](docs/14-credenciales-gerente-inicial.md).
 
+### Reinicio controlado de la base Supabase
+
+Usar este procedimiento solo cuando se haya decidido descartar **todos** los datos de produccion. Elimina usuarios, catalogos, precios, inventario, ventas, cajas, auditoria y metadatos de evidencias de la aplicacion. Los archivos fisicos del bucket de Supabase Storage no se eliminan automaticamente y deben revisarse por separado.
+
+1. Antes de detener el backend, configurar temporalmente el bootstrap en `infra/.env` con las credenciales que tendra el nuevo gerente inicial.
+2. Detener solo el backend, ejecutar el reinicio de `public` desde Supabase SQL Editor y volver a iniciar el backend. Flyway recrea el esquema, los datos iniciales y el gerente configurado.
+3. Verificar el log de provision y la fila del usuario. No es posible consultar la contrasena porque se guarda como hash.
+4. Cuando el login del gerente haya sido confirmado, cambiar `BOOTSTRAP_MANAGER_ENABLED=false` y recrear solo el contenedor backend. Las demas variables `BOOTSTRAP_MANAGER_*` pueden conservarse, pero ya no se usan mientras el bootstrap este desactivado.
+
+El bloque SQL, las verificaciones y los comandos exactos estan en [docs/14-credenciales-gerente-inicial.md](docs/14-credenciales-gerente-inicial.md#caso-4-reiniciar-por-completo-la-base-supabase-de-produccion).
+
 ## Despliegue del backend en servidor
 
 Requisitos: Ubuntu Server con Docker Engine y acceso saliente a Supabase. Copiar el repositorio al servidor y crear `infra/.env` desde la plantilla exclusiva de produccion:
